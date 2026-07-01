@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="TrackXpense is a local-first, zero-tracker personal finance manager. Complete control over your expenses and assets with secure sync protocols." />
+    <meta name="keywords" content="finance manager, expense tracker, local first, privacy first, asset suite, zero trackers, encrypted sync" />
+    <title>TrackXpense | Expense Tracker</title>
+    <link rel="manifest" href="manifest.json?v=3">
+    <link rel="icon" href="icon.png?v=3" type="image/png">
+    <link rel="apple-touch-icon" href="icon.png?v=3">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Immediate theme application to prevent FOUC
+      try {
+        const storedData = localStorage.getItem('zenwallet_v4_data');
+        if (storedData) {
+          const parsed = JSON.parse(storedData);
+          const theme = parsed.settings?.theme || 'indigo';
+          const darkMode = parsed.settings?.darkMode !== false; 
+          document.body.classList.add(`theme-${theme}`);
+          if (!darkMode) document.body.classList.add('light-mode');
+        } else {
+            document.body.classList.add('theme-indigo');
+        }
+      } catch (e) {}
+
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: 'rgb(var(--color-primary) / <alpha-value>)', 
+              secondary: '#32d74b', 
+              danger: '#ff453a', 
+              dark: 'rgb(var(--bg-core) / <alpha-value>)', 
+              card: 'rgb(var(--bg-card) / <alpha-value>)', 
+              surface: 'rgb(var(--bg-surface) / <alpha-value>)',
+              main: 'rgb(var(--text-main) / <alpha-value>)',
+              muted: 'rgb(var(--text-muted) / <alpha-value>)',
+            },
+            fontFamily: {
+              sans: [
+                '-apple-system', 
+                'BlinkMacSystemFont', 
+                '"Hind Siliguri"', 
+                '"Segoe UI"', 
+                'Roboto', 
+                'Helvetica', 
+                'Arial', 
+                'sans-serif'
+              ],
+            },
+            boxShadow: {
+              'glow': '0 0 20px rgb(var(--color-primary) / 0.4)',
+              'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
+            },
+            padding: {
+                'safe': 'env(safe-area-inset-top)',
+                'safe-bottom': 'env(safe-area-inset-bottom)',
+            },
+            borderRadius: {
+              'xl': 'var(--bento-radius)',
+              'lg': 'var(--bento-radius)',
+              'md': 'var(--bento-radius)',
+              'sm': 'var(--bento-radius)',
+              'sidebar': 'var(--sidebar-radius)',
+            },
+            animation: {
+                'pull-release': 'pullRelease 0.4s ease-out forwards',
+            },
+            keyframes: {
+                pullRelease: {
+                    '0%': { transform: 'translateY(20px)', opacity: '0.5' },
+                    '100%': { transform: 'translateY(0)', opacity: '1' },
+                }
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" href="./index.css">
+</head>
+  <body>
+    <div id="root" class="safe-area"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./service-worker.js')
+            .then(reg => console.log('SW registered'))
+            .catch(err => console.log('SW failed', err));
+        });
+      }
+    </script>
+  <script type="module" src="./index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TrackXpense</string>
+    <string name="title_activity_main">TrackXpense</string>
+    <string name="package_name">com.trackxpense.app</string>
+    <string name="custom_url_scheme">com.trackxpense.app</string>
+</resources>
