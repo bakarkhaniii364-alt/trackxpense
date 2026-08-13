@@ -61,7 +61,7 @@ export function loadRabbAiConversations(): RabbAiConversation[] {
       {
         id: `msg_${Date.now()}`,
         sender: 'rabbai',
-        text: 'Hello! I am RabbAi, your personal AI financial assistant. Ask me anything about your balance, or snap/upload a receipt photo for instant OCR logging!',
+        text: 'Beloved goy! I am RabbAi, your personal AI financial assistant. Ask me anything about your balance, or snap/upload a receipt photo for instant OCR logging.',
         timestamp: new Date().toISOString()
       }
     ]
@@ -186,12 +186,22 @@ Rules:
 
         let extracted: RabbAiMessage['extractedTransaction'] = undefined;
         let aiAction: RabbAiMessage['aiAction'] = undefined;
-        const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/);
-        let cleanText = rawContent.replace(/```json\s*([\s\S]*?)\s*```/g, '').trim();
 
-        if (jsonMatch && jsonMatch[1]) {
+        // Primary: match fenced ```json ... ``` block
+        const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/);
+        // Secondary: match a bare { ... } JSON object not inside a code fence
+        const bareJsonMatch = !jsonMatch && rawContent.match(/\{[\s\S]*?"action"[\s\S]*?\}/);
+
+        let cleanText = rawContent
+          .replace(/```json\s*[\s\S]*?```/g, '')
+          .replace(/\{[\s\S]*?"action"[\s\S]*?\}/g, '')
+          .trim();
+
+        const jsonSource = jsonMatch?.[1] ?? (bareJsonMatch ? bareJsonMatch[0] : null);
+
+        if (jsonSource) {
           try {
-            const parsed = JSON.parse(jsonMatch[1]);
+            const parsed = JSON.parse(jsonSource);
             const act = parsed.action;
 
             if (act === 'ADD_TRANSACTION' && typeof parsed.amount === 'number' && parsed.amount > 0) {
@@ -225,10 +235,15 @@ Rules:
           }
         }
 
+        // When an action card is present, show a neutral fallback if the model left no prose.
+        // Never fall back to rawContent — that would leak the JSON block into the chat bubble.
+        const hasAction = !!(extracted || aiAction);
+        const displayText = cleanText || (hasAction ? 'Got it! Review the action below.' : 'I processed your request.');
+
         return {
           id: `msg_${Date.now()}`,
           sender: 'rabbai',
-          text: cleanText || rawContent,
+          text: displayText,
           timestamp: new Date().toISOString(),
           extractedTransaction: extracted,
           aiAction
@@ -313,11 +328,16 @@ Write a brief friendly 1-2 sentence description of the scanned receipt items abo
 
         let extracted: RabbAiMessage['extractedTransaction'] = undefined;
         const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/);
-        let cleanText = rawContent.replace(/```json\s*([\s\S]*?)\s*```/g, '').trim();
+        let cleanText = rawContent
+          .replace(/```json\s*[\s\S]*?```/g, '')
+          .replace(/\{[\s\S]*?"amount"[\s\S]*?\}/g, '')
+          .trim();
 
-        if (jsonMatch && jsonMatch[1]) {
+        const jsonSource = jsonMatch?.[1] ?? null;
+
+        if (jsonSource) {
           try {
-            const parsed = JSON.parse(jsonMatch[1]);
+            const parsed = JSON.parse(jsonSource);
             if (typeof parsed.amount === 'number' && parsed.amount > 0) {
               extracted = {
                 amount: parsed.amount,
@@ -331,10 +351,13 @@ Write a brief friendly 1-2 sentence description of the scanned receipt items abo
           }
         }
 
+        // Never fall back to rawContent — that would leak the JSON block into the chat bubble.
+        const displayText = cleanText || (extracted ? 'Receipt scanned! Review the log card below.' : 'Scanned receipt details extracted below:');
+
         return {
           id: `msg_${Date.now()}`,
           sender: 'rabbai',
-          text: cleanText || 'Scanned receipt details extracted below:',
+          text: displayText,
           timestamp: new Date().toISOString(),
           extractedTransaction: extracted
         };
