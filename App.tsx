@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { NavBar } from './components/NavBar';
 import { MobileMenuView } from './components/MobileMenuView';
-import { Transaction, ViewState, TransactionType, AppData, Wallet, WalletType, Debt, TransactionTemplate, DebtPayment, Category, ThemeOption } from './types';
+import { Transaction, ViewState, TransactionType, AppData, Wallet, WalletType, Debt, TransactionTemplate, DebtPayment, Category, CategoryItem, ThemeOption } from './types';
 import { PredictiveEngine } from './services/PredictiveEngine';
 import * as StorageService from './services/storage';
 import { DashboardView } from './components/DashboardView';
@@ -749,6 +749,26 @@ export default function App() {
     
     const newTx = { ...t, updated_at: new Date().toISOString() };
 
+    // Auto-create category if it does not exist in categories list
+    let updatedCategories = data.categories || [];
+    const normalizedCategory = (t.category || '').trim();
+    if (normalizedCategory) {
+      const catExists = updatedCategories.some(
+        c => c.name.trim().toLowerCase() === normalizedCategory.toLowerCase()
+      );
+      if (!catExists) {
+        const newCategoryItem: CategoryItem = {
+          id: `cat_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          name: normalizedCategory,
+          type: t.type === TransactionType.INCOME ? TransactionType.INCOME : TransactionType.EXPENSE,
+          icon: 'Tag',
+          color: '#6366f1',
+          isSystem: false
+        };
+        updatedCategories = [...updatedCategories, newCategoryItem];
+      }
+    }
+
     // Auto-Taxonomy update
     let newMap = { ...data.lastUsedCategoryMap };
     if (t.note) {
@@ -757,6 +777,7 @@ export default function App() {
 
     updateData({ 
         transactions: [newTx, ...data.transactions],
+        categories: updatedCategories,
         lastUsedCategoryMap: newMap
     });
     
