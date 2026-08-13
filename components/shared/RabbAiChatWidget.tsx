@@ -190,7 +190,7 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({ data, onAddT
           title="Open RabbAi Assistant"
         >
           <div className="relative flex items-center justify-center">
-            <Zap size={20} className="text-amber-400 stroke-[1.5px] group-hover:scale-110 transition-transform" />
+            <img src="/rabAi icon.png" alt="RabbAi" className="w-6 h-6 object-contain group-hover:scale-110 transition-transform" />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[var(--bg-surface)]" />
           </div>
           <span className="text-[13px] font-semibold tracking-tight">RabbAi</span>
@@ -204,7 +204,7 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({ data, onAddT
           {/* Header Bar */}
           <div className="h-[52px] px-4 border-b border-[var(--border-default)] bg-[var(--bg-subtle)]/50 flex items-center justify-between shrink-0 relative">
             <div className="flex items-center gap-2">
-              <Zap size={18} className="text-amber-400 stroke-[1.5px]" />
+              <img src="/rabAi icon.png" alt="RabbAi" className="w-5 h-5 object-contain" />
               <div className="flex flex-col">
                 <span className="text-[13px] font-bold text-[var(--text-primary)] tracking-tight">RabbAi Assistant</span>
                 <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
@@ -332,7 +332,7 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({ data, onAddT
                             onClick={() => handleLogExtracted(msg.id, msg.extractedTransaction!)}
                             className="w-full py-1.5 px-3 bg-amber-500 hover:bg-amber-600 text-black font-semibold text-[12px] rounded-[6px] flex items-center justify-center gap-1.5 transition-all shadow-xs"
                           >
-                            <Zap size={13} />
+                            <img src="/rabAi icon.png" alt="RabbAi" className="w-3.5 h-3.5 object-contain" />
                             <span>Log {data.settings.currencySymbol || '$'}{msg.extractedTransaction.amount} to Wallet</span>
                           </button>
                         )}
@@ -346,7 +346,7 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({ data, onAddT
             {/* Loading Indicator */}
             {isLoading && (
               <div className="flex items-center gap-2 text-[12px] text-[var(--text-muted)] p-2">
-                <Zap size={14} className="animate-spin text-amber-400" />
+                <img src="/rabAi icon.png" alt="RabbAi" className="w-4 h-4 object-contain animate-bounce" />
                 <span>RabbAi is analyzing input & scanning OCR...</span>
               </div>
             )}
