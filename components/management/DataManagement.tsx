@@ -52,7 +52,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({
   };
 
   return (
-    <div className={`space-y-6 ${isCompact ? '' : 'max-w-5xl mx-auto pb-10'}`}>
+    <div className={`space-y-6 ${isCompact ? '' : 'w-full mx-auto pb-10'}`}>
       {!isCompact && (
         <div className="flex items-center gap-3">
           <div className="p-3 bg-primary/20 text-primary rounded-sm border border-primary/20">

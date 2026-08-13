@@ -84,16 +84,18 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onContinueAsGuest }) => 
                 </div>
               </div>
 
-              <div className="flex gap-1 bg-white/5 p-1 rounded-sm mb-6">
+              <div className="tabs w-full flex mb-6">
                 <button
+                  type="button"
                   onClick={() => setIsSignUp(false)}
-                  className={`flex-1 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider transition-all ${!isSignUp ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/50'}`}
+                  className={`tab flex-1 text-center ${!isSignUp ? 'is-active' : ''}`}
                 >
                   Sign In
                 </button>
                 <button
+                  type="button"
                   onClick={() => setIsSignUp(true)}
-                  className={`flex-1 py-1.5 rounded-sm text-xs font-bold uppercase tracking-wider transition-all ${isSignUp ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/50'}`}
+                  className={`tab flex-1 text-center ${isSignUp ? 'is-active' : ''}`}
                 >
                   Sign Up
                 </button>
@@ -159,7 +161,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onContinueAsGuest }) => 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-primary hover:brightness-110 disabled:opacity-50 text-white font-black text-xs uppercase tracking-[0.2em] py-3.5 rounded-sm shadow-lg shadow-primary/20 flex items-center justify-center gap-2 group transition-all active:scale-[0.98] mt-2"
+                  className="btn btn--primary w-full justify-center text-xs uppercase tracking-[0.2em] mt-2"
                 >
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

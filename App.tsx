@@ -1,6 +1,4 @@
-
 import React, { useState, useEffect } from 'react';
-import './components/pc/desktop-theme.css';
 import { NavBar } from './components/NavBar';
 import { MobileMenuView } from './components/MobileMenuView';
 import { Transaction, ViewState, TransactionType, AppData, Wallet, WalletType, Debt, TransactionTemplate, DebtPayment, Category, ThemeOption } from './types';
@@ -29,7 +27,8 @@ import {
   ChevronDown, 
   X, PlusCircle, Check,
   Plus, Activity, AlertCircle,
-  ChevronLeft
+  ChevronLeft, ChevronRight,
+  LayoutGrid, TrendingUp, ArrowDownRight, Calendar, Ghost, UserCircle, Search, Info
 } from 'lucide-react';
 import { CategoryIcon } from './components/shared/CategoryIcon';
 import { getDateTime, formatMoney } from './utils/formatters';
@@ -38,22 +37,23 @@ import { useAuth } from './hooks/useAuth';
 import { AuthScreen } from './components/AuthScreen';
 import { syncEngine } from './services/SyncEngine';
 import { SyncIndicator } from './components/SyncIndicator';
+import { RabbAiChatWidget } from './components/shared/RabbAiChatWidget';
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose: () => void, onConfirm: () => void }) => {
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onClick={onClose} />
-            <div className="relative bg-card w-full max-w-xs rounded-sm p-6 border border-main/10 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="absolute inset-0 bg-black/60 transition-opacity" onClick={onClose} />
+            <div className="relative bg-[var(--bg-surface)] w-full max-w-xs rounded-[10px] p-6 border border-[var(--border-default)] animate-in zoom-in-95 duration-200">
                 <div className="flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 mb-4 border border-rose-500/20">
-                        <Trash2 size={24} />
+                    <div className="w-10 h-10 rounded-[6px] bg-[var(--status-error-bg)] text-[var(--status-error-fg)] flex items-center justify-center mb-4">
+                        <Trash2 size={20} className="stroke-[1.5px]" />
                     </div>
-                    <h3 className="text-xl font-bold text-main mb-2">Delete Item?</h3>
-                    <p className="text-sm text-muted mb-6">This action cannot be undone.</p>
-                    <div className="flex gap-3 w-full">
-                        <button onClick={onClose} className="flex-1 py-3 rounded-sm bg-surface text-muted font-bold text-sm hover:bg-black/10 transition-colors">Cancel</button>
-                        <button onClick={onConfirm} className="flex-1 py-3 rounded-sm bg-rose-500 text-white font-bold text-sm hover:bg-rose-600 transition-colors">Delete</button>
+                    <h3 className="text-[15px] font-medium text-[var(--text-primary)] mb-1">Delete Item?</h3>
+                    <p className="text-[13px] text-[var(--text-secondary)] mb-6">This action cannot be undone.</p>
+                    <div className="flex gap-2 w-full">
+                        <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
+                        <button onClick={onConfirm} className="btn-destructive flex-1">Delete</button>
                     </div>
                 </div>
             </div>
@@ -65,17 +65,17 @@ const UnsavedChangesModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, 
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-[6100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={onClose} />
-            <div className="relative liquid-glass w-full max-w-xs rounded-sm p-8 border border-main/10 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="absolute inset-0 bg-black/60 transition-opacity" onClick={onClose} />
+            <div className="relative bg-[var(--bg-surface)] w-full max-w-xs rounded-[10px] p-6 border border-[var(--border-default)] animate-in zoom-in-95 duration-200">
                 <div className="flex flex-col items-center text-center">
-                    <div className="w-14 h-14 rounded-md bg-amber-500/20 text-amber-500 flex items-center justify-center mb-6 border border-amber-500/20">
-                        <AlertCircle size={28} />
+                    <div className="w-10 h-10 rounded-[6px] bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] flex items-center justify-center mb-4">
+                        <AlertCircle size={20} className="stroke-[1.5px]" />
                     </div>
-                    <h3 className="text-xl font-bold text-main mb-2">Unsaved Changes</h3>
-                    <p className="text-sm text-muted mb-8 font-medium">You have unsaved modifications in Settings. Do you want to discard them and proceed?</p>
-                    <div className="flex flex-col gap-3 w-full">
-                        <button onClick={onConfirm} className="w-full py-4 rounded-sm bg-amber-500 text-white font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all">Discard & Continue</button>
-                        <button onClick={onClose} className="w-full py-4 rounded-sm bg-main/5 text-main/60 font-black text-[10px] uppercase tracking-widest hover:bg-main/10 transition-all">Stay & Save</button>
+                    <h3 className="text-[15px] font-medium text-[var(--text-primary)] mb-1">Unsaved Changes</h3>
+                    <p className="text-[13px] text-[var(--text-secondary)] mb-6">You have unsaved modifications. Do you want to discard them and proceed?</p>
+                    <div className="flex flex-col gap-2 w-full">
+                        <button onClick={onConfirm} className="btn-primary w-full">Discard & Continue</button>
+                        <button onClick={onClose} className="btn-secondary w-full">Stay & Save</button>
                     </div>
                 </div>
             </div>
@@ -160,6 +160,14 @@ export default function App() {
 
   const [isLocked, setIsLocked] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [walletSearchQuery, setWalletSearchQuery] = useState('');
+  const [isCreateWalletModalOpen, setIsCreateWalletModalOpen] = useState(false);
+  const [createWalletStep, setCreateWalletStep] = useState<1 | 2>(1);
+  const [newWalletName, setNewWalletName] = useState('');
+  const [newWalletCurrency, setNewWalletCurrency] = useState('$');
+  const [newWalletIsGoal, setNewWalletIsGoal] = useState(false);
+  const [newWalletTarget, setNewWalletTarget] = useState<number>(0);
+  const [newWalletColor, setNewWalletColor] = useState<ThemeOption>('indigo');
   const [privacyMasterKey, setPrivacyMasterKey] = useState<string>('');
   const [isStealthActive, setIsStealthActive] = useState(false);
 
@@ -293,22 +301,25 @@ export default function App() {
     }
   }, [view]);
 
-  // Global Keyboard Shortcuts (Desktop)
+  // Global Keyboard Shortcuts
   useEffect(() => {
-    if (!isDesktop) return;
     const handleShortcuts = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) return;
-      
       const key = e.key.toLowerCase();
+      
+      if ((e.metaKey || e.ctrlKey) && key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+        return;
+      }
+      
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
+      if (isInput || !isDesktop) return;
+      
       if (key === 'n') { e.preventDefault(); setIsAddOpen(true); }
       if (key === 'd') { e.preventDefault(); setView('dashboard'); }
       if (key === 'h') { e.preventDefault(); setView('history'); }
       if (key === 'a') { e.preventDefault(); setView('analytics'); }
       if (key === 'l') { e.preventDefault(); setView('debts'); }
-      if ((e.metaKey || e.ctrlKey) && key === 'k') {
-          e.preventDefault();
-          setIsCommandPaletteOpen(prev => !prev);
-      }
     };
     window.addEventListener('keydown', handleShortcuts);
     return () => window.removeEventListener('keydown', handleShortcuts);
@@ -827,7 +838,7 @@ export default function App() {
               </defs>
             </svg>
           )}
-      <div className="bg-noise" />
+      <div className="absolute inset-0 bg-noise opacity-15 pointer-events-none z-0" />
       
       <OnboardingModal isOpen={!data.settings.hasOnboarded} onComplete={handleOnboardingComplete} />
       
@@ -840,9 +851,10 @@ export default function App() {
         isStatic={isDesktop} 
         currentView={view} 
         onLogout={signOut}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
       
-      <div className="flex-1 flex flex-col overflow-hidden h-full">
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden h-full relative z-10">
         {/* Header - Hidden on Desktop Sidebar if we want a different layout, but let's keep it for now and refine */}
         {!isDesktop && (
           <div className="flex-none pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 px-4 shadow-sm border-b border-main/10 z-40 glass">
@@ -906,92 +918,88 @@ export default function App() {
         )}
 
         {isDesktop && (
-          <div className="flex-none px-8 py-2.5 glass border-b border-main/10 relative z-50">
-             <div className="max-w-none mx-auto flex items-center justify-between">
-                {/* Left: Page Identity */}
-                <div className="flex items-center gap-6">
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] leading-none mb-1">TrackXpense</span>
-                        <h2 className="text-xl font-bold text-white tracking-tight leading-none">
-                            {(() => {
-                                const titles: Record<string, string> = {
-                                    dashboard: 'Dashboard',
-                                    history: 'History',
-                                    analytics: 'Analytics',
-                                    debts: 'Debts',
-                                    identity: 'Profile Settings',
-                                    control: 'Budgets & Categories',
-                                    provisions: 'Upcoming Expenses',
-                                    subscriptions: 'Subscriptions'
-                                };
-                                return titles[view] || 'Overview';
-                            })()}
-                        </h2>
-                    </div>
+          <div className="flex-none h-[52px] bg-transparent flex items-center justify-between px-8 relative z-50">
+            {/* Left: Minimal Page Title with Icon */}
+            <div className="flex items-center gap-2">
+              {(() => {
+                const pageConfig: Record<string, { title: string; icon: React.ElementType }> = {
+                  dashboard: { title: 'Dashboard', icon: LayoutGrid },
+                  history: { title: 'Transactions', icon: Activity },
+                  analytics: { title: 'Analytics', icon: TrendingUp },
+                  debts: { title: 'Debts & Loans', icon: ArrowDownRight },
+                  control: { title: 'Budgets & Categories', icon: TrendingUp },
+                  provisions: { title: 'Upcoming Expenses', icon: Calendar },
+                  subscriptions: { title: 'Subscriptions', icon: Ghost },
+                  identity: { title: 'Profile & Settings', icon: UserCircle },
+                };
+                const current = pageConfig[view] || { title: 'Overview', icon: LayoutGrid };
+                const IconComp = current.icon;
+                return (
+                  <>
+                    <IconComp size={16} className="text-[var(--text-muted)] stroke-[1.5px]" />
+                    <h1 className="text-sm font-medium text-[var(--text-primary)] tracking-tight">
+                      {current.title}
+                    </h1>
+                  </>
+                );
+              })()}
+            </div>
 
-                    <div className="h-8 w-px bg-main/10 mx-2" />
+            {/* Right: Utilities */}
+            <div className="flex items-center gap-3">
+              {/* Current Wallet Selector Pill */}
+              <button 
+                onClick={() => {
+                  setWalletSearchQuery('');
+                  setIsWalletModalOpen(true);
+                }} 
+                className="flex items-center gap-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] active:scale-95 transition-all h-[32px] px-3 rounded-[6px] border border-[var(--border-default)] hover:border-[var(--border-active)] group"
+              >
+                <span className="text-[10px] text-[var(--text-muted)] uppercase font-medium">Wallet:</span>
+                <span className="text-xs font-medium text-[var(--text-primary)]">
+                  {data.wallets.find(w => w.id === data.currentWalletId)?.name}
+                </span>
+                <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
+              </button>
 
-                    <button 
-                        onClick={() => setIsWalletModalOpen(true)} 
-                        className="flex items-center gap-4 bg-main/5 hover:bg-main/10 active:scale-95 transition-all py-1.5 px-4 rounded-md border border-main/10 group"
-                    >
-                        <div className="flex flex-col items-start">
-                            <span className="text-[8px] text-muted/40 uppercase font-black tracking-widest mb-0.5">Current Wallet</span>
-                            <span className="text-xs font-bold text-main group-hover:text-primary transition-colors">
-                                {data.wallets.find(w => w.id === data.currentWalletId)?.name}
-                            </span>
-                        </div>
-                        <ChevronDown size={14} className="text-muted/30 group-hover:text-primary transition-colors" />
-                    </button>
-                </div>
+              {/* Runway Indicator */}
+              {(() => {
+                const walletTransactions = data.transactions.filter((t: Transaction) => t.walletId === data.currentWalletId);
+                const totalIncome = walletTransactions.filter((t: Transaction) => t.type === TransactionType.INCOME).reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+                const totalExpense = walletTransactions.filter((t: Transaction) => t.type === TransactionType.EXPENSE).reduce((sum: number, t: Transaction) => sum + t.amount, 0);
+                const balance = totalIncome - totalExpense;
+                const runwayDays = PredictiveEngine.getRunwayDays(data, balance);
+                
+                if (!isFinite(runwayDays) || runwayDays >= 999) return null;
+                
+                return (
+                  <div className="flex items-center gap-1.5 bg-[var(--status-success-bg)] h-[32px] px-2.5 rounded-[6px] border border-[var(--border-default)]">
+                    <Activity size={12} className="text-[var(--status-success-fg)]" />
+                    <span className="text-[10px] font-medium text-[var(--text-muted)]">Runway:</span>
+                    <span className="text-[11px] font-semibold text-[var(--text-primary)]">
+                      {!data.settings.privacyMode ? `${runwayDays} Days` : '••••'}
+                    </span>
+                  </div>
+                );
+              })()}
 
-                {/* Right: Primary Action */}
-                <div className="flex items-center gap-4">
-                    {/* Runway Indicator (Desktop Top Bar) */}
-                    {(() => {
-                        const walletTransactions = data.transactions.filter((t: Transaction) => t.walletId === data.currentWalletId);
-                        const totalIncome = walletTransactions.filter((t: Transaction) => t.type === TransactionType.INCOME).reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-                        const totalExpense = walletTransactions.filter((t: Transaction) => t.type === TransactionType.EXPENSE).reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-                        const balance = totalIncome - totalExpense;
-                        const runwayDays = PredictiveEngine.getRunwayDays(data, balance);
-                        
-                        if (!isFinite(runwayDays) || runwayDays >= 999) return null;
-                        
-                        return (
-                            <div className="flex items-center gap-2 bg-primary/5 px-3 py-1.5 rounded-sm border border-primary/20 animate-in fade-in slide-in-from-right-4">
-                                <Activity size={12} className="text-primary" />
-                                <div className="flex flex-col">
-                                    <span className="text-[8px] font-black text-muted/40 uppercase tracking-widest leading-none mb-0.5">Days Left</span>
-                                    <span className="text-[10px] font-bold text-main leading-none">
-                                        {!data.settings.privacyMode ? `${runwayDays} Days` : '••••'}
-                                    </span>
-                                </div>
-                            </div>
-                        );
-                    })()}
-
-                    <div className="flex items-center gap-3 pr-2">
-                        <SyncIndicator />
-                    </div>
-
-                    <button 
-                        onClick={() => openAddModal(undefined, TransactionType.EXPENSE)} 
-                        className="bg-primary text-white py-2 px-5 rounded-sm font-bold text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20"
-                    >
-                        <PlusCircle size={14} /> Add Transaction
-                    </button>
-                </div>
-             </div>
+              <button 
+                onClick={() => openAddModal(undefined, TransactionType.EXPENSE)} 
+                className="btn btn--primary text-[12px] h-[32px] px-3 font-medium rounded-[6px] flex items-center gap-1.5"
+              >
+                <PlusCircle size={15} className="btn__icon" /> Add Transaction
+              </button>
+            </div>
           </div>
         )}
         
         {/* Main Content */}
         <main 
           ref={mainRef}
-          className={`flex-1 w-full ${isDesktop ? 'max-w-none px-8 overflow-y-auto' : 'max-w-md mx-auto px-4 overflow-y-auto overflow-x-hidden pt-5'} relative ${!isDesktop ? 'pb-[calc(66px+env(safe-area-inset-bottom))]' : 'pb-4'}`}
+          className={`flex-1 min-w-0 min-h-0 w-full ${isDesktop ? 'max-w-none px-8 overflow-y-auto' : 'max-w-md mx-auto px-4 overflow-y-auto overflow-x-hidden pt-5'} relative ${!isDesktop ? 'pb-[calc(66px+env(safe-area-inset-bottom))]' : 'pb-4'}`}
         >
           {isDesktop ? (
-            <div className="w-full py-4 view-transition">
+            <div className="w-full max-w-6xl mx-auto py-4 view-transition">
                {view === 'dashboard' && (
                   <DesktopDashboard 
                       data={data} 
@@ -1006,6 +1014,7 @@ export default function App() {
                {view === 'history' && (
                   <DesktopHistory 
                       data={data} 
+                      updateData={updateData}
                       onRequestDelete={(id) => setDeleteConfirmation({ isOpen: true, id })} 
                       formatMoney={formatMoney} 
                       onEditTransaction={openEditModal}
@@ -1021,7 +1030,7 @@ export default function App() {
                   />
                )}
                {view === 'analytics' && (
-                  <DesktopAnalytics data={data} formatMoney={formatMoney} />
+                  <DesktopAnalytics data={data} updateData={updateData} formatMoney={formatMoney} />
                )}
                {view === 'identity' && (
                   <DesktopIdentity data={data} updateData={updateData} formatMoney={formatMoney} onDirtyChange={setIsDirty} onLogout={signOut} />
@@ -1059,6 +1068,7 @@ export default function App() {
                   <div className="h-auto p-0 lg:p-4">
                       <HistoryView 
                           data={data} 
+                          updateData={updateData}
                           onRequestDelete={(id) => setDeleteConfirmation({ isOpen: true, id })} 
                           formatMoney={formatMoney} 
                           onEditTransaction={openEditModal}
@@ -1084,7 +1094,7 @@ export default function App() {
               {view === 'analytics' && (
                 <div className="w-full view-transition">
                   <div className="h-auto p-0 lg:p-4">
-                      <AnalyticsView data={data} formatMoney={formatMoney} />
+                      <AnalyticsView data={data} updateData={updateData} formatMoney={formatMoney} />
                   </div>
                 </div>
               )}
@@ -1146,6 +1156,11 @@ export default function App() {
         setView={requestViewChange}
         onQuickAdd={handleAddTransaction}
       />
+
+      <RabbAiChatWidget 
+        data={data} 
+        onAddTransaction={handleAddTransaction} 
+      />
       
       {/* Modals */}
       <AddTransactionModal 
@@ -1175,151 +1190,250 @@ export default function App() {
         }} 
       />
 
+        {/* Wallet Dropdown Menu */}
         {isWalletModalOpen && (
-            <div className="fixed inset-0 z-[5000] flex items-center justify-center p-4">
-                <div className="absolute inset-0 bg-black/75 backdrop-blur-sm transition-opacity animate-in fade-in duration-200" onClick={() => setIsWalletModalOpen(false)}></div>
-                <div className="relative bg-card w-full lg:max-w-sm rounded-xl p-6 shadow-2xl border border-main/10 animate-in zoom-in-95 duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] pb-6 z-10">
+          <div className="fixed inset-0 z-[5000] flex items-start justify-end pt-[52px] pr-8 lg:pr-[260px]">
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity" onClick={() => setIsWalletModalOpen(false)} />
+            
+            <div className="relative w-[300px] bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] shadow-2xl overflow-visible z-10 text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150 p-1.5">
+              {/* Triangular Pointer / Nudge */}
+              <div className="absolute -top-[6px] right-[88px] w-2.5 h-2.5 bg-[var(--bg-surface)] border-t border-l border-[var(--border-default)] rotate-45 z-20" />
 
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex flex-col">
-                            <span className="text-[8px] font-black text-muted/50 uppercase tracking-[0.2em] mb-1">Choose Wallet</span>
-                            <h3 className="text-lg font-bold text-main tracking-tight">Your Wallets</h3>
-                        </div>
-                        <button 
-                            onClick={() => {
-                                Haptics.light();
-                                setIsWalletModalOpen(false);
-                            }} 
-                            className="p-2 bg-main/5 hover:bg-main/10 rounded-full text-muted active:scale-90 border border-main/10"
-                        >
-                            <X size={16} />
-                        </button>
-                    </div>
-                    
-                    <div className="space-y-2 mb-6 max-h-[40vh] overflow-y-auto no-scrollbar">
-                        {data.wallets.map(w => (
-                            <button 
-                                key={w.id} 
-                                onClick={() => { 
-                                    Haptics.success();
-                                    updateData({ currentWalletId: w.id }); 
-                                    setIsWalletModalOpen(false); 
-                                }} 
-                                className={`w-full px-4 py-3 rounded-md flex items-center justify-between border transition-all active:scale-[0.98] ${
-                                    w.id === data.currentWalletId 
-                                        ? 'bg-primary/10 border-primary/40 text-primary shadow-lg shadow-primary/5' 
-                                        : 'bg-main/5 border-main/10 text-main hover:bg-main/10'
-                                }`}
-                            >
-                                <div className="flex flex-col items-start">
-                                    <span className="text-xs font-bold">{w.name}</span>
-                                    {w.type === 'GOAL' && (
-                                        <span className="text-[8px] text-emerald-500 font-black uppercase tracking-widest mt-0.5">
-                                            Savings Goal
-                                        </span>
-                                    )}
-                                </div>
-                                {w.id === data.currentWalletId && <Check size={14} className="text-primary" />}
-                            </button>
-                        ))}
-                    </div>
-                    
-                    <div className="pt-6 border-t border-main/10">
-                        <form onSubmit={(e) => {
-                                e.preventDefault();
-                                const form = e.target as HTMLFormElement;
-                                const name = (form.elements.namedItem('walletName') as HTMLInputElement).value;
-                                const isGoal = (form.elements.namedItem('isGoal') as HTMLInputElement).checked;
-                                const target = isGoal ? parseFloat((form.elements.namedItem('target') as HTMLInputElement).value || '0') : 0;
-                                const currency = (form.elements.namedItem('currency') as HTMLInputElement).value;
-                                if (name) {
-                                    Haptics.success();
-                                    handleAddWallet(name, isGoal ? 'GOAL' : 'STANDARD', target, currency, selectedWalletColor);
-                                }
-                                form.reset();
-                                setSelectedWalletColor('indigo');
-                            }} className="flex flex-col gap-3">
-                            <div className="space-y-1.5">
-                                <label className="text-[8px] font-black text-muted/50 uppercase tracking-[0.2em] ml-1">New Wallet Name</label>
-                                <div className="flex items-center">
-                                  <input name="walletName" placeholder="e.g. Savings..." className="w-full bg-main/5 border border-main/10 rounded-md px-4 py-3 text-xs text-main focus:border-primary/40 outline-none font-bold placeholder-muted/40" required />
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 px-1 py-1">
-                                <input 
-                                    type="checkbox" 
-                                    id="isGoal" 
-                                    name="isGoal" 
-                                    className="w-3.5 h-3.5 rounded-md accent-primary" 
-                                    onChange={(e) => {
-                                        Haptics.light();
-                                        const targetInput = document.getElementById('targetInput');
-                                        if (targetInput) targetInput.style.display = e.target.checked ? 'block' : 'none';
-                                    }}
-                                />
-                                <label htmlFor="isGoal" className="text-[10px] text-muted font-bold uppercase tracking-widest select-none">Savings Goal</label>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[8px] font-black text-muted/50 uppercase tracking-[0.2em] ml-1">Wallet Currency</label>
-                                <div className="flex bg-main/5 p-1 rounded-md border border-main/10">
-                                    {['৳', '$', '€', '£'].map(curr => (
-                                        <button 
-                                            key={curr} 
-                                            type="button"
-                                            onClick={() => {
-                                                Haptics.light();
-                                                const input = document.getElementById('currencyInput') as HTMLInputElement;
-                                                if (input) input.value = curr;
-                                                // Trigger re-render of buttons
-                                                const btn = document.getElementById('currency-btn-' + curr);
-                                                if (btn && btn.parentElement) {
-                                                    btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('bg-primary', 'text-white'));
-                                                    btn.classList.add('bg-primary', 'text-white');
-                                                }
-                                            }}
-                                            id={'currency-btn-' + curr}
-                                            className={`flex-1 py-1.5 rounded-md text-[10px] font-black transition-all ${curr === data.settings.currencySymbol ? 'bg-primary text-white' : 'text-muted/50 hover:text-main'}`}
-                                        >
-                                            {curr}
-                                        </button>
-                                    ))}
-                                    <input type="hidden" id="currencyInput" name="currency" defaultValue={data.settings.currencySymbol} />
-                                </div>
-                            </div>
-                            
-                            <div className="space-y-1.5">
-                                <label className="text-[8px] font-black text-muted/50 uppercase tracking-[0.2em] ml-1">Wallet Color Theme</label>
-                                <div className="flex gap-2.5 px-1 py-1">
-                                    {[
-                                        { name: 'indigo' as ThemeOption, color: 'bg-[#5e5ce6]' },
-                                        { name: 'emerald' as ThemeOption, color: 'bg-[#30d158]' },
-                                        { name: 'rose' as ThemeOption, color: 'bg-[#ff453a]' },
-                                        { name: 'amber' as ThemeOption, color: 'bg-[#ff9f0a]' },
-                                        { name: 'blue' as ThemeOption, color: 'bg-[#0a84ff]' },
-                                    ].map(col => (
-                                        <button
-                                            key={col.name}
-                                            type="button"
-                                            onClick={() => {
-                                                Haptics.light();
-                                                setSelectedWalletColor(col.name);
-                                            }}
-                                            className={`w-6 h-6 rounded-full ${col.color} relative border transition-all ${
-                                                selectedWalletColor === col.name 
-                                                    ? 'ring-2 ring-primary ring-offset-2 ring-offset-black scale-110 border-white/20' 
-                                                    : 'opacity-70 border-transparent hover:opacity-100'
-                                            }`}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                            
-                            <input id="targetInput" name="target" type="number" placeholder="Target Amount..." className="w-full bg-main/5 border border-main/10 rounded-md px-4 py-3 text-xs text-main focus:border-primary/40 outline-none hidden font-bold placeholder-muted/40" />
-                            <button type="submit" className="bg-primary text-white py-3.5 rounded-md font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-primary/20"><PlusCircle size={16} /> Create Wallet</button>
-                        </form>
-                    </div>
-                </div>
+              {/* Top Search Input */}
+              <div className="px-2.5 py-1.5 flex items-center gap-2 border-b border-[var(--border-default)]/60 mb-1 relative z-10">
+                <Search size={14} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+                <input 
+                  type="text" 
+                  placeholder="Search wallets..." 
+                  value={walletSearchQuery}
+                  onChange={(e) => setWalletSearchQuery(e.target.value)}
+                  className="w-full bg-transparent border-none outline-none text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] font-normal"
+                />
+              </div>
+
+              {/* Wallet List */}
+              <div className="max-h-[220px] overflow-y-auto space-y-0.5 no-scrollbar relative z-10">
+                {data.wallets
+                  .filter(w => w.name.toLowerCase().includes(walletSearchQuery.toLowerCase()))
+                  .map(w => {
+                    const isSelected = w.id === data.currentWalletId;
+                    return (
+                      <button 
+                        key={w.id} 
+                        onClick={() => { 
+                          Haptics.success();
+                          updateData({ currentWalletId: w.id }); 
+                          setIsWalletModalOpen(false); 
+                        }} 
+                        className={`w-full h-[34px] px-2.5 flex items-center justify-between rounded-[6px] text-[13px] transition-colors ${
+                          isSelected 
+                            ? 'bg-[var(--bg-subtle)] text-[var(--text-primary)] font-medium' 
+                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] font-normal'
+                        }`}
+                      >
+                        <span className="truncate">{w.name}</span>
+                        {isSelected && <Check size={14} className="text-[var(--text-primary)] shrink-0 stroke-[2px]" />}
+                      </button>
+                    );
+                  })}
+              </div>
+
+              {/* Action Divider & Create Wallet Button */}
+              <div className="border-t border-[var(--border-default)]/60 my-1 pt-1 relative z-10">
+                <button 
+                  onClick={() => {
+                    setIsWalletModalOpen(false);
+                    setCreateWalletStep(1);
+                    setNewWalletName('');
+                    setNewWalletCurrency(data.settings.currencySymbol || '$');
+                    setNewWalletIsGoal(false);
+                    setNewWalletTarget(0);
+                    setNewWalletColor('indigo');
+                    setIsCreateWalletModalOpen(true);
+                  }}
+                  className="w-full h-[32px] px-2.5 flex items-center gap-2 rounded-[6px] text-[12px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                >
+                  <Plus size={14} className="stroke-[1.5px]" />
+                  <span>Create Wallet</span>
+                </button>
+              </div>
             </div>
+          </div>
+        )}
+
+        {/* Create Wallet Modal (2-Step Flow) */}
+        {isCreateWalletModalOpen && (
+          <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity animate-in fade-in duration-200" onClick={() => setIsCreateWalletModalOpen(false)} />
+            
+            <div className="relative w-full max-w-[480px] bg-[var(--bg-surface)] rounded-[16px] p-7 border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)] animate-in zoom-in-95 duration-200">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Create a Wallet</h2>
+                  <p className="text-[12px] text-[var(--text-muted)] mt-1">
+                    {createWalletStep === 1 ? 'Step 1 of 2: Enter wallet name' : `Step 2 of 2: Configuration for "${newWalletName}"`}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setIsCreateWalletModalOpen(false)}
+                  className="w-9 h-9 rounded-[8px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Step 1: Wallet Name Input & Callout Banner */}
+              {createWalletStep === 1 ? (
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 relative">
+                      <label className="text-[14px] font-medium text-[var(--text-primary)]">Wallet name</label>
+                      <div className="relative group cursor-pointer inline-flex items-center">
+                        <Info size={15} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" />
+                        <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-[250px] px-3 py-2 rounded-[6px] bg-[#1a1a1e] border border-[var(--border-default)] text-[12px] text-[var(--text-secondary)] shadow-xl z-50 pointer-events-none">
+                          You can rename the Wallet at any time in settings
+                        </div>
+                      </div>
+                    </div>
+                    <input 
+                      type="text" 
+                      value={newWalletName}
+                      onChange={(e) => setNewWalletName(e.target.value)}
+                      placeholder="My Wallet" 
+                      className="w-full h-[44px] px-3.5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] focus:border-[var(--border-active)] outline-none text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 transition-colors"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Info Callout Banner */}
+                  <div className="p-4 rounded-[10px] bg-blue-500/10 border border-blue-500/20 flex items-start gap-3 text-[13px] text-blue-400 leading-relaxed my-4">
+                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0 mt-0.5 font-bold text-[11px]">i</div>
+                    <span>This Wallet will be created with default settings. You can customize currency, target goals, and color theme anytime.</span>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsCreateWalletModalOpen(false)}
+                      className="h-[40px] px-5 rounded-[8px] border border-[var(--border-default)] text-[14px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="button"
+                      disabled={!newWalletName.trim()}
+                      onClick={() => {
+                        if (newWalletName.trim()) setCreateWalletStep(2);
+                      }}
+                      className="h-[40px] px-5 rounded-[8px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-[14px] font-medium transition-colors disabled:opacity-40 shadow-sm"
+                    >
+                      Create Wallet
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Step 2: Currency, Savings Goal & Theme Color (loads in same modal) */
+                <div className="space-y-5 animate-in fade-in duration-150">
+                  <div className="space-y-2">
+                    <label className="text-[13px] font-medium text-[var(--text-primary)]">Wallet Currency</label>
+                    <div className="flex bg-[var(--bg-subtle)] p-1 rounded-[8px] border border-[var(--border-default)]">
+                      {['৳', '$', '€', '£'].map(curr => (
+                        <button 
+                          key={curr} 
+                          type="button"
+                          onClick={() => setNewWalletCurrency(curr)}
+                          className={`flex-1 py-2 rounded-[6px] text-[13px] font-medium transition-all ${
+                            newWalletCurrency === curr 
+                              ? 'bg-[var(--accent-solid)] text-[var(--accent-text)]' 
+                              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                          }`}
+                        >
+                          {curr}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        id="modalIsGoal" 
+                        checked={newWalletIsGoal}
+                        onChange={(e) => setNewWalletIsGoal(e.target.checked)}
+                        className="w-4 h-4 rounded border-[var(--border-default)] accent-[#2563eb] cursor-pointer"
+                      />
+                      <label htmlFor="modalIsGoal" className="text-[14px] font-medium text-[var(--text-primary)] cursor-pointer select-none">Savings Goal</label>
+                    </div>
+                    {newWalletIsGoal && (
+                      <input 
+                        type="number" 
+                        value={newWalletTarget || ''}
+                        onChange={(e) => setNewWalletTarget(parseFloat(e.target.value) || 0)}
+                        placeholder="Target Amount..."
+                        className="w-full h-[40px] px-3.5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]/50"
+                      />
+                    )}
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <label className="text-[13px] font-medium text-[var(--text-primary)]">Theme Color</label>
+                    <div className="flex gap-3 py-1">
+                      {[
+                        { name: 'indigo' as ThemeOption, color: '#5e5ce6' },
+                        { name: 'emerald' as ThemeOption, color: '#30d158' },
+                        { name: 'rose' as ThemeOption, color: '#ff453a' },
+                        { name: 'amber' as ThemeOption, color: '#ff9f0a' },
+                        { name: 'blue' as ThemeOption, color: '#0a84ff' },
+                      ].map(col => (
+                        <button
+                          key={col.name}
+                          type="button"
+                          onClick={() => setNewWalletColor(col.name)}
+                          className={`w-8 h-8 rounded-full relative transition-all ${
+                            newWalletColor === col.name 
+                              ? 'ring-2 ring-white ring-offset-2 ring-offset-[#141417] scale-110' 
+                              : 'opacity-70 hover:opacity-100'
+                          }`}
+                          style={{ backgroundColor: col.color }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-4">
+                    <button 
+                      type="button" 
+                      onClick={() => setCreateWalletStep(1)}
+                      className="h-[40px] px-5 rounded-[8px] border border-[var(--border-default)] text-[14px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        if (newWalletName.trim()) {
+                          Haptics.success();
+                          handleAddWallet(
+                            newWalletName.trim(), 
+                            newWalletIsGoal ? 'GOAL' : 'STANDARD', 
+                            newWalletTarget, 
+                            newWalletCurrency, 
+                            newWalletColor
+                          );
+                          setIsCreateWalletModalOpen(false);
+                        }
+                      }}
+                      className="h-[40px] px-5 rounded-[8px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-[14px] font-medium transition-colors shadow-sm"
+                    >
+                      Finish & Save
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       
       {isUnsavedModalOpen && <UnsavedChangesModal isOpen={isUnsavedModalOpen} onClose={() => setIsUnsavedModalOpen(false)} onConfirm={handleDiscardChanges} />}
@@ -1335,6 +1449,35 @@ export default function App() {
         <VaultLock 
             correctPasscode={data.settings.vaultPasscode} 
             onUnlock={() => { setIsLocked(false); Haptics.success(); }} 
+        />
+      )}
+      {data && (
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          data={data}
+          onViewChange={(v) => requestViewChange(v)}
+          onQuickAdd={(type, quickData) => {
+            const newTx: Transaction = {
+              id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              amount: quickData.amount,
+              type,
+              category: quickData.category || 'Other',
+              date: new Date().toISOString(),
+              note: quickData.note || '',
+              walletId: data.currentWalletId
+            };
+            updateData({ transactions: [newTx, ...data.transactions] });
+            Haptics.success();
+          }}
+          onTogglePrivacy={() => {
+            updateData({ settings: { ...data.settings, privacyMode: !data.settings.privacyMode } });
+            Haptics.light();
+          }}
+          onSelectWallet={(walletId) => {
+            updateData({ currentWalletId: walletId });
+            Haptics.light();
+          }}
         />
       )}
     </div>

@@ -104,6 +104,7 @@ export interface Wallet {
   targetAmount?: number;
   currency?: string; // New: Multi-currency support
   color?: ThemeOption;
+  stealthMode?: boolean;
   updated_at?: string;
 }
 
@@ -144,6 +145,8 @@ export interface UserSettings {
   stealthModeEnabled?: boolean;
   stealthHotkey?: string;
   hapticsEnabled?: boolean;
+  groqApiKey?: string;
+  enableAiParsing?: boolean;
 }
 
 export interface UserProfile {

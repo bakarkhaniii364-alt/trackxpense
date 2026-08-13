@@ -31,14 +31,14 @@ export const StatsCard: React.FC<StatsCardProps> = ({ title, amount, type }) => 
   }
 
   return (
-    <div className={`glass-card p-4 rounded-sm shadow-sm transition-all active:scale-[0.98] ${type === 'balance' ? 'col-span-2 border-primary/20 bg-primary/5' : borderClass}`}>
+    <div className={`p-4 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] transition-colors ${type === 'balance' ? 'col-span-2' : ''}`}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-muted/40 text-[9px] font-black uppercase tracking-[0.2em]">{title}</span>
-        <div className="opacity-40">
+        <span className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-[0.06em]">{title}</span>
+        <div className="opacity-60">
           {icon}
         </div>
       </div>
-      <h3 className={`text-lg font-bold tracking-tight ${colorClass}`}>
+      <h3 className="text-[20px] font-medium tracking-tight text-[var(--text-primary)] font-mono">
         {formatMoney(amount)}
       </h3>
     </div>

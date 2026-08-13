@@ -122,7 +122,7 @@ export const SimulationModule: React.FC<SimulationModuleProps> = ({
                     <p className="text-[9px] font-black text-center text-white/20 uppercase tracking-widest italic">Note: Simulations are local and temporary. No data will be saved.</p>
                     <button 
                         onClick={onClose}
-                        className="w-full py-5 bg-white/5 hover:bg-white/10 text-white rounded-[24px] font-black text-[12px] uppercase tracking-[0.2em] transition-all active:scale-95 border border-white/10 flex items-center justify-center gap-3"
+                        className="btn btn--secondary w-full justify-center text-[11px] uppercase tracking-[0.2em]"
                     >
                         Close Simulator
                     </button>

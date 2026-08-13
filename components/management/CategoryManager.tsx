@@ -38,7 +38,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({ data, updateDa
   };
 
   return (
-    <div className={`space-y-4 ${isCompact ? '' : 'max-w-6xl mx-auto pb-10'}`}>
+    <div className={`space-y-4 ${isCompact ? '' : 'w-full mx-auto pb-10'}`}>
       {!isCompact && (
         <div>
           <h2 className="text-2xl font-bold text-main tracking-tight">Classification Engine</h2>

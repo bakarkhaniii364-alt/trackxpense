@@ -17,7 +17,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Immediate theme application to prevent FOUC
+      // Immediate theme application
       try {
         const storedData = localStorage.getItem('zenwallet_v4_data');
         if (storedData) {
@@ -36,8 +36,8 @@
           extend: {
             colors: {
               primary: 'rgb(var(--color-primary) / <alpha-value>)', 
-              secondary: '#32d74b', 
-              danger: '#ff453a', 
+              secondary: '#4ad991', 
+              danger: '#e2685c', 
               dark: 'rgb(var(--bg-core) / <alpha-value>)', 
               card: 'rgb(var(--bg-card) / <alpha-value>)', 
               surface: 'rgb(var(--bg-surface) / <alpha-value>)',
@@ -57,7 +57,7 @@
               ],
             },
             boxShadow: {
-              'glow': '0 0 20px rgb(var(--color-primary) / 0.4)',
+              'glow': '0 0 20px rgba(88, 196, 224, 0.4)',
               'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
             },
             padding: {
@@ -70,21 +70,11 @@
               'md': 'var(--bento-radius)',
               'sm': 'var(--bento-radius)',
               'sidebar': 'var(--sidebar-radius)',
-            },
-            animation: {
-                'pull-release': 'pullRelease 0.4s ease-out forwards',
-            },
-            keyframes: {
-                pullRelease: {
-                    '0%': { transform: 'translateY(20px)', opacity: '0.5' },
-                    '100%': { transform: 'translateY(0)', opacity: '1' },
-                }
             }
           }
         }
       }
     </script>
-    <link rel="stylesheet" href="./index.css">
 </head>
   <body>
     <div id="root" class="safe-area"></div>

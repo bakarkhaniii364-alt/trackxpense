@@ -1,33 +1,47 @@
-
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Download, Search, X, Calendar as CalendarIcon, Filter, Trash2, ArrowUp, ArrowDown, ChevronRight, LayoutGrid, List as ListIcon } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { 
+  Download, 
+  Search, 
+  X, 
+  Trash2, 
+  ArrowUp, 
+  ArrowDown, 
+  ChevronLeft, 
+  ChevronRight, 
+  ChevronsLeft, 
+  ChevronsRight, 
+  ListFilter, 
+  Receipt,
+  Plus
+} from 'lucide-react';
 import { Transaction, TransactionType, AppData } from '../../types';
 import { CategoryIcon } from '../shared/CategoryIcon';
-import { GlassDateInput } from '../shared/CommonUI';
+import { GlassCheckbox } from '../shared/CommonUI';
+import { EmptyStateSeeder } from '../shared/EmptyStateSeeder';
 
 interface DesktopHistoryProps {
     data: AppData;
+    updateData?: (d: Partial<AppData>) => void;
     onRequestDelete: (id: string) => void;
     formatMoney: (val: number, sym: string) => string;
     onEditTransaction: (t: Transaction) => void;
 }
 
+const ITEMS_PER_PAGE = 15;
+
 export const DesktopHistory: React.FC<DesktopHistoryProps> = ({ 
-    data, onRequestDelete, formatMoney, onEditTransaction 
+    data, updateData, onRequestDelete, formatMoney, onEditTransaction 
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [dateRange, setDateRange] = useState({ start: '', end: '' });
+    const [typeFilter, setTypeFilter] = useState<'ALL' | 'EXPENSE' | 'INCOME'>('ALL');
+    const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
     const [sortKey, setSortKey] = useState<'date' | 'amount' | 'category'>('date');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-    const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-
+    const [currentPage, setCurrentPage] = useState(1);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
-    const [minAmount, setMinAmount] = useState<string>('');
-    const [maxAmount, setMaxAmount] = useState<string>('');
-    const [filterTags, setFilterTags] = useState<string[]>([]);
 
     const walletTransactions = useMemo(() => 
-        data.transactions.filter((t: Transaction) => {
+        (data.transactions || []).filter((t: Transaction) => {
             const isWalletMatch = t.walletId === data.currentWalletId;
             if (data.settings.privacyMode && t.isPrivate) return false;
             return isWalletMatch;
@@ -41,15 +55,10 @@ export const DesktopHistory: React.FC<DesktopHistoryProps> = ({
             
             const searchContent = `${t.note || ''} ${t.category} ${t.amount} ${walletName} ${splitContent}`.toLowerCase();
             const matchSearch = searchTerm ? searchContent.includes(searchTerm.toLowerCase()) : true;
-            
-            const matchStart = dateRange.start ? t.date >= dateRange.start : true;
-            const matchEnd = dateRange.end ? t.date <= dateRange.end + 'T23:59:59' : true;
+            const matchType = typeFilter === 'ALL' || t.type === typeFilter;
+            const matchCategory = categoryFilter === 'ALL' || t.category === categoryFilter;
 
-            const amt = t.amount;
-            const matchMin = minAmount ? amt >= parseFloat(minAmount) : true;
-            const matchMax = maxAmount ? amt <= parseFloat(maxAmount) : true;
-
-            return matchSearch && matchStart && matchEnd && matchMin && matchMax;
+            return matchSearch && matchType && matchCategory;
         });
 
         filtered.sort((a, b) => {
@@ -67,216 +76,312 @@ export const DesktopHistory: React.FC<DesktopHistoryProps> = ({
         });
 
         return filtered;
-    }, [walletTransactions, searchTerm, dateRange, sortKey, sortDirection]);
+    }, [walletTransactions, searchTerm, typeFilter, categoryFilter, sortKey, sortDirection]);
+
+    const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE) || 1;
+    const paginatedTransactions = useMemo(() => {
+        const start = (currentPage - 1) * ITEMS_PER_PAGE;
+        return filteredTransactions.slice(start, start + ITEMS_PER_PAGE);
+    }, [filteredTransactions, currentPage]);
 
     const toggleSelect = (id: string) => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
-    const selectAll = () => {
-        if (selectedIds.length === filteredTransactions.length) setSelectedIds([]);
-        else setSelectedIds(filteredTransactions.map(t => t.id));
+    const selectAllCurrentPage = () => {
+        const pageIds = paginatedTransactions.map(t => t.id);
+        const allSelected = pageIds.every(id => selectedIds.includes(id));
+        if (allSelected) {
+            setSelectedIds(prev => prev.filter(id => !pageIds.includes(id)));
+        } else {
+            setSelectedIds(prev => Array.from(new Set([...prev, ...pageIds])));
+        }
     };
 
     const handleBatchDelete = () => {
-        if (confirm(`Delete ${selectedIds.length} transactions?`)) {
+        if (confirm(`Delete ${selectedIds.length} selected transactions?`)) {
             selectedIds.forEach(id => onRequestDelete(id));
             setSelectedIds([]);
         }
     };
 
     const exportCSV = () => {
-        const targets = selectedIds.length > 0 ? filteredTransactions.filter(t => selectedIds.includes(t.id)) : filteredTransactions;
+        const targets = selectedIds.length > 0 
+            ? filteredTransactions.filter(t => selectedIds.includes(t.id)) 
+            : filteredTransactions;
         const headers = ["Date", "Type", "Category", "Amount", "Note"];
         const rows = targets.map(t => [t.date.split('T')[0], t.type, t.category, t.amount, t.note || '']);
         const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `trackxpense_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `trackxpense_transactions_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
     };
 
+    const hasTransactions = walletTransactions.length > 0;
+
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl mx-auto pb-4 overflow-x-hidden">
-            <div className="flex gap-2 justify-end px-4">
-                <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 liquid-glass rounded-sm text-main font-bold text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-sm">
-                    <Download size={14}/> Export CSV
-                </button>
-            </div>
-
-            {/* High-Density Filter Console */}
-            <div className="liquid-glass p-4 rounded-md shadow-lg space-y-4">
-                <div className="flex flex-wrap items-center gap-3">
-                    {/* Search Field */}
-                    <div className="flex-1 min-w-[200px] relative group">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary transition-colors" size={14} />
-                        <input 
-                            type="text" 
-                            placeholder="Search transactions, notes, or amounts..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-black/20 border border-white/5 group-focus-within:border-primary/40 rounded-sm pl-10 pr-4 py-2.5 text-xs text-main outline-none transition-all placeholder:text-muted/40 font-medium"
-                        />
-                    </div>
-
-                    {/* Amount Range Filter */}
-                    <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-sm border border-white/5">
-                        <Filter size={12} className="text-muted/40" />
-                        <input 
-                            type="number" 
-                            placeholder="Min" 
-                            value={minAmount}
-                            onChange={(e) => setMinAmount(e.target.value)}
-                            className="w-12 bg-transparent text-[10px] text-white outline-none font-bold"
-                        />
-                        <span className="text-white/10">-</span>
-                        <input 
-                            type="number" 
-                            placeholder="Max" 
-                            value={maxAmount}
-                            onChange={(e) => setMaxAmount(e.target.value)}
-                            className="w-12 bg-transparent text-[10px] text-white outline-none font-bold"
-                        />
-                    </div>
-
-                    {/* View Toggles */}
-                    <div className="flex bg-black/20 p-1 rounded-sm border border-white/5">
-                        <button onClick={() => setViewMode('table')} className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-primary text-white shadow-md' : 'text-muted hover:text-main'}`}>
-                            <ListIcon size={14} />
-                        </button>
-                        <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-primary text-white shadow-md' : 'text-muted hover:text-main'}`}>
-                            <LayoutGrid size={14} />
-                        </button>
-                    </div>
+        <div className="w-full space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-700 mx-auto pb-8 overflow-x-hidden">
+            
+            {/* Section Header Outside Card */}
+            <div className="flex items-center justify-between pb-1">
+                <div>
+                    <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Transactions</h2>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Audit, filter, and inspect your complete transaction ledger.</p>
                 </div>
             </div>
 
-            {/* Data Display */}
-            {viewMode === 'table' ? (
-                <div className="liquid-glass rounded-md shadow-xl overflow-hidden">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                             <tr className="border-b border-white/5 bg-white/5">
-                                <th className="px-4 py-3 w-10">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={selectedIds.length === filteredTransactions.length && filteredTransactions.length > 0}
-                                        onChange={selectAll}
-                                        className="w-4 h-4 rounded border-white/10 bg-black/40 text-primary focus:ring-primary/20 accent-primary"
-                                    />
-                                </th>
-                                <th className="px-4 py-3 text-[9px] font-black text-muted/40 uppercase tracking-[0.2em] cursor-pointer hover:text-main transition-colors" onClick={() => { setSortKey('date'); setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
-                                    <div className="flex items-center gap-1.5">Date {sortKey === 'date' && (sortDirection === 'asc' ? <ArrowUp size={10}/> : <ArrowDown size={10}/>)}</div>
-                                </th>
-                                <th className="px-4 py-3 text-[9px] font-black text-muted/40 uppercase tracking-[0.2em]">Transaction Note</th>
-                                <th className="px-4 py-3 text-[9px] font-black text-muted/40 uppercase tracking-[0.2em] cursor-pointer hover:text-main transition-colors" onClick={() => { setSortKey('category'); setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
-                                    <div className="flex items-center gap-1.5">Category {sortKey === 'category' && (sortDirection === 'asc' ? <ArrowUp size={10}/> : <ArrowDown size={10}/>)}</div>
-                                </th>
-                                <th className="px-4 py-3 text-[9px] font-black text-muted/40 uppercase tracking-[0.2em] cursor-pointer hover:text-main transition-colors text-right" onClick={() => { setSortKey('amount'); setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
-                                    <div className="flex items-center gap-1.5 justify-end">Amount {sortKey === 'amount' && (sortDirection === 'asc' ? <ArrowUp size={10}/> : <ArrowDown size={10}/>)}</div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {filteredTransactions.map((t) => (
-                                 <tr key={t.id} onClick={() => onEditTransaction(t)} className={`group hover:bg-white/5 transition-colors cursor-pointer ${selectedIds.includes(t.id) ? 'bg-primary/5' : ''}`}>
-                                    <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
-                                        <input 
-                                            type="checkbox" 
-                                            checked={selectedIds.includes(t.id)}
-                                            onChange={() => toggleSelect(t.id)}
-                                            className="w-4 h-4 rounded border-white/10 bg-black/40 text-primary focus:ring-primary/20 accent-primary"
+            {hasTransactions ? (
+                <div className="space-y-4">
+                    {/* Control Bar: Search & Filters */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--bg-surface)] border border-[var(--border-default)] p-3 rounded-[10px]">
+                        
+                        {/* Search Bar */}
+                        <div className="flex-1 min-w-[240px] relative group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--text-primary)] transition-colors" size={14} />
+                            <input 
+                                type="text" 
+                                placeholder="Search transactions, notes, or categories..." 
+                                value={searchTerm}
+                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                                className="w-full h-[36px] bg-[var(--bg-subtle)] border border-[var(--border-default)] focus:border-[var(--border-active)] rounded-[6px] pl-9 pr-3 text-[13px] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] font-normal"
+                            />
+                        </div>
+
+                        {/* Type & Category Filters */}
+                        <div className="flex items-center gap-2">
+                            {/* Type Filter Pills */}
+                            <div className="inline-flex bg-[var(--bg-subtle)] p-0.5 rounded-[6px] border border-[var(--border-default)]">
+                                {(['ALL', 'EXPENSE', 'INCOME'] as const).map(type => (
+                                    <button
+                                        key={type}
+                                        onClick={() => { setTypeFilter(type); setCurrentPage(1); }}
+                                        className={`px-3 py-1 rounded-[5px] text-[12px] font-medium transition-all ${
+                                            typeFilter === type
+                                                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-xs'
+                                                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                                        }`}
+                                    >
+                                        {type === 'ALL' ? 'All' : type === 'EXPENSE' ? 'Expense' : 'Income'}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Category Dropdown */}
+                            <select
+                                value={categoryFilter}
+                                onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+                                className="h-[36px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-3 text-[12px] font-medium text-[var(--text-primary)] outline-none cursor-pointer"
+                            >
+                                <option value="ALL">All Categories</option>
+                                {data.categories?.map(c => (
+                                    <option key={c.id} value={c.name}>{c.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Table Container */}
+                    <div className="bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] overflow-hidden shadow-xs">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="border-b border-[var(--border-default)] bg-[var(--bg-subtle)]/50">
+                                    <th className="px-4 py-3 w-10">
+                                        <GlassCheckbox 
+                                            checked={paginatedTransactions.length > 0 && paginatedTransactions.every(t => selectedIds.includes(t.id))}
+                                            onChange={selectAllCurrentPage}
                                         />
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                        <p className="text-[11px] font-bold text-main">{new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
-                                        <p className="text-[8px] text-muted/40 font-black uppercase tracking-widest">{new Date(t.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-7 w-7 rounded-sm bg-black/20 flex items-center justify-center border border-white/5 text-muted/50 group-hover:scale-105 transition-transform">
-                                                <CategoryIcon category={t.category} color={data.categories.find(c => c.name === t.category)?.color} />
-                                            </div>
-                                            <div>
-                                                <p className="text-[11px] font-bold text-main truncate max-w-[250px] flex items-center gap-2">
-                                                    {t.note || t.category}
-                                                    {t.splits && <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-[6px] font-black uppercase tracking-widest rounded border border-primary/20">Split</span>}
-                                                </p>
-                                            </div>
+                                    </th>
+                                    <th 
+                                        className="px-4 py-3 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                                        onClick={() => { setSortKey('date'); setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc'); }}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Date {sortKey === 'date' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
                                         </div>
-                                    </td>
-                                    <td className="px-4 py-2.5">
-                                        <span className="px-2 py-0.5 bg-black/20 rounded-md text-[8px] font-black uppercase text-muted/60 border border-white/5 tracking-widest">{t.category}</span>
-                                    </td>
-                                    <td className="px-4 py-2.5 text-right">
-                                        <p className={`text-[11px] font-black tracking-tight ${t.type === TransactionType.INCOME ? 'text-emerald-400' : 'text-main'}`}>
-                                            {t.type === TransactionType.INCOME ? '+' : ''}{formatMoney(t.amount, data.settings.currencySymbol)}
-                                        </p>
-                                    </td>
+                                    </th>
+                                    <th 
+                                        className="px-4 py-3 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                                        onClick={() => { setSortKey('category'); setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc'); }}
+                                    >
+                                        <div className="flex items-center gap-1">
+                                            Category {sortKey === 'category' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
+                                        </div>
+                                    </th>
+                                    <th className="px-4 py-3 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em]">
+                                        Note / Description
+                                    </th>
+                                    <th 
+                                        className="px-4 py-3 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em] cursor-pointer hover:text-[var(--text-primary)] transition-colors text-right"
+                                        onClick={() => { setSortKey('amount'); setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc'); }}
+                                    >
+                                        <div className="flex items-center justify-end gap-1">
+                                            Amount {sortKey === 'amount' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
+                                        </div>
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--border-default)]">
+                                {paginatedTransactions.length > 0 ? (
+                                    paginatedTransactions.map((t) => {
+                                        const isSelected = selectedIds.includes(t.id);
+                                        return (
+                                            <tr 
+                                                key={t.id} 
+                                                onClick={() => onEditTransaction(t)} 
+                                                className={`group hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer ${
+                                                    isSelected ? 'bg-[var(--bg-subtle)]' : ''
+                                                }`}
+                                            >
+                                                <td className="px-4 py-3">
+                                                    <GlassCheckbox 
+                                                        checked={isSelected}
+                                                        onChange={() => toggleSelect(t.id)}
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <p className="text-[13px] font-medium text-[var(--text-primary)]">
+                                                        {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                    </p>
+                                                    <p className="text-[11px] text-[var(--text-muted)]">
+                                                        {new Date(t.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <CategoryIcon category={t.category} color={data.categories?.find(c => c.name === t.category)?.color} />
+                                                        <span className="text-[13px] font-medium text-[var(--text-primary)]">{t.category}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <p className="text-[13px] text-[var(--text-primary)] truncate max-w-[320px]">
+                                                        {t.note || <span className="text-[var(--text-muted)] italic">No description</span>}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <p className={`text-[13px] font-semibold tracking-tight ${
+                                                        t.type === TransactionType.INCOME ? 'text-emerald-500' : 'text-[var(--text-primary)]'
+                                                    }`}>
+                                                        {t.type === TransactionType.INCOME ? '+' : '-'}{formatMoney(t.amount, data.settings.currencySymbol)}
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : (
+                                    <tr>
+                                        <td colSpan={5} className="py-12 text-center text-[var(--text-muted)] text-xs">
+                                            No matching transactions found.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+
+                        {/* Cloudflare-Style Table Footer Bar (Screenshot 2 1:1) */}
+                        <div className="px-4 py-3 border-t border-[var(--border-default)] bg-[var(--bg-subtle)]/40 flex flex-wrap items-center justify-between gap-4">
+                            
+                            {/* Left Side: Counts, Page Indicator & Export Button */}
+                            <div className="flex items-center gap-4 text-[12px] text-[var(--text-secondary)]">
+                                <span>
+                                    Showing <strong className="font-medium text-[var(--text-primary)]">{filteredTransactions.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredTransactions.length)}</strong> of <strong className="font-medium text-[var(--text-primary)]">{filteredTransactions.length}</strong>
+                                </span>
+                                <span className="text-[var(--border-default)]">|</span>
+                                <span>Page <strong className="font-medium text-[var(--text-primary)]">{currentPage}</strong> of <strong className="font-medium text-[var(--text-primary)]">{totalPages}</strong></span>
+                                <span className="text-[var(--border-default)]">|</span>
+                                <button
+                                    onClick={exportCSV}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-primary)] font-medium text-[12px] transition-all"
+                                >
+                                    <Download size={13} strokeWidth={1.5} />
+                                    <span>Export CSV</span>
+                                </button>
+                            </div>
+
+                            {/* Right Side: Cloudflare Pagination Controls */}
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => setCurrentPage(1)}
+                                    disabled={currentPage === 1}
+                                    className="p-1.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                    title="First Page"
+                                >
+                                    <ChevronsLeft size={14} strokeWidth={1.5} />
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-1.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                    title="Previous Page"
+                                >
+                                    <ChevronLeft size={14} strokeWidth={1.5} />
+                                </button>
+                                
+                                <span className="px-3 py-1 text-[12px] font-mono text-[var(--text-primary)] font-medium">
+                                    {currentPage} / {totalPages}
+                                </span>
+
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="p-1.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                    title="Next Page"
+                                >
+                                    <ChevronRight size={14} strokeWidth={1.5} />
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage(totalPages)}
+                                    disabled={currentPage === totalPages}
+                                    className="p-1.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                    title="Last Page"
+                                >
+                                    <ChevronsRight size={14} strokeWidth={1.5} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredTransactions.map((t) => (
-                        <div key={t.id} onClick={() => onEditTransaction(t)} className="glass-card p-5 rounded-md hover:border-primary/20 hover:bg-white/5 transition-all cursor-pointer group active:scale-[0.98] shadow-sm">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="h-10 w-10 rounded-sm bg-black/20 flex items-center justify-center border border-white/5 text-muted/50 group-hover:scale-110 transition-transform duration-500">
-                                    <CategoryIcon category={t.category} color={data.categories.find(c => c.name === t.category)?.color} />
-                                </div>
-                                <div className="text-right">
-                                    <p className={`text-lg font-black tracking-tighter ${t.type === TransactionType.INCOME ? 'text-emerald-400' : 'text-main'}`}>
-                                        {t.type === TransactionType.INCOME ? '+' : '-'}{formatMoney(t.amount, data.settings.currencySymbol)}
-                                    </p>
-                                    <p className="text-[8px] text-muted/40 font-black uppercase tracking-[0.2em] mt-0.5">{t.category}</p>
-                                </div>
-                            </div>
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <p className="text-[11px] font-bold text-main leading-snug h-8 line-clamp-2">{t.note || 'Uncategorized Entry'}</p>
-                                    {t.splits && <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-[7px] font-black uppercase tracking-widest rounded border border-primary/20 shrink-0">Split</span>}
-                                </div>
-                                {t.splits && (
-                                    <div className="flex flex-wrap gap-1.5 min-h-[20px]">
-                                        {t.splits.map((s, i) => (
-                                            <span key={i} className="text-[7px] font-bold text-muted/30 bg-white/5 px-2 py-0.5 rounded border border-white/5">
-                                                {s.category}: {formatMoney(s.amount, data.settings.currencySymbol)}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                                <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                                    <span className="text-[9px] font-black text-muted/30 uppercase tracking-tighter">{new Date(t.date).toLocaleDateString()}</span>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); onRequestDelete(t.id); }} 
-                                        className="text-muted/30 hover:text-rose-500 transition-colors p-1"
-                                    >
-                                        <Trash2 size={12} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                <EmptyStateSeeder 
+                    data={data} 
+                    updateData={updateData || (() => {})} 
+                    title="No Transactions Logged" 
+                    description="Your transaction ledger is empty for this wallet. Seed pre-populated demo entries to explore desktop data tables, sorting, and CSV exports." 
+                />
             )}
 
-            {/* Batch Action Bar */}
+            {/* Batch Floating Action Bar */}
             {selectedIds.length > 0 && (
-                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[5000] animate-in slide-in-from-bottom-10 duration-300">
-                    <div className="liquid-glass px-8 py-4 rounded-lg border border-primary/40 shadow-[0_16px_64px_rgb(var(--color-primary)/0.2)] flex items-center gap-8 bg-primary/10 backdrop-blur-2xl">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-1">Batch Operations</span>
-                            <span className="text-xl font-bold text-white tracking-tight">{selectedIds.length} <span className="text-sm font-medium text-white/40">Selected</span></span>
-                        </div>
-                        <div className="h-10 w-px bg-white/10" />
-                        <div className="flex gap-4">
-                            <button onClick={exportCSV} className="p-3 bg-white/5 hover:bg-white/10 rounded-md text-white transition-all"><Download size={18} /></button>
-                            <button onClick={handleBatchDelete} className="p-3 bg-rose-500/20 hover:bg-rose-500 text-rose-500 hover:text-white rounded-md transition-all border border-rose-500/20"><Trash2 size={18} /></button>
-                            <button onClick={() => setSelectedIds([])} className="p-3 bg-white/5 hover:bg-white/10 rounded-md text-white/40 hover:text-white transition-all"><X size={18} /></button>
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[5000] animate-in slide-in-from-bottom-6 duration-300">
+                    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-2xl px-5 py-3 rounded-[10px] flex items-center gap-6 text-[13px]">
+                        <span className="font-medium text-[var(--text-primary)]">
+                            {selectedIds.length} transaction{selectedIds.length === 1 ? '' : 's'} selected
+                        </span>
+                        <div className="h-4 w-px bg-[var(--border-default)]" />
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={exportCSV}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-[var(--border-default)] hover:bg-[var(--bg-subtle)] text-[var(--text-primary)] font-medium text-[12px] transition-all"
+                            >
+                                <Download size={13} />
+                                <span>Export selected</span>
+                            </button>
+                            <button
+                                onClick={handleBatchDelete}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-medium text-[12px] transition-all"
+                            >
+                                <Trash2 size={13} />
+                                <span>Delete selected</span>
+                            </button>
+                            <button
+                                onClick={() => setSelectedIds([])}
+                                className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"
+                                title="Clear selection"
+                            >
+                                <X size={15} />
+                            </button>
                         </div>
                     </div>
                 </div>

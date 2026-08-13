@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AppData, Transaction, TransactionType } from '../../types';
+import { AppData, Wallet, ThemeOption } from '../../types';
 import { 
   Bell, 
   AlertTriangle, 
@@ -11,22 +11,30 @@ import {
   Trash2, 
   ChevronRight,
   X,
-  AlertCircle,
-  Download,
   Upload,
-  Activity,
   FileJson,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Edit2,
+  Check,
+  Plus,
+  Wallet as WalletIcon,
+  ShieldCheck,
+  EyeOff,
+  Target,
+  Palette,
+  ExternalLink,
+  Zap
 } from 'lucide-react';
-import { CURRENCIES, GlassSelect } from '../shared/CommonUI';
-import { FieldHelp } from '../pc/FieldHelp';
+import { CURRENCIES } from '../shared/CommonUI';
 import { supabase } from '../../services/supabase';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
+import { SegmentedSubTabs } from '../shared/SegmentedSubTabs';
 
 interface PersonnelRegionalManagerProps {
   data: AppData;
   updateData: (d: Partial<AppData>) => void;
+  formatMoney?: (val: number, sym?: string) => string;
   isCompact?: boolean;
   onDirtyChange?: (isDirty: boolean) => void;
   onLogout?: () => void;
@@ -35,15 +43,49 @@ interface PersonnelRegionalManagerProps {
 export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> = ({ 
   data, 
   updateData, 
+  formatMoney,
   isCompact = false,
   onDirtyChange,
   onLogout
 }) => {
+  // 3 Sub-Tabs: General, Wallet Settings, Data & Security
+  const [activeTab, setActiveTab] = useState<'general' | 'wallets' | 'data_security'>('general');
+  
   const [localProfile, setLocalProfile] = useState(data.profile);
   const [localSettings, setLocalSettings] = useState(data.settings);
   const [confirmAction, setConfirmAction] = useState<'logout' | 'delete' | null>(null);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Edit states for General cards
+  const [editingCard, setEditingCard] = useState<'profile' | 'daily_target' | 'monthly_target' | 'currency' | null>(null);
+  
+  // Selected Wallet in Wallet Settings
+  const [selectedWalletIdToConfig, setSelectedWalletIdToConfig] = useState<string>(data.currentWalletId || (data.wallets?.[0]?.id || ''));
+  const [editingWalletCard, setEditingWalletCard] = useState<'identity' | 'config' | null>(null);
+
+  // Wallet Add Modal State
+  const [isAddWalletOpen, setIsAddWalletOpen] = useState(false);
+  const [newWalletName, setNewWalletName] = useState('');
+  const [newWalletTarget, setNewWalletTarget] = useState('');
+  const [newWalletCurrency, setNewWalletCurrency] = useState(data.settings.currencySymbol || '$');
+  const [newWalletIsGoal, setNewWalletIsGoal] = useState(false);
+
+  // Wallet Delete with Reassign Modal State
+  const [deletingWalletId, setDeletingWalletId] = useState<string | null>(null);
+  const [targetReassignWalletId, setTargetReassignWalletId] = useState<string>('');
+
+  useEffect(() => {
+    if (data.currentWalletId && !selectedWalletIdToConfig) {
+      setSelectedWalletIdToConfig(data.currentWalletId);
+    }
+  }, [data.currentWalletId]);
+
+  const defaultFormatMoney = (val: number, sym?: string) => {
+    const currencySym = sym || data.settings?.currencySymbol || '$';
+    return `${currencySym} ${(val || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  };
+  const fmtMoney = formatMoney || defaultFormatMoney;
 
   const isProfileDirty = JSON.stringify(localProfile) !== JSON.stringify(data.profile);
   const isSettingsDirty = JSON.stringify(localSettings) !== JSON.stringify(data.settings);
@@ -55,10 +97,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
 
   const handleSaveProfile = () => {
     updateData({ profile: localProfile });
-  };
-
-  const handleSaveSettings = () => {
-    updateData({ settings: localSettings });
+    setEditingCard(null);
   };
 
   const handleLogout = async () => {
@@ -76,29 +115,98 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
   };
 
   const toggleNotification = async (type: 'expense' | 'debt') => {
-    const currentVal =
-      type === 'expense' ? localSettings.expenseReminders : localSettings.debtReminders;
-    
-    setLocalSettings((prev) => ({
-      ...prev,
+    const currentVal = type === 'expense' ? localSettings.expenseReminders : localSettings.debtReminders;
+    const newSettings = {
+      ...localSettings,
       [type === 'expense' ? 'expenseReminders' : 'debtReminders']: !currentVal,
-    }));
+    };
+    setLocalSettings(newSettings);
+    updateData({ settings: newSettings });
   };
 
-  // --- Data Transmission Logic ---
+  const togglePrivacyMode = () => {
+    const newSettings = {
+      ...localSettings,
+      privacyMode: !localSettings.privacyMode
+    };
+    setLocalSettings(newSettings);
+    updateData({ settings: newSettings });
+  };
+
+  // Wallet Management Actions
+  const handleUpdateWallet = (walletId: string, updates: Partial<Wallet>) => {
+    const updated = (data.wallets || []).map(w => w.id === walletId ? { ...w, ...updates } : w);
+    updateData({ wallets: updated });
+  };
+
+  const handleAddWallet = () => {
+    if (!newWalletName.trim()) return;
+    const newWallet: Wallet = {
+      id: Date.now().toString(),
+      name: newWalletName.trim(),
+      type: newWalletIsGoal ? 'GOAL' : 'STANDARD',
+      targetAmount: newWalletIsGoal ? (parseFloat(newWalletTarget) || undefined) : undefined,
+      currency: newWalletCurrency
+    };
+    updateData({ wallets: [...(data.wallets || []), newWallet] });
+    setSelectedWalletIdToConfig(newWallet.id);
+    setIsAddWalletOpen(false);
+    setNewWalletName('');
+    setNewWalletTarget('');
+    setNewWalletIsGoal(false);
+  };
+
+  const handleInitiateDeleteWallet = (walletId: string) => {
+    if ((data.wallets || []).length <= 1) {
+      alert("You must keep at least one wallet.");
+      return;
+    }
+    const otherWallets = (data.wallets || []).filter(w => w.id !== walletId);
+    setDeletingWalletId(walletId);
+    setTargetReassignWalletId(otherWallets[0].id);
+  };
+
+  const handleConfirmDeleteWalletWithReassign = () => {
+    if (!deletingWalletId || !targetReassignWalletId) return;
+
+    const reassignedTxs = (data.transactions || []).map(t => {
+      if (t.walletId === deletingWalletId) {
+        return { ...t, walletId: targetReassignWalletId };
+      }
+      return t;
+    });
+
+    const updatedWallets = (data.wallets || []).filter(w => w.id !== deletingWalletId);
+
+    let newCurrentId = data.currentWalletId;
+    if (data.currentWalletId === deletingWalletId) {
+      newCurrentId = targetReassignWalletId;
+    }
+
+    updateData({
+      transactions: reassignedTxs,
+      wallets: updatedWallets,
+      currentWalletId: newCurrentId
+    });
+
+    setSelectedWalletIdToConfig(targetReassignWalletId);
+    setDeletingWalletId(null);
+  };
+
+  // Data Export/Import
   const exportToJSON = () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     saveAs(blob, `trackxpense_backup_${new Date().toISOString().split('T')[0]}.json`);
   };
 
   const exportToCSV = () => {
-    const txs = data.transactions.map(t => ({
+    const txs = (data.transactions || []).map(t => ({
       Date: t.date,
       Type: t.type,
       Category: t.category,
       Amount: t.amount,
       Note: t.note || '',
-      Wallet: data.wallets.find(w => w.id === t.walletId)?.name || 'Default',
+      Wallet: data.wallets?.find(w => w.id === t.walletId)?.name || 'Default',
       Tags: (t.tags || []).join(', '),
       Status: t.isPending ? 'Pending' : 'Cleared'
     }));
@@ -115,348 +223,963 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
     reader.onload = (event) => {
       try {
         const importedData = JSON.parse(event.target?.result as string);
-        if (!importedData.transactions || !Array.isArray(importedData.transactions)) {
-          alert("Invalid data format. Transaction array missing.");
-          return;
+        if (importedData && typeof importedData === 'object') {
+          updateData(importedData);
+          alert("Backup successfully restored.");
         }
-
-        // Smart merge
-        const existingIds = new Set(data.transactions.map(t => t.id));
-        const existingSignatures = new Set(data.transactions.map(t => `${t.date}_${t.amount}_${t.category}`));
-
-        const newTransactions = importedData.transactions.filter((t: Transaction) => {
-          if (existingIds.has(t.id)) return false;
-          const sig = `${t.date}_${t.amount}_${t.category}`;
-          if (existingSignatures.has(sig)) return false;
-          return true;
-        });
-
-        if (newTransactions.length === 0) {
-          alert("No new unique transactions found in import file.");
-          return;
-        }
-
-        // Also merge wallets/categories if they don't exist
-        const updatedWallets = [...data.wallets];
-        importedData.wallets?.forEach((w: any) => {
-            if (!updatedWallets.find(ew => ew.id === w.id)) updatedWallets.push(w);
-        });
-
-        const updatedCategories = [...data.categories];
-        importedData.categories?.forEach((c: any) => {
-            if (!updatedCategories.find(ec => ec.id === c.id)) updatedCategories.push(c);
-        });
-
-        updateData({
-          transactions: [...data.transactions, ...newTransactions],
-          wallets: updatedWallets,
-          categories: updatedCategories
-        });
-
-        alert(`Successfully imported ${newTransactions.length} unique records.`);
       } catch (err) {
-        alert("Failed to parse import file. Ensure it is a valid TrackXpense JSON backup.");
+        alert("Failed to parse JSON backup file.");
       }
     };
     reader.readAsText(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const ConfirmationOverlay = ({ action }: { action: 'logout' | 'delete' }) => (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-in fade-in duration-200">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setConfirmAction(null)} />
-      <div className="relative liquid-glass p-8 rounded-sm w-full max-w-[320px] border border-white/10 shadow-2xl">
-        <div className="flex flex-col items-center text-center">
-            <div className={`w-14 h-14 rounded-md flex items-center justify-center mb-4 ${action === 'delete' ? 'bg-red-500/20 text-red-500' : 'bg-primary/20 text-primary'}`}>
-                {action === 'delete' ? <Trash2 size={28} /> : <LogOut size={28} />}
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">{action === 'delete' ? 'Delete Account?' : 'Log Out?'}</h3>
-            <p className="text-xs text-white/40 font-medium mb-8">
-                {action === 'delete' ? 'Your account and all associated data will be permanently deleted.' : 'Your financial data will remain safely stored in the cloud.'}
-            </p>
-            <div className="flex gap-3 w-full">
-                <button onClick={() => setConfirmAction(null)} className="flex-1 py-4 rounded-sm bg-white/5 text-white/60 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">Cancel</button>
-                <button onClick={action === 'delete' ? handleDeleteAccount : handleLogout} className={`flex-1 py-4 rounded-sm text-white text-[10px] font-black uppercase tracking-widest transition-all ${action === 'delete' ? 'bg-red-600 shadow-lg shadow-red-600/20' : 'bg-primary shadow-lg shadow-primary/20'}`}>Confirm</button>
-            </div>
-        </div>
-      </div>
-    </div>
-  );
+  const availableColors: ThemeOption[] = ['indigo', 'emerald', 'rose', 'amber', 'blue'];
 
-  const PrivacyModal = () => (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-in fade-in duration-200">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowPrivacy(false)} />
-      <div className="relative liquid-glass p-8 rounded-lg w-full max-w-lg border border-white/10 shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-main tracking-tight">Privacy Policy</h2>
-            <button onClick={() => setShowPrivacy(false)} className="p-2 bg-white/5 rounded-full text-muted hover:text-main transition-colors"><X size={20}/></button>
-        </div>
-        <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
-            <p className="text-sm text-white/60 leading-relaxed font-medium italic">"We like your money, but we don't like your business."</p>
-            <div className="space-y-4">
-                <div className="p-5 rounded-sm bg-white/5 border border-white/5">
-                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Rule #1: You are the Ghost</p>
-                    <p className="text-xs text-white/40 leading-relaxed">We don't know who you are. We don't want to. Your transactions are end-to-end encrypted bits. If you buy 14 ducks at midnight, that's between you and the ducks.</p>
-                </div>
-                <div className="p-5 rounded-sm bg-white/5 border border-white/5">
-                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Rule #2: Zero Tracking</p>
-                    <p className="text-xs text-white/40 leading-relaxed">No pixels. No cookies (except the ones you eat while looking at your balance). No "personalized ads" trying to sell you a duck-feeder.</p>
-                </div>
-                <div className="p-5 rounded-sm bg-white/5 border border-white/5">
-                    <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Rule #3: Your Data is Yours</p>
-                    <p className="text-xs text-white/40 leading-relaxed">Want to delete everything? We do it for real. Your data leaves our cloud faster than your money leaves your wallet on payday.</p>
-                </div>
-            </div>
-            <p className="text-[10px] text-white/20 text-center uppercase font-black tracking-widest pt-4">TrackXpense v4.0 • Zero Bullshit Edition</p>
-        </div>
-      </div>
-    </div>
-  );
+  // Target selected wallet object for configuration
+  const selectedWallet = (data.wallets || []).find(w => w.id === selectedWalletIdToConfig) || data.wallets?.[0];
 
   return (
-    <div className={`space-y-6 ${isCompact ? '' : 'max-w-5xl mx-auto pb-6 overflow-x-hidden'}`}>
-
-      {/* Profile Section */}
-      <div className="liquid-glass p-6 rounded-sm shadow-xl space-y-6">
-        <div className="flex items-center gap-2 mb-2">
-            <p className="text-[9px] uppercase font-black text-muted tracking-[0.2em]">Profile Details</p>
-        </div>
-        <div className={`grid grid-cols-1 ${isCompact ? 'gap-4' : 'md:grid-cols-3 gap-6'}`}>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-[9px] uppercase font-black text-muted/40 tracking-[0.2em]">Full Name</label>
-              <FieldHelp text="Your display name." />
-            </div>
-            <input
-              type="text"
-              value={localProfile.name}
-              onChange={(e) => setLocalProfile({ ...localProfile, name: e.target.value })}
-              className="w-full bg-black/20 rounded-sm px-4 py-3 text-xs text-main border border-white/5 focus:border-primary/40 outline-none transition-all font-bold"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-[9px] uppercase font-black text-muted/40 tracking-[0.2em]">Monthly Budget</label>
-              <FieldHelp text="Your target monthly spending limit." />
-            </div>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/30 font-black text-[9px]">
-                {data.settings.currencySymbol}
-              </span>
-              <input
-                type="number"
-                value={localProfile.monthlyGoal}
-                onChange={(e) =>
-                  setLocalProfile({ ...localProfile, monthlyGoal: parseFloat(e.target.value) || 0 })
-                }
-                className="w-full bg-black/20 rounded-sm pl-10 pr-4 py-3 text-xs text-main border border-white/5 focus:border-primary/40 outline-none transition-all font-bold"
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-[9px] uppercase font-black text-muted/40 tracking-[0.2em]">Daily Limit</label>
-              <FieldHelp text="Alerts when daily spending goes over this limit." />
-            </div>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/30 font-black text-[9px]">
-                {data.settings.currencySymbol}
-              </span>
-              <input
-                type="number"
-                placeholder="No limit..."
-                value={localProfile.dailyGoal || ''}
-                onChange={(e) =>
-                  setLocalProfile({ ...localProfile, dailyGoal: parseFloat(e.target.value) || 0 })
-                }
-                className="w-full bg-black/20 rounded-sm pl-10 pr-4 py-3 text-xs text-main border border-white/5 focus:border-primary/40 outline-none transition-all font-bold"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="pt-4 flex justify-end">
-          <button
-            onClick={handleSaveProfile}
-            disabled={!isProfileDirty}
-            className="bg-primary/20 text-primary border border-primary/20 px-6 py-2 rounded-sm text-xs font-bold hover:bg-primary hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            Update Profile
-          </button>
-        </div>
+    <div className="w-full space-y-6 animate-in fade-in duration-300 mx-auto pb-10">
+      
+      {/* 3 Main Navigation Sub-Tabs Bar */}
+      <div className="pb-1 border-b border-[var(--border-default)]">
+        <SegmentedSubTabs
+          activeTab={activeTab}
+          onChange={(tabId: any) => setActiveTab(tabId)}
+          tabs={[
+            { id: 'general', label: 'General' },
+            { id: 'wallets', label: 'Wallet Settings', count: (data.wallets || []).length },
+            { id: 'data_security', label: 'Data & Security' },
+          ]}
+        />
       </div>
 
-      {/* Preferences Section */}
-      <div className={`grid grid-cols-1 ${isCompact ? 'gap-4' : 'md:grid-cols-2 gap-5'}`}>
-        <div className="liquid-glass p-6 rounded-sm shadow-xl space-y-5">
-          <div className="flex items-center gap-2">
-            <p className="text-[9px] uppercase font-black text-muted tracking-[0.2em]">Preferences</p>
+      {/* --- TAB 1: GENERAL --- */}
+      {activeTab === 'general' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-300">
+          
+          {/* Structural Content Column (9 cols) */}
+          <div className="lg:col-span-9 space-y-8">
+            
+            {/* SECTION 1: PROFILE & IDENTITY */}
+            <div id="profile-section" className="space-y-3">
+              <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Profile & Preferences</h2>
+
+              {/* Name Card */}
+              <div id="profile" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+                    Name
+                  </span>
+                  {editingCard === 'profile' ? (
+                    <div className="flex-1 flex items-center justify-between gap-3">
+                      <input
+                        type="text"
+                        value={localProfile.name}
+                        onChange={(e) => setLocalProfile({ ...localProfile, name: e.target.value })}
+                        className="h-[32px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2.5 text-[13px] text-[var(--text-primary)] outline-none"
+                        autoFocus
+                      />
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Cancel</button>
+                        <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[#2563EB] hover:underline">Save</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="text-[13px] text-[var(--text-secondary)] flex-1">
+                        {localProfile.name || 'User'}
+                      </span>
+                      <button 
+                        onClick={() => setEditingCard('profile')}
+                        className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                      >
+                        Rename
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Currency & Locale Card */}
+              <div id="currency" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+                    Currency & locale
+                  </span>
+                  {editingCard === 'currency' ? (
+                    <div className="flex-1 flex items-center justify-between gap-3">
+                      <select
+                        value={localSettings.currencySymbol}
+                        onChange={(e) => {
+                          const updated = { ...localSettings, currencySymbol: e.target.value };
+                          setLocalSettings(updated);
+                          updateData({ settings: updated });
+                          setEditingCard(null);
+                        }}
+                        className="h-[32px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2 text-[12px] text-[var(--text-primary)] outline-none"
+                      >
+                        {CURRENCIES.map(c => (
+                          <option key={c.value} value={c.symbol}>{c.value} ({c.symbol})</option>
+                        ))}
+                      </select>
+                      <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)]">Done</button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="text-[13px] text-[var(--text-secondary)] flex-1">
+                        Active Currency Symbol: <strong className="text-[var(--text-primary)] font-medium font-mono">{localSettings.currencySymbol}</strong>
+                      </span>
+                      <button 
+                        onClick={() => setEditingCard('currency')}
+                        className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                      >
+                        Change
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Stealth Mode Card */}
+              <div id="privacy" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+                    Stealth mode
+                  </span>
+                  <span className="text-[13px] text-[var(--text-secondary)] flex-1">
+                    Privacy Masking: <strong className="text-[var(--text-primary)] font-medium">{localSettings.privacyMode ? 'Enabled' : 'Disabled'}</strong>
+                  </span>
+                  <button 
+                    onClick={togglePrivacyMode}
+                    className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                  >
+                    {localSettings.privacyMode ? 'Disable' : 'Enable'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 2: TARGET LIMITS */}
+            <div id="targets-section" className="space-y-3 pt-2">
+              <div>
+                <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Target Limits</h2>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Configure budget limit metrics for daily velocity and monthly goals.</p>
+              </div>
+
+              {/* Field 1: Daily Expense Limit */}
+              <div id="daily-limit" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+                    Daily Expense Limit
+                  </span>
+                  {editingCard === 'daily_target' ? (
+                    <div className="flex-1 flex items-center justify-between gap-3">
+                      <input
+                        type="number"
+                        placeholder="Daily limit..."
+                        value={localProfile.dailyGoal || ''}
+                        onChange={(e) => setLocalProfile({ ...localProfile, dailyGoal: parseFloat(e.target.value) || 0 })}
+                        className="w-[160px] h-[32px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2.5 text-[12px] font-mono text-[var(--text-primary)] outline-none"
+                        autoFocus
+                      />
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)]">Cancel</button>
+                        <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[#2563EB] hover:underline">Save</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="text-[13px] text-[var(--text-secondary)] flex-1 font-mono">
+                        {localProfile.dailyGoal ? fmtMoney(localProfile.dailyGoal, data.settings.currencySymbol) : 'No daily limit set'}
+                      </span>
+                      <button 
+                        onClick={() => setEditingCard('daily_target')}
+                        className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                      >
+                        Edit
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Field 2: Monthly Expense Limit */}
+              <div id="monthly-limit" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+                    Monthly Expense Limit
+                  </span>
+                  {editingCard === 'monthly_target' ? (
+                    <div className="flex-1 flex items-center justify-between gap-3">
+                      <input
+                        type="number"
+                        placeholder="Monthly goal..."
+                        value={localProfile.monthlyGoal}
+                        onChange={(e) => setLocalProfile({ ...localProfile, monthlyGoal: parseFloat(e.target.value) || 0 })}
+                        className="w-[160px] h-[32px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2.5 text-[12px] font-mono text-[var(--text-primary)] outline-none"
+                        autoFocus
+                      />
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)]">Cancel</button>
+                        <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[#2563EB] hover:underline">Save</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="text-[13px] text-[var(--text-secondary)] flex-1 font-mono">
+                        {fmtMoney(localProfile.monthlyGoal, data.settings.currencySymbol)}
+                      </span>
+                      <button 
+                        onClick={() => setEditingCard('monthly_target')}
+                        className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                      >
+                        Edit
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 3: NOTIFICATIONS */}
+            <div id="notifications-section" className="space-y-3 pt-2">
+              <div>
+                <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Notifications</h2>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Manage alert notifications for expense velocity and debt payables.</p>
+              </div>
+
+              {/* Field 1: Expense Alert */}
+              <div id="expense-alert" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+                    Expense Alert
+                  </span>
+                  <span className="text-[13px] text-[var(--text-secondary)] flex-1">
+                    Status: <strong className="text-[var(--text-primary)] font-medium">{localSettings.expenseReminders ? 'Enabled' : 'Disabled'}</strong>
+                  </span>
+                  <button 
+                    onClick={() => toggleNotification('expense')}
+                    className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                  >
+                    {localSettings.expenseReminders ? 'Disable' : 'Enable'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Field 2: Debt Alert */}
+              <div id="debt-alert" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+                    Debt Alert
+                  </span>
+                  <span className="text-[13px] text-[var(--text-secondary)] flex-1">
+                    Status: <strong className="text-[var(--text-primary)] font-medium">{localSettings.debtReminders ? 'Enabled' : 'Disabled'}</strong>
+                  </span>
+                  <button 
+                    onClick={() => toggleNotification('debt')}
+                    className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                  >
+                    {localSettings.debtReminders ? 'Disable' : 'Enable'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {CURRENCIES.map((curr) => (
-              <button
-                key={curr.value}
-                onClick={() => setLocalSettings({ ...localSettings, currencySymbol: curr.symbol })}
-                className={`p-3 rounded-sm flex items-center justify-between border transition-all ${
-                  localSettings.currencySymbol === curr.symbol
-                    ? 'bg-primary/20 border-primary/40 text-primary'
-                    : 'bg-black/20 border-transparent text-muted hover:border-white/10'
-                }`}
-              >
-                <span className="text-[11px] font-bold">{curr.value}</span>
-                <span className="font-mono text-xs opacity-50">{curr.symbol}</span>
-              </button>
-            ))}
-          </div>
-          <div className="pt-4 flex justify-end">
-            <button
-              onClick={handleSaveSettings}
-              disabled={!isSettingsDirty}
-              className="bg-primary/20 text-primary border border-primary/20 px-6 py-2 rounded-sm text-xs font-bold hover:bg-primary hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              Update Preferences
-            </button>
+
+          {/* Right Sticky TOC Sidebar (3 cols) */}
+          <div className="lg:col-span-3 hidden lg:block">
+            <div className="sticky top-6 space-y-4 text-[13px] border-l border-[var(--border-default)] pl-4">
+              <div className="space-y-1.5">
+                <a href="#profile-section" className="font-medium text-[var(--text-primary)] border-l-2 border-[var(--text-primary)] -ml-[17px] pl-3 block py-0.5">
+                  Profile & Preferences
+                </a>
+                <a href="#profile" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                  Name
+                </a>
+                <a href="#currency" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                  Currency & locale
+                </a>
+                <a href="#privacy" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                  Stealth mode
+                </a>
+              </div>
+
+              <div className="space-y-1.5 pt-2 border-t border-[var(--border-default)]/40">
+                <a href="#targets-section" className="font-medium text-[var(--text-primary)] border-l-2 border-transparent hover:border-[var(--text-primary)] -ml-[17px] pl-3 block py-0.5">
+                  Target Limits
+                </a>
+                <a href="#daily-limit" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                  Daily expense limit
+                </a>
+                <a href="#monthly-limit" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                  Monthly expense limit
+                </a>
+              </div>
+
+              <div className="space-y-1.5 pt-2 border-t border-[var(--border-default)]/40">
+                <a href="#notifications-section" className="font-medium text-[var(--text-primary)] border-l-2 border-transparent hover:border-[var(--text-primary)] -ml-[17px] pl-3 block py-0.5">
+                  Notifications
+                </a>
+                <a href="#expense-alert" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                  Expense alert
+                </a>
+                <a href="#debt-alert" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                  Debt alert
+                </a>
+              </div>
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="liquid-glass p-6 rounded-sm shadow-xl space-y-6">
-          <div className="flex items-center gap-2">
-            <p className="text-[9px] uppercase font-black text-muted tracking-[0.2em]">Notifications</p>
+      {/* --- TAB 2: WALLET SETTINGS (MATCHES FIRST SCREENSHOT EXACTLY) --- */}
+      {activeTab === 'wallets' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-300">
+          
+          {/* Wallets Content Stack (9 cols) */}
+          <div className="lg:col-span-9 space-y-4">
+            
+            {/* Top Environment Selector Row (Matches Screenshot 1 Header line) */}
+            <div className="flex items-center justify-between pb-2">
+              <div className="flex items-center gap-3">
+                <span className="text-[13px] font-medium text-[var(--text-primary)]">Choose Environment:</span>
+                <select
+                  value={selectedWalletIdToConfig}
+                  onChange={(e) => setSelectedWalletIdToConfig(e.target.value)}
+                  className="h-[34px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-full px-4 text-[13px] font-medium text-[#2563EB] outline-none shadow-2xs"
+                >
+                  {(data.wallets || []).map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={() => { setNewWalletName(''); setNewWalletTarget(''); setIsAddWalletOpen(true); }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[12px] transition-all shadow-xs"
+              >
+                <Plus size={14} strokeWidth={1.5} />
+                <span>Add new wallet</span>
+              </button>
+            </div>
+
+            {/* Title: Build / Wallet Configuration (Matches Screenshot 1 Heading) */}
+            <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight pt-1">
+              Wallet Configuration
+            </h2>
+
+            {/* STACK OF 3 STRUCTURAL CARDS FOR SELECTED WALLET */}
+            {selectedWallet && (
+              <div className="space-y-3 animate-in fade-in duration-200">
+                
+                {/* CARD 1: Wallet identity */}
+                <div id="wallet-identity" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] font-medium text-[var(--text-primary)] w-[160px] shrink-0">
+                      Wallet identity
+                    </span>
+
+                    {editingWalletCard === 'identity' ? (
+                      <div className="flex-1 flex items-center justify-between gap-3">
+                        <input
+                          type="text"
+                          value={selectedWallet.name}
+                          onChange={(e) => handleUpdateWallet(selectedWallet.id, { name: e.target.value })}
+                          className="h-[32px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2.5 text-[13px] font-semibold text-[var(--text-primary)] outline-none"
+                          autoFocus
+                        />
+                        <button 
+                          onClick={() => setEditingWalletCard(null)} 
+                          className="text-[12px] font-medium text-[#2563EB] hover:underline"
+                        >
+                          Done
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex-1 flex items-center gap-2">
+                          <span className="px-3 py-1 bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-full text-[12px] font-mono text-[var(--text-primary)] flex items-center gap-1.5">
+                            <WalletIcon size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+                            {selectedWallet.name}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          {(data.wallets || []).length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleInitiateDeleteWallet(selectedWallet.id)}
+                              className="text-[13px] font-medium text-red-500 hover:underline transition-all"
+                            >
+                              Disconnect
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setEditingWalletCard('identity')}
+                            className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                          >
+                            Rename
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* CARD 2: Wallet configuration */}
+                <div id="wallet-config" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] p-5 transition-all">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start flex-1">
+                      <span className="text-[13px] font-medium text-[var(--text-primary)] underline decoration-dotted underline-offset-4 w-[160px] shrink-0 cursor-pointer pt-0.5">
+                        Build configuration
+                      </span>
+
+                      {editingWalletCard === 'config' ? (
+                        <div className="flex-1 space-y-3 pr-4">
+                          {/* Currency */}
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-medium text-[var(--text-muted)]">Currency</label>
+                            <select
+                              value={selectedWallet.currency || data.settings.currencySymbol}
+                              onChange={(e) => handleUpdateWallet(selectedWallet.id, { currency: e.target.value })}
+                              className="w-full h-[32px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2 text-[12px] text-[var(--text-primary)] outline-none"
+                            >
+                              {CURRENCIES.map(c => (
+                                <option key={c.value} value={c.symbol}>{c.value} ({c.symbol})</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Mode */}
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-medium text-[var(--text-muted)]">Wallet Type</label>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateWallet(selectedWallet.id, { type: 'STANDARD' })}
+                                className={`flex-1 h-[30px] rounded-[5px] text-[11px] font-medium border ${
+                                  selectedWallet.type === 'STANDARD' ? 'bg-[#2563EB]/10 border-[#2563EB] text-[#2563EB]' : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)]'
+                                }`}
+                              >
+                                Standard Vault
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateWallet(selectedWallet.id, { type: 'GOAL' })}
+                                className={`flex-1 h-[30px] rounded-[5px] text-[11px] font-medium border ${
+                                  selectedWallet.type === 'GOAL' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)]'
+                                }`}
+                              >
+                                Savings Goal
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Goal target if savings */}
+                          {selectedWallet.type === 'GOAL' && (
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-medium text-emerald-400">Savings Target Goal</label>
+                              <input
+                                type="number"
+                                value={selectedWallet.targetAmount || ''}
+                                onChange={(e) => handleUpdateWallet(selectedWallet.id, { targetAmount: parseFloat(e.target.value) || 0 })}
+                                className="w-full h-[32px] bg-[var(--bg-subtle)] border border-emerald-500/30 rounded-[6px] px-2 text-[12px] font-mono text-emerald-400 outline-none"
+                              />
+                            </div>
+                          )}
+
+                          {/* Stealth Mode */}
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-[12px] text-[var(--text-secondary)]">Vault Stealth Mode:</span>
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateWallet(selectedWallet.id, { stealthMode: !selectedWallet.stealthMode })}
+                              className="text-[12px] font-medium text-[#2563EB] hover:underline"
+                            >
+                              {selectedWallet.stealthMode ? 'Enabled' : 'Disabled'}
+                            </button>
+                          </div>
+
+                          {/* Color Code */}
+                          <div className="space-y-1 pt-1">
+                            <label className="text-[11px] font-medium text-[var(--text-muted)]">Color Tag</label>
+                            <div className="flex items-center gap-2">
+                              {availableColors.map(col => (
+                                <button
+                                  key={col}
+                                  type="button"
+                                  onClick={() => handleUpdateWallet(selectedWallet.id, { color: col })}
+                                  className={`w-5 h-5 rounded-full border transition-all ${
+                                    (selectedWallet.color || 'blue') === col ? 'scale-110 border-white' : 'border-transparent opacity-60'
+                                  }`}
+                                  style={{
+                                    backgroundColor: 
+                                      col === 'indigo' ? '#5e5ce6' :
+                                      col === 'emerald' ? '#10b981' :
+                                      col === 'amber' ? '#f59e0b' :
+                                      col === 'rose' ? '#f43f5e' : '#2563eb'
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="pt-2 flex justify-end">
+                            <button onClick={() => setEditingWalletCard(null)} className="text-[12px] font-medium text-[#2563EB] hover:underline">Done</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex-1 space-y-1.5 text-[13px] text-[var(--text-secondary)]">
+                          <p>Currency: <span className="text-[var(--text-primary)] font-mono">{selectedWallet.currency || data.settings.currencySymbol}</span></p>
+                          <p>Mode: <span className="text-[var(--text-primary)]">{selectedWallet.type === 'GOAL' ? 'Savings Goal' : 'Standard Vault'}</span></p>
+                          {selectedWallet.type === 'GOAL' && (
+                            <p>Savings target: <span className="text-emerald-400 font-mono font-medium">{fmtMoney(selectedWallet.targetAmount || 0, selectedWallet.currency || data.settings.currencySymbol)}</span></p>
+                          )}
+                          <p>Vault stealth: <span className="text-[var(--text-primary)]">{selectedWallet.stealthMode ? 'Enabled' : 'Disabled'}</span></p>
+                          <p>Color code: <span className="text-[var(--text-primary)] capitalize">{selectedWallet.color || 'Blue'}</span></p>
+                        </div>
+                      )}
+                    </div>
+
+                    {editingWalletCard !== 'config' && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingWalletCard('config')}
+                        className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px]"
+                        title="Edit Configuration"
+                      >
+                        <Edit2 size={15} strokeWidth={1.5} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* CARD 3: Active environment */}
+                <div id="wallet-active" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 w-[160px] shrink-0">
+                      <span className="text-[13px] font-medium text-[var(--text-primary)] underline decoration-dotted underline-offset-4 cursor-pointer">
+                        Active environment
+                      </span>
+                      {data.currentWalletId === selectedWallet.id && (
+                        <span className="text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                          Live
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="text-[13px] text-[var(--text-secondary)] flex-1">
+                      {data.currentWalletId === selectedWallet.id ? 'Currently set as primary wallet environment' : 'Inactive environment'}
+                    </span>
+
+                    {data.currentWalletId === selectedWallet.id ? (
+                      <span className="text-[13px] font-medium text-emerald-400">Active</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => updateData({ currentWalletId: selectedWallet.id })}
+                        className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                      >
+                        Enable
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            )}
+
           </div>
 
-          <div className="space-y-3">
-            {[
-              { id: 'expense' as const, label: 'Expense Reminders', icon: Bell, active: localSettings.expenseReminders },
-              {
-                id: 'debt' as const,
-                label: 'Debt Reminders',
-                icon: AlertTriangle,
-                active: localSettings.debtReminders,
-              },
-            ].map((sub) => (
-              <button
-                key={sub.id}
-                onClick={() => toggleNotification(sub.id)}
-                className="w-full p-4 bg-black/20 rounded-md border border-white/5 flex items-center justify-between group hover:border-primary/30 transition-all active:scale-[0.99]"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`p-2 rounded-sm transition-colors border ${
-                      sub.active
-                        ? 'bg-primary/10 border-primary/20 text-primary'
-                        : 'bg-white/5 border-white/5 text-muted/40'
-                    }`}
-                  >
-                    <sub.icon size={14} />
+          {/* Right Sticky TOC Navigation (3 cols) */}
+          <div className="lg:col-span-3 hidden lg:block">
+            <div className="sticky top-6 space-y-3 text-[13px] border-l border-[var(--border-default)] pl-4">
+              <div className="font-medium text-[var(--text-primary)] border-l-2 border-[var(--text-primary)] -ml-[17px] pl-3 py-0.5">
+                Wallet Configuration
+              </div>
+              <a href="#wallet-identity" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                Wallet identity
+              </a>
+              <a href="#wallet-config" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                Build configuration
+              </a>
+              <a href="#wallet-active" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                Active environment
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 3: DATA & SECURITY --- */}
+      {activeTab === 'data_security' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-300">
+          
+          {/* Data & Security Stack (9 cols) */}
+          <div className="lg:col-span-9 space-y-8">
+            
+            {/* SECTION 1: Data & Backup */}
+            <div id="backup" className="space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Data & Backup</h2>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Export backups or import transaction history snapshots.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onClick={exportToCSV} className="p-5 rounded-[10px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all flex flex-col items-center gap-3 group text-center">
+                  <FileSpreadsheet size={24} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
+                  <div>
+                    <span className="text-[13px] font-medium text-[var(--text-primary)] block">Export Ledger CSV</span>
+                    <span className="text-[11px] text-[var(--text-muted)] block mt-0.5">Spreadsheet Format</span>
                   </div>
-                  <span className="text-[11px] font-bold text-main">{sub.label}</span>
+                </button>
+                <button onClick={exportToJSON} className="p-5 rounded-[10px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all flex flex-col items-center gap-3 group text-center">
+                  <FileJson size={24} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
+                  <div>
+                    <span className="text-[13px] font-medium text-[var(--text-primary)] block">Export Backup JSON</span>
+                    <span className="text-[11px] text-[var(--text-muted)] block mt-0.5">Full System Snapshot</span>
+                  </div>
+                </button>
+                <button onClick={() => fileInputRef.current?.click()} className="p-5 rounded-[10px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all flex flex-col items-center gap-3 group text-center">
+                  <Upload size={24} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-emerald-400 transition-colors" />
+                  <div>
+                    <span className="text-[13px] font-medium text-[var(--text-primary)] block">Import Backup File</span>
+                    <span className="text-[11px] text-[var(--text-muted)] block mt-0.5">Deduplication Active</span>
+                  </div>
+                  <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" className="hidden" />
+                </button>
+              </div>
+            </div>
+
+            {/* SECTION: RabbAi Integration Settings */}
+            <div id="rabb-ai" className="space-y-4 pt-4 border-t border-[var(--border-default)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight flex items-center gap-2">
+                    <Zap size={18} className="text-amber-400" />
+                    <span>RabbAi Assistant Configuration (`Llama 3.1 & Vision 3.2`)</span>
+                  </h2>
+                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Fast, zero-cost serverless AI for natural language transaction logging, receipt OCR, and financial coaching.
+                  </p>
                 </div>
-                <div
-                  className={`w-8 h-4 rounded-full relative transition-colors ${
-                    sub.active ? 'bg-primary shadow-lg shadow-primary/20' : 'bg-white/10'
-                  }`}
-                >
-                  <div
-                    className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${
-                      sub.active ? 'left-4.5' : 'left-0.5'
-                    }`}
+              </div>
+
+              <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-5 rounded-[10px] space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)]">Enable RabbAi Intelligence</span>
+                  <input
+                    type="checkbox"
+                    checked={localSettings.enableAiParsing !== false}
+                    onChange={(e) => {
+                      const updated = { ...localSettings, enableAiParsing: e.target.checked };
+                      setLocalSettings(updated);
+                      updateData({ settings: updated });
+                    }}
+                    className="w-4 h-4 rounded border-[var(--border-default)] accent-[#2563eb] cursor-pointer"
                   />
                 </div>
-              </button>
-            ))}
-          </div>
-          <div className="pt-4 flex justify-end">
-            <button
-              onClick={handleSaveSettings}
-              disabled={!isSettingsDirty}
-              className="bg-primary/20 text-primary border border-primary/20 px-6 py-2 rounded-sm text-xs font-bold hover:bg-primary hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              Update Alerts
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {/* Data Backup (Export/Import) */}
-      {!isCompact && (
-        <div className="liquid-glass p-6 rounded-sm shadow-xl space-y-6">
-            <div className="flex items-center gap-2">
-                <p className="text-[9px] uppercase font-black text-muted tracking-[0.2em]">Data Management</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button onClick={exportToCSV} className="p-5 rounded-md bg-white/5 hover:bg-primary/10 border border-white/5 hover:border-primary/20 transition-all flex flex-col items-center gap-3 group">
-                    <FileSpreadsheet size={24} className="text-muted group-hover:text-primary transition-colors" />
-                    <div className="text-center">
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest block">Export Ledger</span>
-                        <span className="text-[8px] text-muted uppercase font-bold tracking-tighter">Format: CSV (Excel Compatible)</span>
-                    </div>
-                </button>
-                <button onClick={exportToJSON} className="p-5 rounded-md bg-white/5 hover:bg-primary/10 border border-white/5 hover:border-primary/20 transition-all flex flex-col items-center gap-3 group">
-                    <FileJson size={24} className="text-muted group-hover:text-primary transition-colors" />
-                    <div className="text-center">
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest block">Export Backup</span>
-                        <span className="text-[8px] text-muted uppercase font-bold tracking-tighter">Format: JSON (Full Backup)</span>
-                    </div>
-                </button>
-                <button onClick={() => fileInputRef.current?.click()} className="p-5 rounded-md bg-white/5 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/20 transition-all flex flex-col items-center gap-3 group">
-                    <Upload size={24} className="text-muted group-hover:text-emerald-500 transition-colors" />
-                    <div className="text-center">
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest block">Import Data</span>
-                        <span className="text-[8px] text-muted uppercase font-bold tracking-tighter">Smart Deduplication Active</span>
-                    </div>
-                    <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" className="hidden" />
-                </button>
-            </div>
-        </div>
-      )}
-
-      {/* Security & Support (Desktop Only) */}
-      {!isCompact && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="liquid-glass p-6 rounded-sm shadow-xl space-y-5">
-                <div className="flex items-center gap-2">
-                    <p className="text-[9px] uppercase font-black text-muted tracking-[0.2em]">Trust & Legal</p>
-                </div>
                 <div className="space-y-2">
-                    <button onClick={() => setShowPrivacy(true)} className="w-full px-4 py-3 flex items-center justify-between rounded-sm hover:bg-white/5 transition-all group border border-white/5">
-                        <div className="flex items-center gap-4">
-                            <Fingerprint size={16} className="text-muted group-hover:text-primary transition-colors" />
-                            <span className="text-xs font-bold text-main">View Privacy Policy</span>
-                        </div>
-                        <ChevronRight size={14} className="text-muted/20" />
+                  <label className="text-[13px] font-medium text-[var(--text-primary)] block">Groq API Key</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="password"
+                      value={localSettings.groqApiKey || ''}
+                      onChange={(e) => {
+                        const updated = { ...localSettings, groqApiKey: e.target.value };
+                        setLocalSettings(updated);
+                      }}
+                      placeholder="Enter Groq API Key..."
+                      className="flex-1 h-[38px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[8px] px-3 text-[13px] font-mono text-[var(--text-primary)] outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateData({ settings: localSettings });
+                        alert('Groq API Key saved successfully!');
+                      }}
+                      className="px-4 py-2 bg-[#2563eb] hover:bg-blue-600 text-white font-medium text-[12px] rounded-[6px] transition-all"
+                    >
+                      Save Key
                     </button>
-                    <a href="mailto:dev@trackxpense.app" className="w-full px-4 py-3 flex items-center justify-between rounded-sm hover:bg-white/5 transition-all group border border-white/5">
-                        <div className="flex items-center gap-4">
-                            <Mail size={16} className="text-muted group-hover:text-primary transition-colors" />
-                            <span className="text-xs font-bold text-main">Contact Developer</span>
-                        </div>
-                        <ChevronRight size={14} className="text-muted/20" />
-                    </a>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    Default Key active. Free tier allows up to 14,400 requests/day on `llama-3.1-8b-instant`.
+                  </p>
                 </div>
+              </div>
             </div>
 
-            <div className="liquid-glass p-6 rounded-sm shadow-xl space-y-5">
-                <div className="flex items-center gap-2">
-                    <p className="text-[9px] uppercase font-black text-red-500 tracking-[0.2em]">Account Actions</p>
-                </div>
-                <div className="flex gap-4">
-                    <button onClick={() => setConfirmAction('logout')} className="flex-1 px-4 py-3 flex flex-col items-center justify-center gap-2 rounded-md bg-white/5 hover:bg-primary/10 border border-white/5 hover:border-primary/20 transition-all group">
-                        <LogOut size={20} className="text-primary" />
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Log Out</span>
-                        <p className="text-[7px] font-black text-primary/40 uppercase tracking-widest">Keep data</p>
+            {/* SECTION 2: Security & Account Actions */}
+            <div id="security" className="space-y-4 pt-4 border-t border-[var(--border-default)]">
+              <div>
+                <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Account & Security</h2>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5">Application legal terms, developer support, and session controls.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-5 rounded-[10px] space-y-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">Legal & Support</h3>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Privacy policy documentation and contact.</p>
+                  </div>
+                  <div className="space-y-2 pt-1">
+                    <button onClick={() => setShowPrivacy(true)} className="w-full px-3.5 py-2.5 flex items-center justify-between rounded-[8px] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] transition-all border border-[var(--border-default)]">
+                      <div className="flex items-center gap-2.5">
+                        <Fingerprint size={16} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+                        <span className="text-[13px] font-medium text-[var(--text-primary)]">View Privacy Policy</span>
+                      </div>
+                      <ChevronRight size={14} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                     </button>
-                    <button onClick={() => setConfirmAction('delete')} className="flex-1 px-4 py-3 flex flex-col items-center justify-center gap-2 rounded-md bg-white/5 hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 transition-all group">
-                        <Trash2 size={20} className="text-red-500" />
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Delete account</span>
-                        <p className="text-[7px] font-black text-red-500/40 uppercase tracking-widest">Permanent</p>
-                    </button>
+                    <a href="mailto:dev@trackxpense.app" className="w-full px-3.5 py-2.5 flex items-center justify-between rounded-[8px] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] transition-all border border-[var(--border-default)]">
+                      <div className="flex items-center gap-2.5">
+                        <Mail size={16} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+                        <span className="text-[13px] font-medium text-[var(--text-primary)]">Contact Developer</span>
+                      </div>
+                      <ChevronRight size={14} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+                    </a>
+                  </div>
                 </div>
+
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-5 rounded-[10px] space-y-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--text-primary)]">Account Actions</h3>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Session controls and account removal.</p>
+                  </div>
+                  <div className="flex gap-3 pt-1">
+                    <button onClick={() => setConfirmAction('logout')} className="flex-1 px-3.5 py-3 flex flex-col items-center justify-center gap-1.5 rounded-[8px] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all">
+                      <LogOut size={18} strokeWidth={1.5} className="text-[#2563EB]" />
+                      <span className="text-[13px] font-medium text-[var(--text-primary)]">Log Out</span>
+                    </button>
+                    <button onClick={() => setConfirmAction('delete')} className="flex-1 px-3.5 py-3 flex flex-col items-center justify-center gap-1.5 rounded-[8px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all">
+                      <Trash2 size={18} strokeWidth={1.5} className="text-red-400" />
+                      <span className="text-[13px] font-medium text-red-400">Delete Account</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
+
+          </div>
+
+          {/* Right Sticky TOC Navigation (3 cols) */}
+          <div className="lg:col-span-3 hidden lg:block">
+            <div className="sticky top-6 space-y-3 text-[13px] border-l border-[var(--border-default)] pl-4">
+              <div className="font-medium text-[var(--text-primary)] border-l-2 border-[var(--text-primary)] -ml-[17px] pl-3 py-0.5">
+                Data & Security
+              </div>
+              <a href="#backup" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                Backup & export
+              </a>
+              <a href="#security" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                Legal & support
+              </a>
+              <a href="#security" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                Account session
+              </a>
+            </div>
+          </div>
         </div>
       )}
 
-      {confirmAction && <ConfirmationOverlay action={confirmAction} />}
-      {showPrivacy && <PrivacyModal />}
+      {/* --- MODAL: Add New Wallet --- */}
+      {isAddWalletOpen && (
+        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/70 backdrop-blur-xs" 
+            onClick={() => setIsAddWalletOpen(false)} 
+          />
+          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Add New Wallet</h3>
+              <button 
+                onClick={() => setIsAddWalletOpen(false)}
+                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+              >
+                <X size={15} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-medium text-[var(--text-primary)]">Wallet / Vault Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Savings Vault..."
+                  value={newWalletName}
+                  onChange={(e) => setNewWalletName(e.target.value)}
+                  className="w-full h-[38px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[8px] px-3 text-[13px] text-[var(--text-primary)] outline-none"
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-medium text-[var(--text-primary)]">Purpose / Type</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewWalletIsGoal(false)}
+                    className={`flex-1 h-[36px] rounded-[6px] text-[12px] font-medium border transition-all ${
+                      !newWalletIsGoal 
+                        ? 'bg-[#2563EB]/10 border-[#2563EB] text-[#2563EB] font-semibold' 
+                        : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    Standard Vault
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewWalletIsGoal(true)}
+                    className={`flex-1 h-[36px] rounded-[6px] text-[12px] font-medium border transition-all ${
+                      newWalletIsGoal 
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-semibold' 
+                        : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    Savings Goal
+                  </button>
+                </div>
+              </div>
+
+              {newWalletIsGoal && (
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-medium text-emerald-400">Savings Target Amount</label>
+                  <input
+                    type="number"
+                    placeholder="0.00"
+                    value={newWalletTarget}
+                    onChange={(e) => setNewWalletTarget(e.target.value)}
+                    className="w-full h-[38px] bg-[var(--bg-subtle)] border border-emerald-500/30 rounded-[8px] px-3 text-[13px] font-mono text-emerald-400 outline-none"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+              <button
+                type="button"
+                onClick={() => setIsAddWalletOpen(false)}
+                className="h-[36px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddWallet}
+                disabled={!newWalletName.trim()}
+                className="h-[36px] px-4 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
+              >
+                Create Wallet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL: Delete Wallet & Reassign Transactions --- */}
+      {deletingWalletId && (
+        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/70 backdrop-blur-xs" 
+            onClick={() => setDeletingWalletId(null)} 
+          />
+          <div className="relative w-full max-w-[440px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Delete Wallet & Reassign Ledger</h3>
+              <button 
+                onClick={() => setDeletingWalletId(null)}
+                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+              >
+                <X size={15} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                Deleting this wallet will permanently remove it. Choose a target destination wallet to automatically reassign all transactions and funds to:
+              </p>
+
+              <div className="space-y-1.5 pt-1">
+                <label className="text-[12px] font-medium text-[var(--text-primary)]">Reassign Transactions To:</label>
+                <select
+                  value={targetReassignWalletId}
+                  onChange={(e) => setTargetReassignWalletId(e.target.value)}
+                  className="w-full h-[38px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[8px] px-3 text-[13px] text-[var(--text-primary)] outline-none"
+                >
+                  {(data.wallets || []).filter(w => w.id !== deletingWalletId).map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+              <button
+                type="button"
+                onClick={() => setDeletingWalletId(null)}
+                className="h-[36px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteWalletWithReassign}
+                className="h-[36px] px-4 rounded-[8px] bg-red-600 hover:bg-red-700 text-white text-[13px] font-medium transition-all shadow-xs"
+              >
+                Delete & Reassign
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Overlays */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-xs" onClick={() => setConfirmAction(null)} />
+          <div className="relative bg-[var(--bg-surface)] border border-[var(--border-default)] w-full max-w-xs rounded-[12px] p-6 shadow-2xl animate-in zoom-in-95 text-center space-y-4">
+            <AlertTriangle size={32} strokeWidth={1.5} className="text-red-500 mx-auto" />
+            <div>
+              <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">
+                {confirmAction === 'logout' ? 'Confirm Log Out' : 'Delete Account'}
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)]">
+                {confirmAction === 'logout' 
+                  ? 'Are you sure you want to end your current session?' 
+                  : 'This will permanently remove your user data and cannot be undone.'}
+              </p>
+            </div>
+            <div className="flex gap-2 pt-2 border-t border-[var(--border-default)]">
+              <button onClick={() => setConfirmAction(null)} className="flex-1 h-[36px] rounded-[8px] border border-[var(--border-default)] text-[13px] text-[var(--text-secondary)] font-medium">Cancel</button>
+              <button onClick={confirmAction === 'logout' ? handleLogout : handleDeleteAccount} className="flex-1 h-[36px] rounded-[8px] bg-red-600 text-white text-[13px] font-medium">Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPrivacy && (
+        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-xs" onClick={() => setShowPrivacy(false)} />
+          <div className="relative bg-[var(--bg-surface)] border border-[var(--border-default)] w-full max-w-md rounded-[12px] p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-[var(--border-default)] pb-3">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Privacy Policy</h3>
+              <button onClick={() => setShowPrivacy(false)} className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X size={16}/></button>
+            </div>
+            <div className="text-xs text-[var(--text-secondary)] space-y-2 leading-relaxed max-h-60 overflow-y-auto pr-1">
+              <p>TrackXpense stores your financial records locally or encrypted via Supabase ADC security infrastructure.</p>
+              <p>No raw banking credentials or personal identification details are shared with third-party tracking networks.</p>
+            </div>
+            <div className="flex justify-end pt-2 border-t border-[var(--border-default)]">
+              <button onClick={() => setShowPrivacy(false)} className="px-4 py-1.5 bg-[var(--bg-subtle)] text-[12px] font-medium rounded-[6px] text-[var(--text-primary)]">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

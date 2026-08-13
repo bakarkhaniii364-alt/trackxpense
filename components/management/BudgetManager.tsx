@@ -65,7 +65,7 @@ export const BudgetManager: React.FC<BudgetManagerProps> = ({
   };
 
   return (
-    <div className={`space-y-6 ${isCompact ? '' : 'max-w-5xl mx-auto pb-10'}`}>
+    <div className={`space-y-6 ${isCompact ? '' : 'w-full mx-auto pb-10'}`}>
       {!isCompact && (
         <div>
           <h2 className="text-2xl font-bold text-main tracking-tight">Vault Limits</h2>

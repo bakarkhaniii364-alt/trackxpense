@@ -72,9 +72,9 @@ export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
                     <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">Stability Index</span>
                     <h3 className="text-xl font-bold text-white tracking-tight">Financial Health</h3>
                 </div>
-                <div className={`px-3 py-1 rounded-full ${status.bg} ${status.color} text-[8px] font-black uppercase tracking-widest border border-current/10`}>
+                <span className="pill">
                     {status.label}
-                </div>
+                </span>
             </div>
 
             <div className="flex items-baseline gap-2 mb-6">

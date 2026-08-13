@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AppData, Transaction, TransactionType, RecurringRule } from '../types';
-import { Calendar, CheckCircle2, Ghost, Plus, AlertCircle, TrendingUp } from 'lucide-react';
+import { Calendar, CheckCircle2, Ghost, Plus, AlertCircle, TrendingUp, X, Trash2 } from 'lucide-react';
 import { Haptics } from '../services/haptics';
 
 interface SubscriptionManagerProps {
@@ -12,12 +12,16 @@ interface SubscriptionManagerProps {
 const FREQUENCIES = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'] as const;
 
 export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, updateData, formatMoney }) => {
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [subName, setSubName] = useState('');
+    const [subAmount, setSubAmount] = useState('');
+    const [subFreq, setSubFreq] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'>('MONTHLY');
     
-    // Logic to detect potential subscriptions
+    // Logic to detect potential subscriptions from transactions
     const detectedSubscriptions = useMemo(() => {
         const potential: Record<string, Transaction[]> = {};
         
-        data.transactions.forEach(tx => {
+        (data.transactions || []).forEach(tx => {
             if (tx.type === TransactionType.EXPENSE && tx.note) {
                 const key = `${tx.note.toLowerCase()}_${tx.amount}`;
                 if (!potential[key]) potential[key] = [];
@@ -55,14 +59,14 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
         Haptics.success();
     };
 
-    const registerRecurringRule = (name: string, amount: number) => {
+    const registerRecurringRule = (name: string, amount: number, freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' = 'MONTHLY') => {
         const newRule: RecurringRule = {
             id: Date.now().toString(),
             name,
             amount,
             type: TransactionType.EXPENSE,
             category: data.transactions.find(t => t.note?.toLowerCase() === name.toLowerCase())?.category || 'Fixed',
-            frequency: 'MONTHLY',
+            frequency: freq,
             nextDueDate: new Date().toISOString().split('T')[0],
             walletId: data.currentWalletId,
             isActive: true,
@@ -70,6 +74,16 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
         };
         updateData({ recurringRules: [...(data.recurringRules || []), newRule] });
         Haptics.success();
+    };
+
+    const handleManualAdd = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (subName && subAmount) {
+            registerRecurringRule(subName, parseFloat(subAmount), subFreq);
+            setSubName('');
+            setSubAmount('');
+            setIsAddModalOpen(false);
+        }
     };
 
     const deleteRule = (id: string) => {
@@ -82,67 +96,87 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
         });
     };
 
-    const monthlyTotal = detectedSubscriptions
-        .filter(s => s.isConfirmed)
-        .reduce((sum, s) => sum + s.amount, 0);
+    const monthlyTotal = (data.recurringRules || [])
+        .filter(r => r.isActive)
+        .reduce((sum, r) => sum + (r.frequency === 'YEARLY' ? r.amount / 12 : r.amount), 0);
+
+    const activeRules = data.recurringRules || [];
+    const hasAnySubscriptions = activeRules.length > 0 || detectedSubscriptions.length > 0;
 
     return (
-        <div className="max-w-5xl mx-auto space-y-4 lg:space-y-8 px-2 lg:px-0 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 overflow-x-hidden">
-            <header className="flex items-center justify-end">
-                <div className="liquid-glass px-4 py-3 lg:px-6 lg:py-4 rounded-md flex items-center gap-3 lg:gap-4 border-primary/20">
-                     <TrendingUp className="text-primary" size={20} />
-                     <div>
-                         <p className="text-[8px] font-black text-muted/50 uppercase tracking-widest">Total Monthly Subscriptions</p>
-                         <p className="text-xl font-bold text-primary">{formatMoney(monthlyTotal, data.settings.currencySymbol)}</p>
-                     </div>
+        <div className="w-full mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 overflow-x-hidden">
+            
+            {/* Cloudflare-Style Section Header Outside Card */}
+            <div className="flex items-center justify-between pb-2">
+                <div>
+                    <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Subscriptions</h2>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Track active recurring services and auto-detected monthly subscriptions.</p>
                 </div>
-            </header>
+                <button
+                    onClick={() => {
+                        setSubName('');
+                        setSubAmount('');
+                        setIsAddModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs shrink-0"
+                >
+                    <Plus size={15} />
+                    <span>Add subscription</span>
+                </button>
+            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
-                <div className="lg:col-span-8 space-y-6 lg:space-y-8">
-                    {/* Active Rules */}
-                    {data.recurringRules && data.recurringRules.length > 0 && (
-                        <div className="space-y-4">
-                            <h3 className="text-[10px] font-black text-primary uppercase tracking-[0.3em] px-2">Active Subscriptions</h3>
-                            <div className="space-y-3">
-                                {data.recurringRules.map(rule => (
-                                    <div key={rule.id} className="glass-card p-4 lg:p-5 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-primary/20 bg-primary/5">
-                                        <div className="flex items-center gap-3 lg:gap-4">
-                                            <div className={`p-4 rounded-sm ${rule.isActive ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-muted/40'}`}>
-                                                <CheckCircle2 size={20} />
-                                            </div>
+            {/* Monthly Burn Rate Summary Card */}
+            {hasAnySubscriptions && (
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-6 rounded-[10px] flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Monthly Subscription Burn</p>
+                        <p className="text-2xl font-bold text-[var(--text-primary)] tracking-tight mt-1">
+                            {formatMoney(monthlyTotal, data.settings.currencySymbol)}
+                        </p>
+                    </div>
+                    <div className="px-3 py-1.5 rounded-[6px] bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[12px] font-medium">
+                        {activeRules.length} active service{activeRules.length === 1 ? '' : 's'}
+                    </div>
+                </div>
+            )}
+
+            {/* Active Subscriptions Grid */}
+            {hasAnySubscriptions ? (
+                <div className="space-y-6">
+                    {/* Active Rules Section */}
+                    {activeRules.length > 0 && (
+                        <div className="space-y-3">
+                            <h3 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Configured Subscriptions</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {activeRules.map(rule => (
+                                    <div 
+                                        key={rule.id} 
+                                        className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all"
+                                    >
+                                        <div className="flex items-center gap-3.5">
+                                            <Ghost size={20} strokeWidth={1.5} className={rule.isActive ? 'text-blue-400' : 'text-[var(--text-muted)]'} />
                                             <div>
-                                                <h4 className="font-bold text-main tracking-tight flex items-center gap-2">
+                                                <h4 className="text-[14px] font-medium text-[var(--text-primary)] flex items-center gap-2">
                                                     {rule.name}
-                                                    {!rule.isActive && <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-500 text-[6px] font-black uppercase tracking-widest rounded border border-amber-500/20">Paused</span>}
+                                                    {!rule.isActive && <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 text-[10px] font-medium rounded border border-amber-500/20">Paused</span>}
                                                 </h4>
-                                                <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">
-                                                    {formatMoney(rule.amount, data.settings.currencySymbol)} • {rule.frequency}
+                                                <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+                                                    {formatMoney(rule.amount, data.settings.currencySymbol)} • {rule.frequency.toLowerCase()}
                                                 </p>
-                                                <div className="mt-2 flex gap-3">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[7px] text-white/20 font-black uppercase tracking-widest">1-Year Cost</span>
-                                                        <span className="text-[10px] font-bold text-white/60">{formatMoney(rule.amount * 12, data.settings.currencySymbol)}</span>
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[7px] text-white/20 font-black uppercase tracking-widest">3-Year Cost</span>
-                                                        <span className="text-[10px] font-bold text-white/60">{formatMoney(rule.amount * 36, data.settings.currencySymbol)}</span>
-                                                    </div>
-                                                </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end sm:justify-start">
+                                        <div className="flex items-center gap-1.5">
                                             <button 
                                                 onClick={() => toggleRuleActive(rule.id)}
-                                                className={`p-2 rounded-md transition-all ${rule.isActive ? 'text-primary hover:bg-primary/10' : 'text-muted/30 hover:bg-white/5'}`}
+                                                className={`p-1.5 rounded-[6px] transition-all text-xs font-medium ${rule.isActive ? 'text-blue-400 hover:bg-blue-500/10' : 'text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]'}`}
                                             >
-                                                {rule.isActive ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+                                                {rule.isActive ? 'Active' : 'Resume'}
                                             </button>
                                             <button 
                                                 onClick={() => deleteRule(rule.id)}
-                                                className="p-2 text-muted/20 hover:text-rose-500 transition-colors"
+                                                className="p-1.5 text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-[6px] transition-all opacity-0 group-hover:opacity-100"
                                             >
-                                                <Plus size={18} className="rotate-45" />
+                                                <Trash2 size={15} strokeWidth={1.5} />
                                             </button>
                                         </div>
                                     </div>
@@ -151,105 +185,139 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                         </div>
                     )}
 
-                    <div className="space-y-4">
-                                                        <h3 className="text-[10px] font-black text-muted/40 uppercase tracking-[0.3em] px-2">Detected Subscriptions</h3>
+                    {/* Auto-Detected Subscriptions Section */}
+                    {detectedSubscriptions.length > 0 && (
                         <div className="space-y-3">
-                            {detectedSubscriptions.map(sub => {
-                                const isAlreadyRegistered = data.recurringRules?.some(r => r.name.toLowerCase() === sub.name.toLowerCase() && r.amount === sub.amount);
-                                return (
-                                    <div key={sub.id} className={`glass-card p-4 lg:p-5 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all ${sub.isConfirmed ? 'border-emerald-500/30 bg-emerald-500/5' : 'hover:border-white/10'}`}>
-                                        <div className="flex items-center gap-3 lg:gap-4">
-                                            <div className={`p-4 rounded-sm ${sub.isConfirmed ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-white/5 text-muted/40'}`}>
-                                                <Ghost size={20} />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-main tracking-tight flex items-center gap-2">
-                                                    {sub.name}
-                                                    {sub.isStale && <span className="px-1.5 py-0.5 bg-rose-500/10 text-rose-500 text-[6px] font-black uppercase tracking-widest rounded border border-rose-500/20 flex items-center gap-1"><AlertCircle size={8} /> Stale</span>}
-                                                </h4>
-                                                <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">
-                                                    {formatMoney(sub.amount, data.settings.currencySymbol)} • {sub.instances} instances
-                                                </p>
-                                                <div className="mt-2 flex gap-3">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[7px] text-white/20 font-black uppercase tracking-widest">Yearly Cost</span>
-                                                        <span className="text-[10px] font-bold text-white/60">{formatMoney(sub.amount * 12, data.settings.currencySymbol)}</span>
-                                                    </div>
+                            <h3 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Auto-Detected Recurring Charges</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {detectedSubscriptions.map(sub => {
+                                    const isAlreadyRegistered = activeRules.some(r => r.name.toLowerCase() === sub.name.toLowerCase() && r.amount === sub.amount);
+                                    return (
+                                        <div key={sub.id} className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all">
+                                            <div className="flex items-center gap-3.5">
+                                                <Ghost size={20} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+                                                <div>
+                                                    <h4 className="text-[14px] font-medium text-[var(--text-primary)]">{sub.name}</h4>
+                                                    <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+                                                        {formatMoney(sub.amount, data.settings.currencySymbol)} • {sub.instances} billing occurrences
+                                                    </p>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div className="flex gap-2 w-full sm:w-auto justify-end sm:justify-start">
-                                            <button 
-                                                onClick={() => toggleSubscriptionStatus(sub.name, sub.amount)}
-                                                className={`px-3 py-2 rounded-md font-bold text-[8px] uppercase tracking-widest transition-all ${sub.isConfirmed ? 'bg-white/10 text-main' : 'bg-black/20 text-muted hover:text-main border border-white/5'}`}
-                                            >
-                                                {sub.isConfirmed ? 'Confirmed' : 'Confirm'}
-                                            </button>
                                             {!isAlreadyRegistered && (
                                                 <button 
                                                     onClick={() => registerRecurringRule(sub.name, sub.amount)}
-                                                    className="px-4 py-2 bg-primary text-white rounded-md font-bold text-[8px] uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                                                    className="px-3 py-1.5 bg-[#2563EB] hover:bg-blue-600 text-white rounded-[6px] font-medium text-[12px] transition-all shadow-xs shrink-0"
                                                 >
-                                                    Add Subscription
+                                                    Track Service
                                                 </button>
                                             )}
                                         </div>
-                                    </div>
-                                );
-                            })}
-                            {detectedSubscriptions.length === 0 && (
-                                <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-lg">
-                                    <AlertCircle className="mx-auto text-muted/20 mb-4" size={32} />
-                                    <p className="text-muted/40 text-sm font-bold uppercase tracking-widest">No recurring patterns identified yet.</p>
-                                </div>
-                            )}
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
-
-                <div className="lg:col-span-4 space-y-4 lg:space-y-6">
-                    <div className="liquid-glass p-4 lg:p-6 rounded-md space-y-4">
-                        <h4 className="text-[9px] font-black text-muted/40 uppercase tracking-widest">Add Subscription Manually</h4>
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            const form = e.target as HTMLFormElement;
-                            const name = (form.elements.namedItem('name') as HTMLInputElement).value;
-                            const amount = parseFloat((form.elements.namedItem('amount') as HTMLInputElement).value);
-                            const frequency = (form.elements.namedItem('freq') as HTMLSelectElement).value as any;
-                            if (name && amount) {
-                                const newRule: RecurringRule = {
-                                    id: Date.now().toString(),
-                                    name,
-                                    amount,
-                                    type: TransactionType.EXPENSE,
-                                    category: 'Fixed',
-                                    frequency,
-                                    nextDueDate: new Date().toISOString().split('T')[0],
-                                    walletId: data.currentWalletId,
-                                    isActive: true
-                                };
-                                updateData({ recurringRules: [...(data.recurringRules || []), newRule] });
-                                form.reset();
-                                Haptics.success();
-                            }
-                        }} className="space-y-3">
-                            <input name="name" placeholder="Service Name..." className="w-full bg-black/20 border border-white/5 rounded-md px-4 py-2.5 text-xs text-main outline-none focus:border-primary/40" required />
-                            <input name="amount" type="number" placeholder="Amount..." className="w-full bg-black/20 border border-white/5 rounded-md px-4 py-2.5 text-xs text-main outline-none focus:border-primary/40" required />
-                            <select name="freq" className="w-full bg-black/20 border border-white/5 rounded-md px-4 py-2.5 text-xs text-main outline-none focus:border-primary/40">
-                                {FREQUENCIES.map(f => <option key={f} value={f}>{f}</option>)}
-                            </select>
-                            <button type="submit" className="w-full py-3 bg-primary text-white rounded-md font-black text-[9px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20">+ Add Subscription</button>
-                        </form>
-                    </div>
-
-                    <div className="liquid-glass p-4 lg:p-6 rounded-md space-y-4 opacity-60">
-                        <h4 className="text-[9px] font-black text-muted/40 uppercase tracking-widest">Subscription Tips</h4>
-                        <p className="text-xs text-muted leading-relaxed">
-                            "Automate" creates a recurring task that generates transactions on the specified frequency. Useful for rent, wifi, or Netflix.
-                        </p>
-                    </div>
+            ) : (
+                /* Cloudflare-Style Centered Empty State Box */
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] p-12 text-center flex flex-col items-center justify-center my-4">
+                    <Ghost size={32} strokeWidth={1.5} className="text-[var(--text-muted)] mb-3" />
+                    <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">No active subscriptions</h3>
+                    <p className="text-xs text-[var(--text-secondary)] max-w-sm mb-6 leading-relaxed">
+                        Track your recurring software, streaming services, or monthly bills to prevent hidden subscription drift.
+                    </p>
+                    <button
+                        onClick={() => {
+                            setSubName('');
+                            setSubAmount('');
+                            setIsAddModalOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs"
+                    >
+                        <Plus size={15} />
+                        <span>Add subscription</span>
+                    </button>
                 </div>
-            </div>
+            )}
+
+            {/* --- MODAL: Add Subscription --- */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+                    <div 
+                        className="absolute inset-0 bg-black/70 backdrop-blur-xs"
+                        onClick={() => setIsAddModalOpen(false)} 
+                    />
+                    <form 
+                        onSubmit={handleManualAdd}
+                        className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200"
+                    >
+                        <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
+                            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Add a Subscription</h3>
+                            <button 
+                                type="button"
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Service Name</label>
+                                <input 
+                                    type="text"
+                                    placeholder="e.g. Netflix, Spotify, AWS, Gym..." 
+                                    value={subName}
+                                    onChange={e => setSubName(e.target.value)}
+                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                                    required
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Recurring Amount ({data.settings.currencySymbol})</label>
+                                <input 
+                                    type="number" 
+                                    placeholder="0.00"
+                                    value={subAmount}
+                                    onChange={e => setSubAmount(e.target.value)}
+                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                                    required
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Billing Cycle</label>
+                                <select 
+                                    value={subFreq} 
+                                    onChange={e => setSubFreq(e.target.value as any)}
+                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                                >
+                                    {FREQUENCIES.map(f => <option key={f} value={f}>{f.charAt(0) + f.slice(1).toLowerCase()}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+                            <button
+                                type="button"
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="h-[38px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={!subName || !subAmount}
+                                className="h-[38px] px-5 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
+                            >
+                                Add subscription
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
         </div>
     );
 };

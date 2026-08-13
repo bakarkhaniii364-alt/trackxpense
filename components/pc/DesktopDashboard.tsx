@@ -11,6 +11,7 @@ import { DailyBudget } from '../dashboard/DailyBudget';
 import { TemplatePresets } from '../dashboard/TemplatePresets';
 import { FinancialHealthScore, SpendingHeatmap } from '../dashboard/WorkstationWidgets';
 import { SimulationModule } from '../dashboard/SimulationModule';
+import { EmptyStateSeeder } from '../shared/EmptyStateSeeder';
 
 interface DesktopDashboardProps {
     data: AppData;
@@ -93,7 +94,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     const quickActions = useMemo(() => getSmartQuickActions(), [walletTransactions]);
 
     return (
-        <div className="grid grid-cols-12 gap-4 p-4 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 max-w-5xl mx-auto overflow-x-hidden">
+        <div className="grid grid-cols-12 gap-4 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full mx-auto overflow-x-hidden">
             
             {/* --- TIER 1: COMMAND HUB & DAILY BUDGET --- */}
             <div className="col-span-12 lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
@@ -161,7 +162,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                     </div>
                     <button 
                         onClick={() => setIsSimOpen(true)}
-                        className="w-full py-4 bg-primary text-white rounded-md font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all mt-6"
+                        className="btn btn--primary w-full justify-center text-[11px] uppercase tracking-[0.2em] mt-6"
                     >
                         Open Simulator
                     </button>
@@ -212,31 +213,41 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                         </button>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 overflow-y-auto pr-2 custom-scrollbar max-h-[500px]">
-                        {walletTransactions.slice(0, 24).map((t: Transaction) => (
-                            <div key={t.id} onClick={() => onEditTransaction(t)} className="flex items-center justify-between p-4 bg-black/30 border border-white/5 rounded-md hover:border-white/20 hover:bg-white/5 transition-all cursor-pointer group active:scale-[0.98]">
-                                <div className="flex items-center gap-4 min-w-0">
-                                    <div className="h-10 w-10 rounded-sm bg-surface flex items-center justify-center border border-white/5 text-white/40 transition-all group-hover:scale-110 group-hover:text-primary group-hover:border-primary/20 shadow-lg">
-                                        <CategoryIcon category={t.category} color={data.categories.find(c => c.name === t.category)?.color} />
+                    {walletTransactions.length === 0 ? (
+                        <EmptyStateSeeder 
+                            data={data} 
+                            updateData={updateData} 
+                            compact 
+                            title="No Recent Activity" 
+                            description="Load 1-click sample data to test workstation widgets, charts, and transaction history." 
+                        />
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 overflow-y-auto pr-2 custom-scrollbar max-h-[500px]">
+                            {walletTransactions.slice(0, 24).map((t: Transaction) => (
+                                <div key={t.id} onClick={() => onEditTransaction(t)} className="flex items-center justify-between p-4 bg-black/30 border border-white/5 rounded-md hover:border-white/20 hover:bg-white/5 transition-all cursor-pointer group active:scale-[0.98]">
+                                    <div className="flex items-center gap-4 min-w-0">
+                                        <div className="h-10 w-10 rounded-sm bg-surface flex items-center justify-center border border-white/5 text-white/40 transition-all group-hover:scale-110 group-hover:text-primary group-hover:border-primary/20 shadow-lg">
+                                            <CategoryIcon category={t.category} color={data.categories.find(c => c.name === t.category)?.color} />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="font-black text-white/80 text-[11px] leading-tight truncate tracking-tight">{t.note || t.category}</p>
+                                            <p className="text-[8px] text-white/30 font-black mt-1 uppercase tracking-widest flex items-center gap-2">
+                                                {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                <span className="w-1 h-1 rounded-full bg-white/10" />
+                                                {t.category}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="min-w-0">
-                                        <p className="font-black text-white/80 text-[11px] leading-tight truncate tracking-tight">{t.note || t.category}</p>
-                                        <p className="text-[8px] text-white/30 font-black mt-1 uppercase tracking-widest flex items-center gap-2">
-                                            {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                            <span className="w-1 h-1 rounded-full bg-white/10" />
-                                            {t.category}
+                                    <div className="text-right">
+                                        <p className={`font-black text-[12px] tracking-tighter ${t.type === TransactionType.INCOME ? 'text-emerald-400' : 'text-white/90'}`}>
+                                            {t.type === TransactionType.INCOME ? '+' : ''}{formatMoney(t.amount, data.settings.currencySymbol)}
                                         </p>
+                                        <div className="h-0.5 w-0 bg-primary ml-auto mt-1 transition-all group-hover:w-full" />
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className={`font-black text-[12px] tracking-tighter ${t.type === TransactionType.INCOME ? 'text-emerald-400' : 'text-white/90'}`}>
-                                        {t.type === TransactionType.INCOME ? '+' : ''}{formatMoney(t.amount, data.settings.currencySymbol)}
-                                    </p>
-                                    <div className="h-0.5 w-0 bg-primary ml-auto mt-1 transition-all group-hover:w-full" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                  </div>
             </div>
             <SimulationModule isOpen={isSimOpen} onClose={() => setIsSimOpen(false)} data={data} />

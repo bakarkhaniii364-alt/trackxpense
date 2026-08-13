@@ -16,7 +16,7 @@ export const HistoryStats: React.FC<HistoryStatsProps> = ({ pieData, data, forma
             <div className="bg-surface/50 rounded-[40px] p-8 border border-white/5 shadow-xl flex flex-col items-center">
                 <h3 className="text-xl font-bold text-main mb-8 w-full text-center tracking-tight">Spending Distribution</h3>
                 <div className="h-72 w-full relative">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer minWidth={0} minHeight={280} width="100%" height="100%">
                             <RePieChart>
                                 <Pie 
                                     data={pieData} 

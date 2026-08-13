@@ -11,8 +11,8 @@ interface ManagementProps {
     onLogout?: () => void;
 }
 
-export const DesktopIdentity: React.FC<ManagementProps> = ({ data, updateData, onDirtyChange, onLogout }) => (
-    <PersonnelRegionalManager data={data} updateData={updateData} isCompact={false} onDirtyChange={onDirtyChange} onLogout={onLogout} />
+export const DesktopIdentity: React.FC<ManagementProps> = ({ data, updateData, formatMoney, onDirtyChange, onLogout }) => (
+    <PersonnelRegionalManager data={data} updateData={updateData} formatMoney={formatMoney} isCompact={false} onDirtyChange={onDirtyChange} onLogout={onLogout} />
 );
 
 export const DesktopControl: React.FC<ManagementProps> = ({ data, updateData, formatMoney }) => (

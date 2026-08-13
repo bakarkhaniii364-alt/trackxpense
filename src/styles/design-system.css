@@ -1,0 +1,411 @@
+/*
+  Design System — Dark Navy / Cyan (bevel-metal)
+  -----------------------------------------------
+  Canonical stylesheet. Single source of truth for all styles.
+  Everything reads from the :root tokens below.
+*/
+
+:root {
+  --ds-bg: #000000;
+  --ds-panel: #10141c;
+  --ds-panel-alt: #0c0f16;
+  --ds-border: #1c2430;
+  --ds-text: #eaf2f8;
+  --ds-text-dim: #97a4b3;
+  --ds-text-faint: #5b6b7d;
+  --ds-accent: #58c4e0;
+  --ds-accent-strong: #86c7e7;
+  --ds-ok: #4ad991;
+  --ds-warn: #e2685c;
+  --ds-radius: 8px;
+  --ds-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --ds-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* App Theme Variables & Tailwind Channels */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  --color-primary: 88 196 224;
+  --color-primary-hex: #58c4e0;
+
+  --bg-page: var(--ds-bg);
+  --bg-sidebar: var(--ds-bg);
+  --bg-surface: var(--ds-panel);
+  --bg-surface-hover: var(--ds-panel-alt);
+  --bg-subtle: #141b26;
+  --bg-active-pill: var(--ds-panel-alt);
+
+  --border-default: var(--ds-border);
+  --border-subtle: var(--ds-border);
+  --border-strong: #2a3542;
+  --border-active: var(--ds-accent);
+
+  --text-primary: var(--ds-text);
+  --text-secondary: var(--ds-text-dim);
+  --text-tertiary: var(--ds-text-faint);
+  --text-muted: var(--ds-text-faint);
+
+  --accent-solid: var(--ds-accent);
+  --accent-text: #090a0f;
+  --accent: var(--ds-accent);
+  --accent-bg-soft: rgba(88, 196, 224, 0.12);
+
+  --status-success-bg: rgba(74, 217, 145, 0.12);
+  --status-success-fg: var(--ds-ok);
+  --status-error-bg: rgba(226, 104, 92, 0.12);
+  --status-error-fg: var(--ds-warn);
+  --status-warning-bg: rgba(226, 104, 92, 0.12);
+  --status-warning-fg: var(--ds-warn);
+
+  --bg-core: 9 10 15;
+  --bg-card: 16 20 28;
+  --text-main: 234 242 248;
+
+  --bento-gap: 1.25rem;
+  --bento-radius: 12px;
+  --sidebar-radius: 8px;
+  --bento-padding: 20px;
+
+  --global-bg-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
+  --global-bg-gradient: radial-gradient(circle at 50% 0%, #10141c 0%, #090a0f 100%);
+}
+
+/* Base resets & layout */
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background-color: var(--ds-bg) !important;
+  color: var(--ds-text) !important;
+}
+
+body {
+  background-color: var(--ds-bg) !important;
+  color: var(--ds-text) !important;
+  font-family: var(--ds-font);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  color-scheme: dark;
+}
+
+body.desktop-ui {
+  background-color: var(--ds-bg) !important;
+  font-family: var(--ds-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ensure animation classes never stall at opacity: 0 */
+.animate-in {
+  opacity: 1 !important;
+  animation: dsFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+@keyframes dsFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Layout reset helper rules */
+.min-h-0 { min-height: 0px !important; }
+.min-w-0 { min-width: 0px !important; }
+
+/* Sidebar Sliding Carousel & Layout Rules */
+.sidebar-slider-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  flex: 1;
+}
+
+.sidebar-view-container {
+  display: flex;
+  width: 500%;
+  height: 100%;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-panel {
+  width: 20%;
+  height: 100%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Minimalist Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ================== Buttons ================== */
+/* <button class="btn btn--primary">Label</button>
+   <button class="btn btn--secondary">Label</button>
+   <button class="btn btn--outline">Label</button>
+   <button class="btn btn--ghost">Label</button>
+   Add .is-active to force the hover look. */
+
+.btn, .btn-primary, .btn-secondary, .btn-outline, .btn-ghost, .btn--primary, .btn--secondary, .btn--outline, .btn--ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 11px 20px 11px 18px;
+  font-family: var(--ds-font);
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--ds-radius);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  user-select: none;
+  text-decoration: none;
+}
+.btn:active, .btn-primary:active, .btn-secondary:active, .btn-outline:active, .btn-ghost:active,
+.btn--primary:active, .btn--secondary:active, .btn--outline:active, .btn--ghost:active { 
+  transform: scale(0.98); 
+}
+.btn__icon { width: 15px; height: 15px; flex-shrink: 0; }
+
+.btn--primary, .btn-primary {
+  color: var(--ds-text) !important;
+  background: linear-gradient(180deg, #202b3a 0%, #141b26 42%, #0d131c 58%, #1a2530 100%) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.2),
+    inset 0 -2px 0 #3fa9c9,
+    inset 0 -4px 6px -2px rgba(63, 169, 201, 0.6),
+    inset 2px 0 0 rgba(63, 169, 201, 0.5),
+    inset -2px 0 0 rgba(63, 169, 201, 0.5),
+    inset 0 6px 10px -6px rgba(0, 0, 0, 0.8),
+    0 5px 12px -2px rgba(63, 169, 201, 0.35) !important;
+}
+
+.btn--primary:hover,
+.btn--primary:focus-visible,
+.btn--primary.is-active,
+.btn-primary:hover,
+.btn-primary:focus-visible {
+  background: linear-gradient(180deg, #2a3a4d 0%, #1c2836 38%, #0a0f16 62%, #131c26 100%) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.7),
+    0 0 0 1.5px var(--ds-accent-strong),
+    0 0 16px 4px rgba(88, 196, 224, 0.6),
+    0 0 34px 8px rgba(88, 196, 224, 0.32) !important;
+}
+
+.btn--secondary, .btn-secondary {
+  color: #d7e2ea !important;
+  background: linear-gradient(180deg, #232d3a 0%, #171f29 45%, #10151d 60%, #1a212b 100%) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1.5px 3px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+}
+.btn--secondary:hover,
+.btn--secondary.is-active,
+.btn-secondary:hover {
+  background: linear-gradient(180deg, #2a3644 0%, #1c2632 42%, #0d131a 62%, #1e2733 100%) !important;
+  color: var(--ds-text) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1.5px 3px rgba(0, 0, 0, 0.65),
+    inset 0 0 0 1px rgba(88, 196, 224, 0.4) !important;
+}
+
+.btn--outline, .btn-outline {
+  color: #b9c6d1 !important;
+  background: transparent !important;
+  box-shadow: inset 0 0 0 1px #2a3542 !important;
+}
+.btn--outline:hover,
+.btn--outline.is-active,
+.btn-outline:hover {
+  color: var(--ds-text) !important;
+  box-shadow: inset 0 0 0 1px var(--ds-accent) !important;
+}
+
+.btn--ghost, .btn-ghost {
+  color: #8a97a6 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.btn--ghost:hover,
+.btn--ghost.is-active,
+.btn-ghost:hover {
+  color: var(--ds-text) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.btn:disabled, .btn.is-disabled,
+.btn-primary:disabled, .btn-secondary:disabled, .btn-outline:disabled, .btn-ghost:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.45 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* ================== Tabs ================== */
+.tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px;
+  background: linear-gradient(180deg, #12161f 0%, #0d1017 100%);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--ds-text-dim);
+  font-family: var(--ds-font);
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.tab:hover { color: var(--ds-text); }
+.tab.is-active {
+  color: var(--ds-text);
+  background: linear-gradient(180deg, #202b3a 0%, #141b26 45%, #0d131c 60%, #1a2530 100%);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1.5px 0 #3fa9c9,
+    inset 1.5px 0 0 rgba(63, 169, 201, 0.4),
+    inset -1.5px 0 0 rgba(63, 169, 201, 0.4),
+    inset 0 5px 8px -5px rgba(0, 0, 0, 0.8),
+    0 3px 8px -2px rgba(63, 169, 201, 0.3);
+}
+
+/* ================== Panel & table ================== */
+.panel, .glass, .liquid-glass, .glass-card, .bento-card, body.desktop-ui .liquid-glass-card {
+  background: var(--ds-panel) !important;
+  border: 1px solid var(--ds-border) !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: 0 12px 32px -16px rgba(0, 0, 0, 0.6) !important;
+  font-family: var(--ds-font);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.panel__header {
+  padding: 16px 20px;
+  font-size: 13px;
+  color: var(--ds-text-dim);
+  background: var(--ds-panel-alt);
+  border-bottom: 1px solid var(--ds-border);
+}
+.panel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--ds-panel-alt);
+  border-top: 1px solid var(--ds-border);
+  font-size: 12.5px;
+  color: var(--ds-text-faint);
+}
+
+.panel table { width: 100%; border-collapse: collapse; color: var(--ds-text); }
+.panel thead th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ds-text-faint);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--ds-border);
+  white-space: nowrap;
+}
+.panel tbody tr { border-bottom: 1px solid var(--ds-border); transition: background 0.15s ease; }
+.panel tbody tr:last-child { border-bottom: none; }
+.panel tbody tr:hover { background: rgba(255, 255, 255, 0.015); }
+.panel tbody tr.is-highlighted { box-shadow: inset 3px 0 0 var(--ds-accent); }
+.panel td { padding: 14px 20px; font-size: 13.5px; vertical-align: middle; }
+
+.pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ds-accent-strong);
+  background: rgba(88, 196, 224, 0.12);
+  border: 1px solid rgba(88, 196, 224, 0.28);
+  padding: 3px 10px;
+  border-radius: 5px;
+}
+
+/* ================== Pagination ================== */
+.pager { display: flex; align-items: center; gap: 6px; }
+.pager-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #161d29 0%, #131a24 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  color: var(--ds-text-dim);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.pager-btn svg { width: 13px; height: 13px; }
+.pager-btn:hover:not(:disabled) {
+  color: var(--ds-text);
+  background: linear-gradient(180deg, #1b232f 0%, #171f29 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 0 1px rgba(88, 196, 224, 0.35);
+}
+.pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pager-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--ds-panel);
+  box-shadow: inset 0 0 0 1px rgba(88, 196, 224, 0.3);
+  color: var(--ds-text);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+

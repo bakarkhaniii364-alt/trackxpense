@@ -32,7 +32,7 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({
   };
 
   return (
-    <div className={`space-y-6 ${isCompact ? '' : 'max-w-5xl mx-auto pb-10'}`}>
+    <div className={`space-y-6 ${isCompact ? '' : 'w-full mx-auto pb-10'}`}>
       {!isCompact && (
         <div>
           <h2 className="text-2xl font-bold text-main tracking-tight">App Settings</h2>

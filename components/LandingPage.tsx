@@ -108,13 +108,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center px-4 animate-in fade-in slide-in-from-bottom-8 duration-1000">
           <button 
             onClick={onContinueAsGuest}
-            className="px-8 py-4 bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-lg shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="btn btn--primary text-[10px] font-black uppercase tracking-[0.2em]"
           >
             Start Tracking (Guest) <ArrowRight size={12} />
           </button>
           <a 
             href="#features"
-            className="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 text-white/80 hover:text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-lg transition-all flex items-center justify-center"
+            className="btn btn--secondary text-[10px] font-black uppercase tracking-[0.2em]"
           >
             Learn More
           </a>

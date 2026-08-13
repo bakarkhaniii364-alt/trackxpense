@@ -4,13 +4,15 @@ import { AppData, Transaction, TransactionType, CategoryItem, Debt } from '../..
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, PieChart, Pie, LineChart, Line, AreaChart, Area, CartesianGrid } from 'recharts';
 import { TrendingUp, TrendingDown, Target, Award, Activity, ArrowUpRight, ArrowDownRight, Zap } from 'lucide-react';
 import { AdvancedAnalytics } from '../AdvancedAnalytics';
+import { EmptyStateSeeder } from '../shared/EmptyStateSeeder';
 
 interface DesktopAnalyticsProps {
     data: AppData;
+    updateData?: (d: Partial<AppData>) => void;
     formatMoney: (val: number, sym: string) => string;
 }
 
-export const DesktopAnalytics: React.FC<DesktopAnalyticsProps> = ({ data, formatMoney }) => {
+export const DesktopAnalytics: React.FC<DesktopAnalyticsProps> = ({ data, updateData, formatMoney }) => {
     const transactions = useMemo(() => 
         data.transactions.filter(t => t.walletId === data.currentWalletId)
     , [data.transactions, data.currentWalletId]);
@@ -59,8 +61,16 @@ export const DesktopAnalytics: React.FC<DesktopAnalyticsProps> = ({ data, format
     const COLORS = ['#5e5ce6', '#32d74b', '#ff453a', '#ff9f0a', '#64d2ff', '#bf5af2', '#ff375f'];
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl mx-auto pb-6 overflow-x-hidden">
-
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 w-full mx-auto pb-6 overflow-x-hidden">
+            {transactions.length === 0 ? (
+                <EmptyStateSeeder 
+                    data={data} 
+                    updateData={updateData || (() => {})} 
+                    title="No Analytics Available" 
+                    description="Your transaction ledger is empty for this wallet. Load 1-click sample data to generate category donuts, cash flow forecasts, and net worth reports." 
+                />
+            ) : (
+            <>
             {/* Top Row: High-Density Metrics */}
             <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
                 {[
@@ -92,7 +102,7 @@ export const DesktopAnalytics: React.FC<DesktopAnalyticsProps> = ({ data, format
                         </div>
                     </div>
                     <div className="h-[220px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer minWidth={0} minHeight={220} width="100%" height="100%">
                             <AreaChart data={dailySpending}>
                                 <defs>
                                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
@@ -117,7 +127,7 @@ export const DesktopAnalytics: React.FC<DesktopAnalyticsProps> = ({ data, format
                 <div className="xl:col-span-4 liquid-glass p-6 rounded-sm shadow-lg flex flex-col">
                     <h3 className="text-[9px] font-black text-muted/40 uppercase tracking-[0.2em] mb-6 text-center">Category Breakdown</h3>
                     <div className="flex-1 flex flex-col justify-center relative min-h-[200px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer minWidth={0} minHeight={200} width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={expenseByCategory.slice(0, 6)}
@@ -171,7 +181,7 @@ export const DesktopAnalytics: React.FC<DesktopAnalyticsProps> = ({ data, format
                     </div>
                     
                     <div className="h-[280px] w-full relative z-10">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer minWidth={0} minHeight={280} width="100%" height="100%">
                             <AreaChart data={data.balanceHistory.map(h => ({ 
                                 name: new Date(h.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), 
                                 value: h.amount 
@@ -241,6 +251,8 @@ export const DesktopAnalytics: React.FC<DesktopAnalyticsProps> = ({ data, format
                 </div>
                 <AdvancedAnalytics data={data} formatMoney={formatMoney} />
             </div>
+            </>
+            )}
         </div>
     );
 };

@@ -3,6 +3,7 @@ import { PlusCircle, Check, Trash2, AlertTriangle, Calendar as CalendarIcon, Clo
 import { Debt, AppData, Transaction, TransactionType, Category } from '../types';
 import { Haptics } from '../services/haptics';
 import { Pagination } from './shared/CommonUI';
+import { EmptyStateSeeder } from './shared/EmptyStateSeeder';
 
 interface DebtProps {
     data: AppData;
@@ -114,7 +115,7 @@ export const DebtView: React.FC<DebtProps> = ({ data, updateData, formatMoney, o
     const netPosition = totalOwesMe - totalIOwe;
 
     return (
-        <div className="animate-in fade-in duration-500 space-y-8 pb-8 max-w-6xl mx-auto">
+        <div className="animate-in fade-in duration-500 space-y-8 pb-8 w-full mx-auto">
             
             {/* Summary Card */}
             <div className="flex-none px-2">
@@ -167,15 +168,14 @@ export const DebtView: React.FC<DebtProps> = ({ data, updateData, formatMoney, o
             <div className="px-2">
                 <h3 className="text-sm font-black text-muted uppercase tracking-widest mb-4 px-2">Active Debts</h3>
                 {data.debts.length === 0 ? (
-                    <div className="text-center py-20 text-muted border border-dashed border-main/10 rounded-[40px] bg-surface/20 flex flex-col items-center gap-4">
-                        <div className="p-6 bg-main/5 rounded-full shadow-inner border border-main/10 animate-pulse">
-                            <User size={48} className="opacity-20"/>
-                        </div>
-                        <div>
-                            <p className="text-lg font-bold text-main/50">Your debt tracker is empty</p>
-                            <p className="text-sm opacity-50">Start tracking money you owe or are owed.</p>
-                        </div>
-                    </div>
+                    <EmptyStateSeeder 
+                        data={data} 
+                        updateData={updateData} 
+                        title="Your Debt Tracker is Empty" 
+                        description="Start tracking money you owe or are owed, or seed sample debt records to see partial payments and progress tracking." 
+                        onActionClick={() => setIsAddOpen(true)} 
+                        actionLabel="Add Debt" 
+                    />
                 ) : (
                     <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

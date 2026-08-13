@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Plus, Trash2, Tag, CreditCard } from 'lucide-react';
+import { Calendar, Plus, Trash2, Tag, X, Clock } from 'lucide-react';
 import { AppData, Provision } from '../types';
 import { Haptics } from '../services/haptics';
 
@@ -10,6 +10,7 @@ interface ProvisioningCenterProps {
 }
 
 export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, updateData, formatMoney }) => {
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [name, setName] = useState('');
     const [amount, setAmount] = useState('');
     const [date, setDate] = useState('');
@@ -28,6 +29,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
         setName('');
         setAmount('');
         setDate('');
+        setIsAddModalOpen(false);
         Haptics.success();
     };
 
@@ -39,115 +41,172 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
     const totalProvisioned = data.provisions.reduce((sum, p) => sum + p.amount, 0);
 
     return (
-        <div className="max-w-4xl mx-auto space-y-4 md:space-y-8 px-2 lg:px-0 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 overflow-x-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                {/* Entry Form */}
-                <div className="liquid-glass p-4 md:p-8 rounded-lg space-y-4 md:space-y-6">
-                    <h3 className="text-sm font-bold text-main uppercase tracking-wider">Add Upcoming Expense</h3>
-                    <div className="space-y-4">
-                        <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-muted/40 uppercase tracking-[0.2em]">Expense Name</label>
-                            <div className="relative">
-                                <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/30" size={16} />
+        <div className="w-full mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 overflow-x-hidden">
+            
+            {/* Cloudflare-Style Section Header Outside Card */}
+            <div className="flex items-center justify-between pb-2">
+                <div>
+                    <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Upcoming Expenses</h2>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Schedule planned future purchases or bills to monitor 30-day liabilities.</p>
+                </div>
+                <button
+                    onClick={() => {
+                        setName('');
+                        setAmount('');
+                        setDate('');
+                        setIsAddModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs shrink-0"
+                >
+                    <Plus size={15} />
+                    <span>Add expense</span>
+                </button>
+            </div>
+
+            {/* Total Summary Card */}
+            {data.provisions.length > 0 && (
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-6 rounded-[10px] flex items-center justify-between">
+                    <div>
+                        <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Total Scheduled Liabilities</p>
+                        <p className="text-2xl font-bold text-[var(--text-primary)] tracking-tight mt-1">
+                            {formatMoney(totalProvisioned, data.settings.currencySymbol)}
+                        </p>
+                    </div>
+                    <div className="px-3 py-1.5 rounded-[6px] bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[12px] font-medium">
+                        {data.provisions.length} scheduled
+                    </div>
+                </div>
+            )}
+
+            {/* List / Grid Container */}
+            {data.provisions.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {data.provisions.map((p) => {
+                        const daysLeft = Math.ceil((new Date(p.date).getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+                        return (
+                            <div 
+                                key={p.id} 
+                                className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all"
+                            >
+                                <div className="space-y-1 min-w-0 pr-2">
+                                    <h4 className="text-[14px] font-medium text-[var(--text-primary)] truncate">{p.name}</h4>
+                                    <p className="text-base font-semibold text-[var(--text-primary)]">
+                                        {formatMoney(p.amount, data.settings.currencySymbol)}
+                                    </p>
+                                    <div className="flex items-center gap-2 pt-1 text-[11px] text-[var(--text-muted)]">
+                                        <Clock size={12} />
+                                        <span>{new Date(p.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                        <span className={`px-1.5 py-0.5 rounded-[4px] font-medium text-[10px] ${daysLeft <= 3 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)]'}`}>
+                                            {daysLeft <= 0 ? 'Due' : `${daysLeft}d left`}
+                                        </span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => removeProvision(p.id)}
+                                    className="p-2 text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-[6px] opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                                    title="Delete expense"
+                                >
+                                    <Trash2 size={15} />
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                /* Cloudflare-Style Centered Empty State Box */
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] p-12 text-center flex flex-col items-center justify-center my-4">
+                    <Calendar size={32} strokeWidth={1.5} className="text-[var(--text-muted)] mb-3" />
+                    <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">No upcoming expenses</h3>
+                    <p className="text-xs text-[var(--text-secondary)] max-w-sm mb-6 leading-relaxed">
+                        Schedule future purchases, recurring bills, or planned liabilities to monitor 30-day balance impact.
+                    </p>
+                    <button
+                        onClick={() => {
+                            setName('');
+                            setAmount('');
+                            setDate('');
+                            setIsAddModalOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs"
+                    >
+                        <Plus size={15} />
+                        <span>Add expense</span>
+                    </button>
+                </div>
+            )}
+
+            {/* --- MODAL: Add Upcoming Expense --- */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+                    <div 
+                        className="absolute inset-0 bg-black/70 backdrop-blur-xs"
+                        onClick={() => setIsAddModalOpen(false)} 
+                    />
+                    <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
+                            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Add Upcoming Expense</h3>
+                            <button 
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Expense Name</label>
                                 <input 
                                     type="text" 
-                                    placeholder="e.g., MacBook Pro, Q3 Taxes..."
+                                    placeholder="e.g. MacBook Pro, Taxes, Rent..."
                                     value={name}
                                     onChange={e => setName(e.target.value)}
-                                    className="w-full bg-black/20 rounded-sm pl-12 pr-4 py-4 text-sm text-main border border-white/5 focus:border-primary/40 outline-none transition-all"
+                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Amount ({data.settings.currencySymbol})</label>
+                                <input 
+                                    type="number" 
+                                    placeholder="0.00"
+                                    value={amount}
+                                    onChange={e => setAmount(e.target.value)}
+                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Due Date</label>
+                                <input 
+                                    type="date" 
+                                    value={date}
+                                    onChange={e => setDate(e.target.value)}
+                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all color-scheme-dark"
                                 />
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-muted/40 uppercase tracking-[0.2em]">Amount</label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/30 font-bold text-sm">{data.settings.currencySymbol}</span>
-                                    <input 
-                                        type="number" 
-                                        placeholder="0.00"
-                                        value={amount}
-                                        onChange={e => setAmount(e.target.value)}
-                                        className="w-full bg-black/20 rounded-sm pl-10 pr-4 py-4 text-sm text-main border border-white/5 focus:border-primary/40 outline-none transition-all"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-muted/40 uppercase tracking-[0.2em]">Target Date</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-muted/30" size={16} />
-                                    <input 
-                                        type="date" 
-                                        value={date}
-                                        onChange={e => setDate(e.target.value)}
-                                        className="w-full bg-black/20 rounded-sm pl-12 pr-4 py-4 text-sm text-main border border-white/5 focus:border-primary/40 outline-none transition-all color-scheme-dark"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={addProvision}
-                            className="w-full py-4 bg-primary text-white rounded-sm font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20 active:scale-95 transition-all mt-4"
-                        >
-                            Add Upcoming Expense
-                        </button>
-                    </div>
-                </div>
 
-                {/* Status Card */}
-                <div className="space-y-4 md:space-y-6">
-                    <div className="liquid-glass p-4 md:p-8 rounded-lg bg-gradient-to-br from-primary/10 to-transparent border-primary/10">
-                         <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-4">Upcoming Expenses</p>
-                         <h2 className="text-4xl font-bold text-main mb-2">{formatMoney(totalProvisioned, data.settings.currencySymbol)}</h2>
-                         <p className="text-xs text-muted leading-relaxed">This shows the total money you have set aside or plan to spend on future goals.</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 md:gap-4">
-                        <div className="glass-card p-4 md:p-6 rounded-md">
-                             <p className="text-[9px] font-black text-muted/40 uppercase tracking-widest mb-1">Item Count</p>
-                             <p className="text-xl font-bold text-main">{data.provisions.length}</p>
-                        </div>
-                        <div className="glass-card p-4 md:p-6 rounded-md">
-                             <p className="text-[9px] font-black text-muted/40 uppercase tracking-widest mb-1">Avg per Item</p>
-                             <p className="text-xl font-bold text-main">
-                                 {data.provisions.length > 0 ? formatMoney(totalProvisioned / data.provisions.length, data.settings.currencySymbol) : '—'}
-                             </p>
+                        <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+                            <button
+                                type="button"
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="h-[38px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={addProvision}
+                                disabled={!name || !amount || !date}
+                                className="h-[38px] px-5 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
+                            >
+                                Add expense
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            {/* List */}
-            <div className="space-y-4">
-                <h3 className="text-[10px] font-black text-muted/40 uppercase tracking-[0.3em] px-2">Scheduled Expenses</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {data.provisions.map(p => (
-                        <div key={p.id} className="glass-card p-5 rounded-md flex flex-col gap-4 group hover:border-white/20 transition-all">
-                             <div className="flex justify-between items-start">
-                                 <div className="p-3 bg-primary/10 rounded-md text-primary">
-                                     <CreditCard size={20} />
-                                 </div>
-                                 <button onClick={() => removeProvision(p.id)} className="p-2 text-muted/20 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100">
-                                     <Trash2 size={16} />
-                                 </button>
-                             </div>
-                             <div>
-                                 <h4 className="font-bold text-main tracking-tight">{p.name}</h4>
-                                 <p className="text-[10px] text-muted font-bold uppercase tracking-widest mt-0.5">{new Date(p.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                             </div>
-                             <div className="pt-4 border-t border-white/5 flex justify-between items-end">
-                                 <span className="text-[9px] font-black text-muted/40 uppercase tracking-widest">Amount</span>
-                                 <span className="text-lg font-bold text-main">{formatMoney(p.amount, data.settings.currencySymbol)}</span>
-                             </div>
-                        </div>
-                    ))}
-                    {data.provisions.length === 0 && (
-                        <div className="col-span-full py-20 text-center border-2 border-dashed border-white/5 rounded-lg">
-                             <p className="text-muted/40 text-sm font-bold uppercase tracking-widest">No upcoming expenses yet.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
+            )}
         </div>
     );
 };

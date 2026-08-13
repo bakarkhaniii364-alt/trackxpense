@@ -40,25 +40,24 @@ export const NavBar: React.FC<NavBarProps> = ({
   }) => (
     <button
       onClick={() => handleNavClick(null, onClick)}
-      className={`flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 active:scale-[0.85] relative select-none z-10 ${
+      className={`flex flex-col items-center justify-center flex-1 h-full transition-colors relative select-none z-10 border-t-2 ${
         active 
-          ? 'text-primary drop-shadow-[0_0_8px_rgba(var(--color-primary),0.35)]' 
-          : 'text-muted/50 hover:text-muted'
+          ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-medium' 
+          : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
       }`}
     >
       <Icon 
-        size={22} 
-        strokeWidth={active ? 2.8 : 2.0} 
-        fill="none"
-        className={`transition-all duration-300 transform active:scale-95 ${active ? 'animate-active-spring' : ''}`} 
+        size={18} 
+        strokeWidth={1.5} 
+        className="transition-colors" 
       />
     </button>
   );
 
   return (
-    <div className="fixed bottom-0 left-0 w-full bg-card rounded-none z-[4000] border-t border-main/10 pb-safe shadow-none">
+    <div className="fixed bottom-0 left-0 w-full bg-[var(--bg-surface)] z-[4000] border-t border-[var(--border-default)] pb-safe shadow-none">
       <div 
-        className="h-[48px] flex items-stretch px-4 max-w-md mx-auto gap-0.5 relative"
+        className="h-[44px] flex items-stretch px-4 max-w-md mx-auto gap-0.5 relative"
       >
 
         {/* Left 1: Home */}
@@ -75,7 +74,7 @@ export const NavBar: React.FC<NavBarProps> = ({
           active={currentView === 'history'}
         />
 
-        {/* Center: FAB */}
+        {/* Center: Action */}
         <div className="flex items-center justify-center px-2 flex-shrink-0 relative z-10">
           <button
             onClick={(e) => {
@@ -83,10 +82,10 @@ export const NavBar: React.FC<NavBarProps> = ({
               Haptics.light();
               onAddClick(e);
             }}
-            className="flex items-center justify-center bg-primary text-white rounded-full active:scale-[0.88] transition-all border border-white/20 hover:brightness-110"
-            style={{ width: 40, height: 40 }}
+            className="flex items-center justify-center bg-[var(--accent-solid)] text-[var(--accent-text)] rounded-[6px] transition-colors hover:opacity-90"
+            style={{ width: 32, height: 32 }}
           >
-            <Plus size={20} strokeWidth={2.5} />
+            <Plus size={18} strokeWidth={2} />
           </button>
         </div>
 

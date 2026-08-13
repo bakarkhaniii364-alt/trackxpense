@@ -4,13 +4,15 @@ import { AppData, Transaction, TransactionType, CategoryItem, Debt } from '../ty
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell, PieChart, Pie, AreaChart, Area, CartesianGrid } from 'recharts';
 import { TrendingUp, TrendingDown, Target, Award, BrainCircuit, Activity } from 'lucide-react';
 import { AdvancedAnalytics } from './AdvancedAnalytics';
+import { EmptyStateSeeder } from './shared/EmptyStateSeeder';
 
 interface AnalyticsProps {
     data: AppData;
+    updateData?: (d: Partial<AppData>) => void;
     formatMoney: (val: number, sym: string) => string;
 }
 
-export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, formatMoney }) => {
+export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, formatMoney }) => {
     const [tab, setTab] = useState<'overview' | 'spending' | 'report'>('overview');
 
     const transactions = data.transactions.filter(t => t.walletId === data.currentWalletId);
@@ -110,7 +112,16 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, formatMoney }) =
                 </div>
             </div>
 
-            {tab === 'overview' && (
+            {transactions.length === 0 ? (
+                <EmptyStateSeeder 
+                    data={data} 
+                    updateData={updateData || (() => {})} 
+                    title="No Analytics Data Available" 
+                    description="Your transaction ledger is empty for this wallet. Seed sample data to generate spending pie charts, income vs expense breakdowns, and financial health scores." 
+                />
+            ) : (
+                <>
+                {tab === 'overview' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       <div className="space-y-6">
                         {/* Net Worth / Savings Card */}
@@ -168,7 +179,7 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, formatMoney }) =
                                     </div>
                                 </div>
                                 <div className="h-[200px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
+                                    <ResponsiveContainer minWidth={0} minHeight={200} width="100%" height="100%">
                                         <AreaChart data={data.balanceHistory.map(h => ({ name: new Date(h.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), value: h.amount }))}>
                                             <defs>
                                                 <linearGradient id="colorNetWorth" x1="0" y1="0" x2="0" y2="1">
@@ -204,7 +215,7 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, formatMoney }) =
                                 </div>
                             </div>
                             <div className="flex-1 min-h-[220px] lg:min-h-[300px]">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer minWidth={0} minHeight={220} width="100%" height="100%">
                                     <BarChart data={last7Days}>
                                         <XAxis dataKey="name" tick={{fontSize: 12, fill: '#666', fontWeight: 600}} axisLine={false} tickLine={false} />
                                         <Tooltip 
@@ -231,7 +242,7 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, formatMoney }) =
                     <div className="bg-surface/50 rounded-2xl lg:rounded-[40px] p-4 lg:p-8 border border-white/5 flex flex-col items-center shadow-xl">
                         <h3 className="text-base lg:text-xl font-bold text-main mb-4 lg:mb-8 self-start tracking-tight">Top Categories</h3>
                         <div className="h-60 lg:h-80 w-full relative">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer minWidth={0} minHeight={240} width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={sortedCategories}
@@ -376,6 +387,8 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, formatMoney }) =
                 </div>
                 <AdvancedAnalytics data={data} formatMoney={formatMoney} />
             </div>
+            </>
+            )}
         </div>
     );
 };

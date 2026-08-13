@@ -38,73 +38,85 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
     };
 
     return (
-        <div onDoubleClick={() => updateData({ settings: { ...data.settings, privacyMode: !data.settings.privacyMode } })} className="relative p-5 lg:p-8 rounded-3xl lg:rounded-[40px] select-none cursor-pointer group z-10 transition-all active:scale-[0.99] shadow-2xl shadow-[0_20px_50px_rgb(var(--color-primary)/0.15)] liquid-glass border border-main/10 flex flex-col gap-4 lg:gap-6 overflow-hidden min-h-[170px] lg:min-h-[220px]">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-30 pointer-events-none" />
-            <div className={`absolute -top-32 -right-32 w-80 h-80 bg-primary/20 blur-[100px] rounded-full group-active:scale-110 transition-transform duration-700 ${refreshing ? 'scale-125 opacity-40 animate-pulse' : 'opacity-20'}`} />
-            
-            <div className="flex justify-between items-start relative z-10">
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                        <p className="text-[10px] text-muted font-black uppercase tracking-[0.4em]">
-                            {currentWallet?.type === 'GOAL' ? 'Savings Goal' : 'Total Balance'}
-                        </p>
+        <div 
+            onDoubleClick={() => updateData({ settings: { ...data.settings, privacyMode: !data.settings.privacyMode } })} 
+            className="relative w-full max-w-[440px] aspect-[1.58/1] p-5 lg:p-6 rounded-[18px] bg-gradient-to-br from-[#24252a] via-[#16171a] to-[#0f1012] border-t border-l border-white/20 border-b border-r border-black/80 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6),0_12px_32px_rgba(0,0,0,0.6)] transition-all select-none cursor-pointer group flex flex-col justify-between overflow-hidden text-[var(--text-primary)] shrink-0 active:scale-[0.995]"
+        >
+            {/* Metallic Sheen Overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.01)_45%,rgba(0,0,0,0.4)_100%)] pointer-events-none z-0" />
+            <div className="absolute -top-24 -right-24 w-60 h-60 bg-gradient-to-br from-white/10 to-transparent blur-2xl rounded-full pointer-events-none z-0" />
+
+            {/* Top Row */}
+            <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-3">
+                    {/* Metallic Golden Chip */}
+                    <div className="w-8 h-6 rounded-[4px] bg-gradient-to-br from-[#d4af37] via-[#aa8c2c] to-[#665319] border border-[#ffd700]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_1px_3px_rgba(0,0,0,0.5)] flex items-center justify-center relative overflow-hidden shrink-0">
+                        <div className="absolute inset-[2px] border border-black/30 rounded-[2px]" />
+                        <div className="w-full h-[1px] bg-black/40" />
                     </div>
-                    <h1 className="text-3xl lg:text-5xl font-black text-main tracking-tighter leading-none">
-                        {!data.settings.privacyMode ? formatMoney(balance, walletSymbol) : '•••• ••••'}
-                    </h1>
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)] shadow-[0_0_6px_rgba(34,197,94,0.6)]" />
+                        <span className="text-[10px] uppercase font-semibold text-[var(--text-secondary)] tracking-[0.08em]">
+                            {currentWallet?.type === 'GOAL' ? 'Savings Goal' : 'Total Balance'}
+                        </span>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button onClick={(e) => { e.stopPropagation(); updateData({ settings: { ...data.settings, privacyMode: !data.settings.privacyMode } }) }} className="text-main/40 hover:text-main transition-all p-2 lg:p-3 bg-main/5 hover:bg-main/10 rounded-xl border border-main/10 active:scale-90 shadow-lg">
-                        {data.settings.privacyMode ? <Eye size={18}/> : <EyeOff size={18}/>}
-                    </button>
-                </div>
+                <button 
+                    onClick={(e) => { e.stopPropagation(); updateData({ settings: { ...data.settings, privacyMode: !data.settings.privacyMode } }) }} 
+                    className="w-7 h-7 rounded-[6px] bg-[#1a1b20] border border-white/15 hover:border-white/30 hover:bg-[#22232a] shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                >
+                    {data.settings.privacyMode ? <Eye size={15} /> : <EyeOff size={15} />}
+                </button>
             </div>
 
+            {/* Center Balance Readout */}
+            <div className="my-auto relative z-10">
+                <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                    {!data.settings.privacyMode ? formatMoney(balance, walletSymbol) : '•••• ••••'}
+                </h1>
+            </div>
+
+            {/* Bottom Stats */}
             {currentWallet?.type !== 'GOAL' ? (
-                <div className="flex items-center justify-between relative z-10 pt-3 lg:pt-4 border-t border-main/10 mt-auto">
-                    <div className="flex items-center gap-6 lg:gap-10">
+                <div className="pt-3 border-t border-white/10 flex items-center justify-between text-[12px] relative z-10">
+                    <div className="flex items-center gap-4">
                         <div 
                             onClick={(e) => { e.stopPropagation(); onAddTransactionRequest(TransactionType.INCOME); }}
-                            className="group/stat cursor-pointer active:opacity-60 transition-all"
+                            className="cursor-pointer hover:opacity-80 transition-opacity"
                         >
-                            <p className="text-[9px] font-black text-emerald-500/70 uppercase tracking-[0.3em] mb-1 group-hover/stat:text-emerald-400 transition-colors flex items-center gap-1">
-                                <TrendingUp size={10} /> Income
-                            </p>
-                            <p className="text-base lg:text-lg font-black text-emerald-500 tracking-tight">
+                            <span className="text-[10px] text-[var(--text-muted)] uppercase font-medium block tracking-wider">Income</span>
+                            <span className="text-[13px] font-semibold text-[var(--status-success-fg)] drop-shadow-xs">
                                 {!data.settings.privacyMode ? formatMoney(totalIncome, walletSymbol) : '•••'}
-                            </p>
+                            </span>
                         </div>
                         <div 
                             onClick={(e) => { e.stopPropagation(); onAddTransactionRequest(TransactionType.EXPENSE); }}
-                            className="group/stat cursor-pointer active:opacity-60 transition-all"
+                            className="cursor-pointer hover:opacity-80 transition-opacity"
                         >
-                            <div className="text-[9px] font-black text-rose-500/70 uppercase tracking-[0.3em] mb-1 group-hover/stat:text-rose-400 transition-colors flex items-center gap-1">
-                                <div className="rotate-180"><TrendingUp size={10} /></div> Expenses
-                            </div>
-                            <p className="text-base lg:text-lg font-black text-rose-500 tracking-tight">
+                            <span className="text-[10px] text-[var(--text-muted)] uppercase font-medium block tracking-wider">Expense</span>
+                            <span className="text-[13px] font-semibold text-[var(--status-error-fg)] drop-shadow-xs">
                                 {!data.settings.privacyMode ? formatMoney(totalExpense, walletSymbol) : '•••'}
-                            </p>
+                            </span>
                         </div>
                     </div>
                     <div className="text-right">
-                        <p className="text-[9px] font-black text-muted uppercase tracking-[0.3em] mb-1">Available Balance</p>
-                        <p className={`text-xs lg:text-sm font-black text-main/60 transition-all ${(!data.settings.privacyMode && data.provisions.length > 0) ? 'opacity-100 blur-0' : 'opacity-20 blur-[1px]'}`}>
+                        <span className="text-[10px] text-[var(--text-muted)] uppercase font-medium block tracking-wider">Available</span>
+                        <span className="text-[12px] font-semibold text-white/90">
                             {formatMoney(adjustedBalance, walletSymbol)}
-                        </p>
+                        </span>
                     </div>
                 </div>
             ) : (
-                <div className="mt-auto relative z-10 pt-4">
-                    <div className="flex justify-between text-[9px] text-muted mb-3 font-black uppercase tracking-[0.3em]">
-                        <span className="flex items-center gap-2">
-                            <div className="h-1 w-1 rounded-full bg-emerald-500" />
-                            {Math.round(goalProgress)}% Saved
-                        </span>
+                <div className="pt-3 border-t border-white/10 relative z-10">
+                    <div className="flex justify-between text-[11px] text-[var(--text-muted)] mb-2 font-medium">
+                        <span>{Math.round(goalProgress)}% Saved</span>
                         <span>Target: {formatMoney(currentWallet.targetAmount || 0, walletSymbol)}</span>
                     </div>
-                    <div className="h-3 bg-main/10 rounded-full overflow-hidden border border-main/10 p-0.5">
-                        <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all duration-1000 ease-out" style={{ width: `${goalProgress}%` }} />
+                    <div className="h-2 bg-black/40 rounded-full overflow-hidden border border-white/10 p-0.5">
+                        <div 
+                            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full shadow-[0_0_12px_rgba(34,197,94,0.5)] transition-all duration-700" 
+                            style={{ width: `${Math.min(100, goalProgress)}%` }} 
+                        />
                     </div>
                 </div>
             )}

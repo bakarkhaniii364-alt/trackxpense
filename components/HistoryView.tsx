@@ -7,9 +7,11 @@ import { SankeyChart } from './history/SankeyChart';
 import { HistoryStats } from './history/HistoryStats';
 import { Haptics } from '../services/haptics';
 import { Pagination } from './shared/CommonUI';
+import { EmptyStateSeeder } from './shared/EmptyStateSeeder';
 
 interface HistoryProps {
     data: AppData;
+    updateData?: (d: Partial<AppData>) => void;
     onRequestDelete: (id: string) => void;
     formatMoney: (val: number, sym: string) => string;
     onEditTransaction: (t: Transaction) => void;
@@ -27,7 +29,7 @@ const HighlightText = ({ text, highlight }: { text: string, highlight: string })
     );
 };
 
-export const HistoryView: React.FC<HistoryProps> = ({ data, onRequestDelete, formatMoney, onEditTransaction }) => {
+export const HistoryView: React.FC<HistoryProps> = ({ data, updateData, onRequestDelete, formatMoney, onEditTransaction }) => {
     const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'stats' | 'flow'>('list');
     const [searchTerm, setSearchTerm] = useState('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
@@ -120,7 +122,7 @@ export const HistoryView: React.FC<HistoryProps> = ({ data, onRequestDelete, for
     };
 
     return (
-      <div className="animate-in fade-in duration-500 max-w-6xl mx-auto px-0 md:px-2">
+      <div className="animate-in fade-in duration-500 w-full mx-auto px-0 md:px-2">
            <div className="sticky top-0 z-20 bg-[rgb(var(--bg-core))] pb-3 pt-4 border-b border-main/10 mb-4 md:static md:bg-transparent md:border-b-0 md:pt-4 md:mb-6">
                <div className="flex justify-between items-end mb-4 px-1">
                      <div>
@@ -174,74 +176,81 @@ export const HistoryView: React.FC<HistoryProps> = ({ data, onRequestDelete, for
                       </>
                   )}
 
-                  <div className="flex items-center justify-between gap-4">
-                      <div className="flex bg-main/5 p-1 rounded-md border border-main/10 w-full sm:w-auto overflow-x-auto no-scrollbar">
-                          {[
-                              { id: 'list', icon: FileText, label: 'List' },
-                              { id: 'calendar', icon: CalendarIcon, label: 'Calendar' },
-                              { id: 'stats', icon: PieChart, label: 'Category Breakdown' },
-                              { id: 'flow', icon: Shuffle, label: 'Flow' }
-                          ].map((mode: any) => (
-                              <button key={mode.id} onClick={() => { Haptics.light(); setViewMode(mode.id as any); }} className={`flex-1 sm:flex-none px-4 h-9 rounded-sm flex items-center justify-center gap-2 transition-all active:scale-95 whitespace-nowrap ${viewMode === mode.id ? 'bg-primary text-white shadow-lg shadow-primary/20 font-black' : 'text-muted/60 hover:text-main'}`}><mode.icon size={14} /><span className="hidden sm:inline text-[9px] font-black uppercase tracking-[0.2em]">{mode.label}</span></button>
-                          ))}
-                      </div>
-                      {!isMobile && viewMode === 'list' && filteredTransactions.length > 0 && (
-                          <div className="flex items-center gap-1.5 bg-main/5 p-1 rounded-md border border-main/10">
-                                <button onClick={() => { Haptics.light(); toggleSort('date'); }} className={`px-4 h-9 rounded-sm text-[9px] font-black uppercase tracking-[0.1em] flex items-center gap-2 transition-all active:scale-95 ${sortKey === 'date' ? 'bg-primary/20 border-primary/40 text-primary' : 'text-muted/40 hover:text-main hover:bg-main/5 border border-transparent'}`}>Date {sortKey === 'date' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}</button>
-                                <button onClick={() => { Haptics.light(); toggleSort('amount'); }} className={`px-4 h-9 rounded-sm text-[9px] font-black uppercase tracking-[0.1em] flex items-center gap-2 transition-all active:scale-95 ${sortKey === 'amount' ? 'bg-primary/20 border-primary/40 text-primary' : 'text-muted/40 hover:text-main hover:bg-main/5 border border-transparent'}`}>Amount {sortKey === 'amount' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}</button>
-                          </div>
-                      )}
-                  </div>
-                  {!isMobile && allTags.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto no-scrollbar pt-1">
-                          {allTags.map(tag => (
-                              <button key={tag} onClick={() => { Haptics.light(); setSearchTerm(prev => prev === tag ? '' : tag); }} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all active:scale-95 ${searchTerm === tag ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-main/5 text-muted border-main/10 hover:border-primary/30'}`}>{tag}</button>
-                          ))}
-                      </div>
-                  )}
-               </div>
-           </div>
+                   <div className="flex items-center justify-between gap-4">
+                       <div className="flex bg-[var(--bg-subtle)] p-1 rounded-[8px] border border-[var(--border-default)] w-full sm:w-auto overflow-x-auto no-scrollbar">
+                           {[
+                               { id: 'list', icon: FileText, label: 'List' },
+                               { id: 'calendar', icon: CalendarIcon, label: 'Calendar' },
+                               { id: 'stats', icon: PieChart, label: 'Category Breakdown' },
+                               { id: 'flow', icon: Shuffle, label: 'Flow' }
+                           ].map((mode: any) => (
+                               <button key={mode.id} onClick={() => { Haptics.light(); setViewMode(mode.id as any); }} className={`flex-1 sm:flex-none px-3 h-7 rounded-[6px] flex items-center justify-center gap-2 transition-colors text-[13px] whitespace-nowrap ${viewMode === mode.id ? 'bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)] font-normal hover:text-[var(--text-primary)]'}`}><mode.icon size={14} className="stroke-[1.5px]" /><span className="hidden sm:inline text-[13px] font-medium">{mode.label}</span></button>
+                           ))}
+                       </div>
+                       {!isMobile && viewMode === 'list' && filteredTransactions.length > 0 && (
+                           <div className="flex items-center gap-1.5 bg-[var(--bg-subtle)] p-1 rounded-[8px] border border-[var(--border-default)]">
+                                 <button onClick={() => { Haptics.light(); toggleSort('date'); }} className={`px-3 h-7 rounded-[6px] text-[11px] font-medium uppercase tracking-[0.06em] flex items-center gap-2 transition-colors ${sortKey === 'date' ? 'bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>Date {sortKey === 'date' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}</button>
+                                 <button onClick={() => { Haptics.light(); toggleSort('amount'); }} className={`px-3 h-7 rounded-[6px] text-[11px] font-medium uppercase tracking-[0.06em] flex items-center gap-2 transition-colors ${sortKey === 'amount' ? 'bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>Amount {sortKey === 'amount' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}</button>
+                           </div>
+                       )}
+                   </div>
+                   {!isMobile && allTags.length > 0 && (
+                       <div className="flex gap-2 overflow-x-auto no-scrollbar pt-1">
+                           {allTags.map(tag => (
+                               <button key={tag} onClick={() => { Haptics.light(); setSearchTerm(prev => prev === tag ? '' : tag); }} className={`px-3 py-1 rounded-full text-[12px] font-medium whitespace-nowrap border transition-colors ${searchTerm === tag ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)]' : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'}`}>{tag}</button>
+                           ))}
+                       </div>
+                   )}
+                </div>
+            </div>
 
-           {viewMode === 'list' && (
-               <div className="min-h-[300px]">
-                 {filteredTransactions.length === 0 ? (
-                     <div className="flex flex-col items-center justify-center h-64 text-muted border border-main/10 rounded-[40px] bg-surface/20 border-dashed"><p className="text-base font-medium">No transactions found matching your filters</p><button onClick={() => { Haptics.warning(); setSearchTerm(''); setDateRange({start: '', end: ''}); }} className="mt-4 text-primary text-sm font-bold hover:underline">Clear all filters</button></div>
-                 ) : (
-                      <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
-                      {paginatedTransactions.map((t: Transaction) => {
-                          const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
-                          return (
-                              <div key={t.id} onClick={() => onEditTransaction(t)} className="glass-card p-3 lg:p-4 rounded-lg lg:rounded-sm flex items-center justify-between group active:scale-[0.99] transition-all cursor-pointer hover:border-main/20">
-                                  <div className="flex items-center gap-3 lg:gap-4">
-                                      <div className="h-9 w-9 lg:h-11 lg:w-11 rounded-md bg-main/5 flex items-center justify-center border border-main/10 text-muted group-hover:scale-110 transition-transform shrink-0"><CategoryIcon category={t.category} size={isMobile ? 16 : 20} color={data.categories.find((c: CategoryItem) => c.name === t.category)?.color} /></div>
-                                      <div>
-                                          <p className="font-bold text-main text-[11px] leading-tight tracking-tight flex items-center gap-2">
-                                              <HighlightText text={t.note || t.category} highlight={searchTerm} />
-                                              {t.splits && <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-[7px] font-black uppercase tracking-widest rounded border border-primary/20">Split</span>}
-                                          </p>
-                                          <p className="text-[9px] text-muted/40 mt-1.5 font-black uppercase tracking-widest">
-                                              {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} • <HighlightText text={t.category} highlight={searchTerm} />
-                                          </p>
-                                          {t.splits && (
-                                              <div className="mt-2 flex flex-wrap gap-1.5">
-                                                  {t.splits.map((s, i) => (
-                                                      <span key={i} className="text-[7px] font-bold text-muted/30 bg-main/5 px-2 py-0.5 rounded border border-main/10">
-                                                          <HighlightText text={s.category} highlight={searchTerm} />: {formatMoney(s.amount, data.settings.currencySymbol)}
-                                                      </span>
-                                                  ))}
-                                              </div>
-                                          )}
-                                      </div>
-                                  </div>
-                                  <div className="flex items-center gap-4">
-                                      <span className={`font-bold text-sm tracking-tight ${t.type === TransactionType.INCOME ? 'text-emerald-400' : 'text-main'}`}>{t.type === TransactionType.INCOME ? '+' : ''}{formatMoney(t.amount, data.settings.currencySymbol)}</span>
-                                      <button onClick={(e) => { e.stopPropagation(); Haptics.warning(); onRequestDelete(t.id); }} className="text-muted/40 hover:text-rose-500 p-2 rounded-sm bg-main/5 hover:bg-rose-500/10 transition-all active:scale-90 opacity-0 group-hover:opacity-100 focus:opacity-100"><Trash2 size={12} /></button>
-                                  </div>
-                              </div>
-                          );
-                      })}
-                     </div>
+            {viewMode === 'list' && (
+                <div className="min-h-[300px]">
+                  {walletTransactions.length === 0 ? (
+                      <EmptyStateSeeder 
+                          data={data} 
+                          updateData={updateData || (() => {})} 
+                          title="No Transactions Logged" 
+                          description="Your transaction ledger is empty for this wallet. Seed pre-populated demo entries to explore cash flow, search, and analytics." 
+                      />
+                  ) : filteredTransactions.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-48 text-[var(--text-secondary)] border border-[var(--border-default)] rounded-[10px] bg-[var(--bg-surface)] p-6 text-center"><p className="text-[13px] font-normal">No transactions found matching your filters</p><button onClick={() => { Haptics.warning(); setSearchTerm(''); setDateRange({start: '', end: ''}); }} className="mt-3 text-[var(--text-primary)] text-[13px] font-medium hover:underline">Clear all filters</button></div>
+                  ) : (
+                       <>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
+                       {paginatedTransactions.map((t: Transaction) => {
+                           const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+                           return (
+                               <div key={t.id} onClick={() => onEditTransaction(t)} className="p-3 lg:p-4 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-between group transition-colors cursor-pointer hover:border-[var(--border-active)]">
+                                   <div className="flex items-center gap-3 lg:gap-4">
+                                       <div className="h-8 w-8 rounded-[6px] bg-[var(--bg-subtle)] flex items-center justify-center border border-[var(--border-default)] text-[var(--text-muted)] shrink-0"><CategoryIcon category={t.category} size={isMobile ? 14 : 16} color={data.categories.find((c: CategoryItem) => c.name === t.category)?.color} /></div>
+                                       <div>
+                                           <p className="font-medium text-[var(--text-primary)] text-[13px] leading-tight flex items-center gap-2">
+                                               <HighlightText text={t.note || t.category} highlight={searchTerm} />
+                                               {t.splits && <span className="px-1.5 py-0.5 bg-[var(--bg-subtle)] text-[var(--text-primary)] text-[10px] font-medium uppercase tracking-[0.06em] rounded border border-[var(--border-default)]">Split</span>}
+                                           </p>
+                                           <p className="text-[10px] text-[var(--text-muted)] mt-1 font-medium uppercase tracking-[0.06em]">
+                                               {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} • <HighlightText text={t.category} highlight={searchTerm} />
+                                           </p>
+                                           {t.splits && (
+                                               <div className="mt-2 flex flex-wrap gap-1.5">
+                                                   {t.splits.map((s, i) => (
+                                                       <span key={i} className="text-[11px] font-mono text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-2 py-0.5 rounded border border-[var(--border-default)]">
+                                                           <HighlightText text={s.category} highlight={searchTerm} />: {formatMoney(s.amount, data.settings.currencySymbol)}
+                                                       </span>
+                                                   ))}
+                                               </div>
+                                           )}
+                                       </div>
+                                   </div>
+                                   <div className="flex items-center gap-3">
+                                       <span className={`font-mono font-medium text-[13px] ${t.type === TransactionType.INCOME ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-primary)]'}`}>{t.type === TransactionType.INCOME ? '+' : ''}{formatMoney(t.amount, data.settings.currencySymbol)}</span>
+                                       <button onClick={(e) => { e.stopPropagation(); Haptics.warning(); onRequestDelete(t.id); }} className="text-[var(--text-muted)] hover:text-[var(--status-error-fg)] p-1.5 rounded-[6px] hover:bg-[var(--status-error-bg)] transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"><Trash2 size={14} className="stroke-[1.5px]" /></button>
+                                   </div>
+                               </div>
+                           );
+                       })}
+                      </div>
                      <Pagination
                        currentPage={currentPage}
                        totalPages={totalPages}

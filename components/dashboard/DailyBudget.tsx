@@ -82,7 +82,7 @@ export const DailyBudget: React.FC<DailyBudgetProps> = ({
                         ) : (
                             <button 
                                 onClick={() => { setTempGoal(''); setIsEditingGoal(true); }} 
-                                className="text-[9px] font-black text-primary bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-md hover:bg-primary/20 transition-colors uppercase tracking-[0.2em]"
+                                className="btn btn--primary text-[10px] uppercase tracking-[0.15em] px-3 py-1.5"
                             >
                                 Set Daily Goal
                             </button>

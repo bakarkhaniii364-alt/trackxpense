@@ -75,7 +75,7 @@ export const PremiumUpgrade: React.FC<PremiumUpgradeProps> = ({ onUpgrade, onClo
             </div>
             <button 
               onClick={handleUpgrade}
-              className="w-full py-4 bg-primary text-white rounded-sm font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+              className="btn btn--primary w-full justify-center text-[11px] uppercase tracking-[0.2em]"
             >
               Unlock Everything
             </button>

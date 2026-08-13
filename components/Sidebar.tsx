@@ -10,6 +10,10 @@ import {
   Calendar,
   Ghost,
   ChevronRight,
+  ChevronDown,
+  Search,
+  PanelLeft,
+  PanelLeftOpen,
   UserCircle,
   LogOut,
   Trash2,
@@ -35,6 +39,7 @@ interface SidebarProps {
   isStatic?: boolean;
   currentView?: string;
   onLogout?: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
 const MenuHeader = ({
@@ -74,10 +79,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onViewChange,
   isStatic = false,
   currentView = 'dashboard',
-  onLogout
+  onLogout,
+  onOpenCommandPalette
 }) => {
   const [sidebarView, setSidebarView] = useState<'menu' | 'identity' | 'control' | 'data' | 'privacy'>('menu');
   const [confirmAction, setConfirmAction] = useState<'logout' | 'delete' | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const mainMenuContainerRef = useRef<HTMLDivElement>(null);
   const dashboardRef = useRef<HTMLButtonElement>(null);
@@ -164,6 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   const getViewIndex = (v: typeof sidebarView) => {
+    if (isStatic) return 0;
     switch (v) {
       case 'menu': return 0;
       case 'identity': return 1;
@@ -183,159 +192,245 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
       <div
-        className={`${isStatic ? 'relative w-80 h-screen translate-x-0 liquid-glass border-r border-main/10 rounded-none' : `fixed inset-y-0 left-0 h-full w-[85%] max-w-xs z-[101] transform transition-transform duration-300 shadow-2xl ${isOpen ? 'translate-x-0' : '-translate-x-full'} rounded-r-none`} flex flex-col bg-dark overflow-hidden`}
+        className={`${isStatic ? `relative ${isCollapsed ? 'w-[56px] bg-black' : 'w-[240px] bg-[#0e121a]'} border-none shrink-0 h-screen translate-x-0 transition-[width,background-color] duration-200` : `fixed inset-y-0 left-0 h-full ${isCollapsed ? 'w-[56px] bg-black' : 'w-[240px] bg-[#0e121a]'} border-none shrink-0 z-[101] transform transition-[transform,width,background-color] duration-200 shadow-2xl ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} flex flex-col overflow-hidden`}
       >
-        <div className="sidebar-slider-wrapper flex-1">
+        <div className={`sidebar-slider-wrapper flex-1 ${isCollapsed ? 'bg-black' : 'bg-[#0e121a]'}`}>
           <div 
-            className="sidebar-view-container"
+            className={`sidebar-view-container ${isCollapsed ? 'bg-black' : 'bg-[#0e121a]'}`}
             style={{ transform: `translateX(-${getViewIndex(sidebarView) * 20}%)` }}
           >
             {/* View 0: menu */}
-            <div className="sidebar-panel">
-              <div className={`pt-8 pb-8 px-6 ${isStatic ? 'bg-main/5' : 'bg-surface'} border-b border-main/10 relative`}>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-sidebar bg-gradient-to-tr from-primary to-purple-600 p-[1px]">
-                    <div className={`w-full h-full rounded-sidebar ${isStatic ? 'bg-black/40' : 'bg-dark'} flex items-center justify-center text-main overflow-hidden shadow-inner`}>
-                      <span className="text-lg font-bold">{data.profile.name.charAt(0).toUpperCase()}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col">
-                    <h2 className="text-sm font-bold text-main leading-tight">{data.profile.name}</h2>
-                    <span className="text-[9px] font-black uppercase tracking-widest mt-0.5 text-muted/40">
-                      Standard Account
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 no-scrollbar">
-                {isStatic && (
-                  <div 
-                    ref={mainMenuContainerRef}
-                    className="space-y-1.5 pb-6 mb-6 border-b border-main/10 relative"
-                  >
-                    <h3 className="px-4 text-[9px] uppercase font-black text-muted/40 tracking-[0.2em] mb-4">Dashboard Menu</h3>
-                    
-                    {/* Sliding active item backdrop for main menu items */}
-                    <div 
-                      className={`absolute left-0 right-0 rounded-sidebar border transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] pointer-events-none z-0 ${
-                        currentView === 'dashboard' ? 'bg-primary/10 border-primary/20 shadow-lg shadow-primary/5' :
-                        currentView === 'history' ? 'bg-purple-500/10 border-purple-500/20 shadow-lg shadow-purple-500/5' :
-                        currentView === 'analytics' ? 'bg-blue-500/10 border-blue-500/20 shadow-lg shadow-blue-500/5' :
-                        currentView === 'debts' ? 'bg-amber-500/10 border-amber-500/20 shadow-lg shadow-amber-500/5' :
-                        'opacity-0'
-                      }`}
-                      style={{
-                        top: mainIndicatorStyle.top,
-                        height: mainIndicatorStyle.height,
-                        opacity: mainIndicatorStyle.opacity,
+            <div className={`sidebar-panel flex flex-col h-full ${isCollapsed ? 'bg-black' : 'bg-[#0e121a]'}`}>
+              {/* Top Header: Branding + Sidebar Shrink Button */}
+              <div className="h-[52px] px-2 flex items-center justify-between shrink-0">
+                <button
+                  onClick={() => setIsCollapsed(!isCollapsed)}
+                  title={isCollapsed ? "Expand sidebar" : "TrackXpense"}
+                  className="h-8 px-1 rounded-[6px] flex items-center gap-2.5 hover:bg-white/5 transition-colors text-left shrink-0"
+                >
+                  <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                    <img 
+                      src="icon.png" 
+                      alt="Favicon" 
+                      className="w-5 h-5 rounded-[4px] object-cover shrink-0" 
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
                       }}
                     />
+                    <div className="w-5 h-5 rounded-[4px] bg-white/10 hidden items-center justify-center text-[var(--text-primary)] font-bold text-[10px] shrink-0">
+                      T
+                    </div>
+                  </div>
+                  <span className={`text-[13px] font-medium text-[var(--text-primary)] tracking-tight whitespace-nowrap overflow-hidden transition-all duration-200 ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+                    TrackXpense
+                  </span>
+                </button>
 
-                    {[
-                      { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid, color: 'primary', btnRef: dashboardRef },
-                      { id: 'history', label: 'Transactions', icon: Activity, color: 'purple-500', btnRef: historyRef },
-                      { id: 'analytics', label: 'Analytics', icon: TrendingUp, color: 'blue-500', btnRef: analyticsRef },
-                      { id: 'debts', label: 'Debts & Loans', icon: ArrowDownRight, color: 'amber-500', btnRef: debtsRef },
-                    ].map((item) => {
-                      const isSelected = currentView === item.id;
-                      let styleClasses = 'hover:bg-surface/50 border border-transparent text-main';
-                      let iconClasses = 'text-muted group-hover:text-main';
-                      let textClasses = 'text-main';
-                      let chevronClasses = 'text-muted/20';
+                {!isCollapsed && (
+                  <button
+                    onClick={() => setIsCollapsed(true)}
+                    title="Collapse sidebar"
+                    className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors shrink-0"
+                  >
+                    <PanelLeft size={16} className="stroke-[1.5px]" />
+                  </button>
+                )}
+              </div>
 
-                      if (isSelected) {
-                        styleClasses = 'border border-transparent';
-                        if (item.color === 'primary') {
-                          iconClasses = 'text-primary';
-                          textClasses = 'text-primary';
-                          chevronClasses = 'text-primary/40';
-                        } else if (item.color === 'purple-500') {
-                          iconClasses = 'text-purple-500';
-                          textClasses = 'text-purple-500';
-                          chevronClasses = 'text-purple-500/40';
-                        } else if (item.color === 'blue-500') {
-                          iconClasses = 'text-blue-500';
-                          textClasses = 'text-blue-500';
-                          chevronClasses = 'text-blue-500/40';
-                        } else if (item.color === 'amber-500') {
-                          iconClasses = 'text-amber-500';
-                          textClasses = 'text-amber-500';
-                          chevronClasses = 'text-amber-500/40';
-                        }
-                      }
+              {/* Quick Search Bar */}
+              <div className="px-2 pt-1 pb-1">
+                <button
+                  onClick={() => {
+                    if (onOpenCommandPalette) onOpenCommandPalette();
+                  }}
+                  title="Quick search (Ctrl+K)"
+                  className={`w-full h-[32px] flex items-center gap-2.5 rounded-[6px] text-[12px] transition-all overflow-hidden ${
+                    isCollapsed
+                      ? 'px-1 bg-transparent border-0 hover:bg-white/5 text-[var(--text-muted)] hover:text-white'
+                      : 'px-2 bg-[var(--bg-subtle)]/60 border border-[var(--border-default)] hover:border-[var(--border-active)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                  }`}
+                >
+                  <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                    <Search size={14} className="stroke-[1.5px]" />
+                  </div>
+                  <div className={`flex-1 flex items-center justify-between whitespace-nowrap transition-all duration-200 pr-1 ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+                    <span>Quick search...</span>
+                    <kbd className="text-[9px] font-mono px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-muted)]">Ctrl K</kbd>
+                  </div>
+                </button>
+              </div>
 
-                      return (
-                        <button
-                          key={item.id}
-                          ref={item.btnRef}
-                          onClick={() => {
-                            Haptics.light();
-                            onViewChange(item.id);
-                          }}
-                          className={`w-full px-4 py-3 flex items-center justify-between rounded-sidebar transition-all group active:scale-[0.98] z-10 relative bg-transparent ${styleClasses}`}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className={`${iconClasses} transition-colors`}>
-                              <item.icon size={18} />
-                            </div>
-                            <span className={`text-xs font-bold ${textClasses}`}>{item.label}</span>
-                          </div>
-                          <ChevronRight size={14} className={chevronClasses} />
-                        </button>
-                      );
-                    })}
+              {/* Navigation Items (No section headings) */}
+              <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1 no-scrollbar">
+                <div 
+                  ref={mainMenuContainerRef}
+                  className="space-y-1 relative"
+                >
+                  {[
+                    { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid, btnRef: dashboardRef },
+                    { id: 'history', label: 'Transactions', icon: Activity, btnRef: historyRef },
+                    { id: 'analytics', label: 'Analytics', icon: TrendingUp, btnRef: analyticsRef },
+                    { id: 'debts', label: 'Debts & Loans', icon: ArrowDownRight, btnRef: debtsRef },
+                    { id: 'control', label: 'Budgets & Categories', icon: TrendingUp },
+                    { id: 'provisions', label: 'Upcoming Expenses', icon: Calendar },
+                    { id: 'subscriptions', label: 'Subscriptions', icon: Ghost },
+                    { id: 'identity', label: 'Profile & Settings', icon: UserCircle },
+                  ].map((item) => {
+                    const isSelected = currentView === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        ref={item.btnRef}
+                        title={isCollapsed ? item.label : undefined}
+                        onClick={() => {
+                          Haptics.light();
+                          onViewChange(item.id);
+                          if (!isStatic) onClose();
+                        }}
+                        className={`w-full h-[36px] px-1 flex items-center rounded-[6px] transition-colors text-[13px] overflow-hidden ${
+                          isSelected
+                            ? isCollapsed ? 'bg-transparent text-white font-medium' : 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)] font-medium'
+                            : 'text-[var(--text-secondary)] font-normal hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                          <item.icon 
+                            size={16} 
+                            className={`transition-all ${
+                              isSelected 
+                                ? 'text-white stroke-[2.5px]' 
+                                : 'text-[var(--text-secondary)] stroke-[1.5px]'
+                            }`} 
+                          />
+                        </div>
+                        <div className={`flex-1 flex items-center justify-between pl-1 whitespace-nowrap transition-all duration-200 pr-1 ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+                          <span>{item.label}</span>
+                          <ChevronRight size={14} className="opacity-40" />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Bottom User Section */}
+              <div className="p-2 mt-auto shrink-0 relative">
+                {/* Backdrop overlay for dropdown */}
+                {isUserMenuOpen && (
+                  <div 
+                    className="fixed inset-0 z-[499]" 
+                    onClick={() => setIsUserMenuOpen(false)} 
+                  />
+                )}
+
+                {/* Cloudflare-style User Profile Dropdown */}
+                {isUserMenuOpen && (
+                  <div className="absolute bottom-[52px] left-2 z-[500] w-[220px] bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] shadow-2xl p-1.5 text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150 overflow-visible">
+                    {/* Pointer Nudge */}
+                    <div className="absolute -bottom-[6px] left-5 w-2.5 h-2.5 bg-[var(--bg-surface)] border-b border-r border-[var(--border-default)] rotate-45 z-20" />
+
+                    {/* Email Header */}
+                    <div className="px-3 py-2 text-[12px] text-[var(--text-muted)] border-b border-[var(--border-default)]/60 truncate font-normal relative z-10">
+                      {data.profile.email || data.profile.name || 'user@trackxpense.app'}
+                    </div>
+
+                    {/* Options List */}
+                    <div className="py-1 space-y-0.5 relative z-10">
+                      <button 
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onViewChange('identity');
+                          if (!isStatic) onClose();
+                        }}
+                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal"
+                      >
+                        <span>Profile</span>
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onViewChange('control');
+                          if (!isStatic) onClose();
+                        }}
+                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal"
+                      >
+                        <span>Billing</span>
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onViewChange('identity');
+                          if (!isStatic) onClose();
+                        }}
+                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal"
+                      >
+                        <span>Appearance</span>
+                        <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60" />
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onViewChange('identity');
+                          if (!isStatic) onClose();
+                        }}
+                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal"
+                      >
+                        <span>Language</span>
+                        <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60" />
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          onViewChange('identity');
+                          if (!isStatic) onClose();
+                        }}
+                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal"
+                      >
+                        <span>Timezone</span>
+                        <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60" />
+                      </button>
+                    </div>
+
+                    {/* Logout Option */}
+                    <div className="border-t border-[var(--border-default)]/60 pt-1 mt-0.5 relative z-10">
+                      <button 
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          if (onLogout) onLogout();
+                          else handleLogout();
+                        }}
+                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[#ef4444] hover:bg-red-500/10 transition-colors text-left font-medium"
+                      >
+                        <span>Log out</span>
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                <h3 className="px-4 text-[9px] uppercase font-black text-muted/40 tracking-[0.2em] mb-4">Tools</h3>
-                
-                <button
-                  onClick={() => { Haptics.light(); onViewChange('control'); if (!isStatic) onClose(); }}
-                  className={`w-full px-4 py-3 flex items-center justify-between rounded-sidebar transition-all group active:scale-[0.98] ${currentView === 'control' ? 'bg-emerald-400/10 border border-emerald-400/20' : 'hover:bg-surface/50 border border-transparent'}`}
+                <div 
+                  onClick={() => { 
+                    Haptics.light(); 
+                    setIsUserMenuOpen(!isUserMenuOpen); 
+                  }}
+                  title={data.profile.name}
+                  className="p-1 rounded-[8px] hover:bg-white/5 cursor-pointer transition-colors group flex items-center gap-2 overflow-hidden"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`${currentView === 'control' ? 'text-emerald-400' : 'text-muted group-hover:text-emerald-400'} transition-colors`}><TrendingUp size={18} /></div>
-                    <span className={`text-xs font-bold ${currentView === 'control' ? 'text-emerald-400' : 'text-main'}`}>Budgets & Categories</span>
+                  <div className={`w-7 h-7 rounded-[6px] ${isCollapsed ? 'bg-transparent text-white border-0 font-bold' : 'bg-white/10 text-[var(--text-primary)] font-semibold'} flex items-center justify-center text-xs shrink-0 transition-colors`}>
+                    {data.profile.name ? data.profile.name.charAt(0).toUpperCase() : 'U'}
                   </div>
-                  <ChevronRight size={14} className={currentView === 'control' ? 'text-emerald-400/40' : 'text-muted/20'} />
-                </button>
-
-                <button
-                  onClick={() => { Haptics.light(); onViewChange('provisions'); if (!isStatic) onClose(); }}
-                  className={`w-full px-4 py-3 flex items-center justify-between rounded-sidebar transition-all group active:scale-[0.98] ${currentView === 'provisions' ? 'bg-primary/10 border border-primary/20' : 'hover:bg-surface/50 border border-transparent'}`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`${currentView === 'provisions' ? 'text-primary' : 'text-muted group-hover:text-primary'} transition-colors`}><Calendar size={18} /></div>
-                    <span className={`text-xs font-bold ${currentView === 'provisions' ? 'text-primary' : 'text-main'}`}>Upcoming Expenses</span>
+                  <div className={`flex-1 flex items-center justify-between min-w-0 whitespace-nowrap transition-all duration-200 pr-1 ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+                    <div className="flex flex-col min-w-0">
+                      <h2 className="text-[12px] font-medium text-[var(--text-primary)] leading-tight truncate">{data.profile.name}</h2>
+                      <span className="text-[10px] text-[var(--text-muted)] font-normal truncate">Standard Account</span>
+                    </div>
+                    <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60 shrink-0" />
                   </div>
-                  <ChevronRight size={14} className={currentView === 'provisions' ? 'text-primary/40' : 'text-muted/20'} />
-                </button>
-
-                <button
-                  onClick={() => { Haptics.light(); onViewChange('subscriptions'); if (!isStatic) onClose(); }}
-                  className={`w-full px-4 py-3 flex items-center justify-between rounded-sidebar transition-all group active:scale-[0.98] ${currentView === 'subscriptions' ? 'bg-primary/10 border border-primary/20' : 'hover:bg-surface/50 border border-transparent'}`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`${currentView === 'subscriptions' ? 'text-primary' : 'text-muted group-hover:text-primary'} transition-colors`}><Ghost size={18} /></div>
-                    <span className={`text-xs font-bold ${currentView === 'subscriptions' ? 'text-primary' : 'text-main'}`}>Subscriptions</span>
-                  </div>
-                  <ChevronRight size={14} className={currentView === 'subscriptions' ? 'text-primary/40' : 'text-muted/20'} />
-                </button>
-
-                <div className="pt-4 mt-4 border-t border-main/10">
-                  <h3 className="px-4 text-[9px] uppercase font-black text-muted/40 tracking-[0.2em] mb-4">Settings</h3>
-                  <button
-                      onClick={() => { Haptics.light(); setSidebarView('identity'); }}
-                      className="w-full px-4 py-3 flex items-center justify-between rounded-sidebar hover:bg-surface/50 border border-transparent transition-all group active:scale-[0.98]"
-                  >
-                      <div className="flex items-center gap-4">
-                          <div className="text-muted group-hover:text-main transition-colors">
-                              <UserCircle size={18} />
-                          </div>
-                          <span className="text-xs font-bold text-main">Profile & Settings</span>
-                      </div>
-                      <ChevronRight size={14} className="text-muted/20" />
-                  </button>
                 </div>
               </div>
             </div>

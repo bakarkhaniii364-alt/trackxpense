@@ -1,192 +1,329 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-    Search, 
-    Command, 
-    Zap, 
-    History, 
-    PieChart, 
-    LayoutGrid, 
-    CreditCard,
-    Fingerprint,
-    Settings,
-    ArrowRight,
-    Plus,
-    X
+  Search, 
+  LayoutGrid, 
+  Activity, 
+  TrendingUp, 
+  ArrowDownRight, 
+  Calendar, 
+  Ghost, 
+  UserCircle, 
+  Fingerprint, 
+  Plus, 
+  ChevronRight,
+  Sparkles,
+  Wallet as WalletIcon,
+  Sliders,
+  Check,
+  Ban,
+  Zap
 } from 'lucide-react';
 import { AppData, ViewState, TransactionType } from '../types';
+import { parseTransactionWithAI, AIParsedTransaction } from '../services/aiService';
 
 interface CommandPaletteProps {
-    isOpen: boolean;
-    onClose: () => void;
-    data: AppData;
-    onViewChange: (v: ViewState) => void;
-    onQuickAdd: (type: TransactionType, data: { amount: number, category: string, note?: string }) => void;
-    onTogglePrivacy: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  data: AppData;
+  onViewChange: (v: ViewState) => void;
+  onQuickAdd: (type: TransactionType, data: { amount: number, category: string, note?: string }) => void;
+  onTogglePrivacy: () => void;
+  onSelectWallet?: (walletId: string) => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
-    isOpen,
-    onClose,
-    data,
-    onViewChange,
-    onQuickAdd,
-    onTogglePrivacy
+  isOpen,
+  onClose,
+  data,
+  onViewChange,
+  onQuickAdd,
+  onTogglePrivacy,
+  onSelectWallet
 }) => {
-    const [query, setQuery] = useState('');
-    const [selectedIndex, setSelectedIndex] = useState(0);
-    const inputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [aiResult, setAiResult] = useState<AIParsedTransaction | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-    const commands = [
-        { id: 'dash', label: 'Go to Dashboard', icon: LayoutGrid, action: () => onViewChange('dashboard'), section: 'Navigation' },
-        { id: 'hist', label: 'Go to History', icon: History, action: () => onViewChange('history'), section: 'Navigation' },
-        { id: 'anal', label: 'Go to Analytics', icon: PieChart, action: () => onViewChange('analytics'), section: 'Navigation' },
-        { id: 'debt', label: 'Go to Debts', icon: CreditCard, action: () => onViewChange('debts'), section: 'Navigation' },
-        { id: 'priv', label: 'Toggle Privacy Mode', icon: Fingerprint, action: onTogglePrivacy, section: 'Settings' },
-        { id: 'sett', label: 'Go to Settings', icon: Settings, action: () => onViewChange('identity'), section: 'Navigation' },
-    ];
+  // General Navigation Commands
+  const navCommands = [
+    { id: 'dash', label: 'Dashboard Overview', icon: LayoutGrid, action: () => onViewChange('dashboard'), section: 'Navigation' },
+    { id: 'hist', label: 'Transactions & Ledger', icon: Activity, action: () => onViewChange('history'), section: 'Navigation' },
+    { id: 'anal', label: 'Financial Analytics', icon: TrendingUp, action: () => onViewChange('analytics'), section: 'Navigation' },
+    { id: 'debt', label: 'Debts & Loans', icon: ArrowDownRight, action: () => onViewChange('debts'), section: 'Navigation' },
+    { id: 'ctrl', label: 'Budgets & Categories', icon: Sliders, action: () => onViewChange('control'), section: 'Navigation' },
+    { id: 'prov', label: 'Upcoming Bills & Provisions', icon: Calendar, action: () => onViewChange('provisions'), section: 'Navigation' },
+    { id: 'subs', label: 'Subscriptions & Recurring', icon: Ghost, action: () => onViewChange('subscriptions'), section: 'Navigation' },
+    { id: 'sett', label: 'Profile & Account Settings', icon: UserCircle, action: () => onViewChange('identity'), section: 'Navigation' },
+    { id: 'priv', label: 'Toggle Privacy Mode', icon: Fingerprint, action: onTogglePrivacy, section: 'Security' },
+  ];
 
-    // Fuzzy Transaction Parsing: "50 lunch" or "100 salary"
-    const parseQuickAdd = (q: string) => {
-        const parts = q.split(' ');
-        const amount = parseFloat(parts[0]);
-        if (isNaN(amount)) return null;
+  // Quick Wallet Switching Commands
+  const walletCommands = (data.wallets || []).map(w => ({
+    id: `wallet-${w.id}`,
+    label: `Switch to ${w.name}${w.id === data.currentWalletId ? ' (Active)' : ''}`,
+    icon: WalletIcon,
+    isActive: w.id === data.currentWalletId,
+    action: () => {
+      if (onSelectWallet) onSelectWallet(w.id);
+    },
+    section: 'Wallets'
+  }));
 
-        const categoryQuery = parts.slice(1).join(' ').toLowerCase();
-        if (!categoryQuery) return null;
+  // Asynchronous Groq AI parsing with debounce
+  useEffect(() => {
+    if (!query.trim()) {
+      setAiResult(null);
+      setIsAiLoading(false);
+      return;
+    }
 
-        const matchedCat = data.categories.find(c => c.name.toLowerCase().includes(categoryQuery));
-        if (!matchedCat) return null;
+    setIsAiLoading(true);
+    const categoryNames = (data.categories || []).map(c => c.name);
 
-        return {
-            amount,
-            category: matchedCat.name,
-            type: matchedCat.type
-        };
-    };
+    const timer = setTimeout(async () => {
+      const parsed = await parseTransactionWithAI(query, categoryNames, data.settings.groqApiKey);
+      setAiResult(parsed);
+      setIsAiLoading(false);
+    }, 200);
 
-    const quickAddResult = parseQuickAdd(query);
-    
-    const filteredCommands = commands.filter(c => 
-        c.label.toLowerCase().includes(query.toLowerCase())
-    );
+    return () => clearTimeout(timer);
+  }, [query, data.categories, data.settings.groqApiKey]);
 
-    const results = [
-        ...(quickAddResult ? [{
-            id: 'quick-add',
-            label: `Add ${data.settings.currencySymbol}${quickAddResult.amount} to ${quickAddResult.category}`,
-            icon: Plus,
-            action: () => {
-                onQuickAdd(quickAddResult.type, { amount: quickAddResult.amount, category: quickAddResult.category });
-                onClose();
-            },
-            section: 'Quick Entry'
-        }] : []),
-        ...filteredCommands
-    ];
+  const filteredNav = navCommands.filter(c => 
+    c.label.toLowerCase().includes(query.toLowerCase()) ||
+    c.section.toLowerCase().includes(query.toLowerCase())
+  );
 
-    useEffect(() => {
-        if (isOpen) {
-            setQuery('');
-            setSelectedIndex(0);
-            setTimeout(() => inputRef.current?.focus(), 10);
-        }
-    }, [isOpen]);
+  const filteredWallets = walletCommands.filter(w =>
+    w.label.toLowerCase().includes(query.toLowerCase()) ||
+    'wallets'.includes(query.toLowerCase())
+  );
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            setSelectedIndex(prev => (prev + 1) % results.length);
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setSelectedIndex(prev => (prev - 1 + results.length) % results.length);
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            if (results[selectedIndex]) {
-                results[selectedIndex].action();
-                onClose();
-            }
-        } else if (e.key === 'Escape') {
-            onClose();
-        }
-    };
+  // Construct quick add / AI result section
+  const quickEntrySection = [];
 
-    if (!isOpen) return null;
+  if (isAiLoading && query.trim().length > 3) {
+    quickEntrySection.push({
+      id: 'ai-loading',
+      label: 'Analyzing input with RabbAi (Llama 3.1 8B)...',
+      icon: Sparkles,
+      action: () => {},
+      section: 'RabbAi Intelligence'
+    });
+  } else if (aiResult) {
+    if (aiResult.isDenial) {
+      quickEntrySection.push({
+        id: 'ai-denial',
+        label: `Denial Detected: "I didn't spend/earn"`,
+        subtitle: `Got it, I won't log this transaction (${query})`,
+        icon: Ban,
+        action: () => onClose(),
+        section: 'RabbAi Intelligence',
+        isDenial: true
+      });
+    } else if (aiResult.isValid && aiResult.amount !== null) {
+      quickEntrySection.push({
+        id: 'ai-quick-add',
+        label: `Log ${aiResult.type === TransactionType.INCOME ? '+' : ''}${data.settings.currencySymbol || '$'}${aiResult.amount} under ${aiResult.category}`,
+        subtitle: `Description: ${aiResult.description} (${aiResult.source === 'groq_ai' ? 'RabbAi' : 'Local NLP'})`,
+        icon: Zap,
+        action: () => {
+          onQuickAdd(aiResult.type, { 
+            amount: aiResult.amount!, 
+            category: aiResult.category,
+            note: aiResult.description
+          });
+          onClose();
+        },
+        section: 'RabbAi Intelligence',
+        isAi: true
+      });
+    }
+  }
 
-    return (
-        <div className="fixed inset-0 z-[10000] flex items-start justify-center pt-[15vh] px-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose} />
-            
-            <div className="relative w-full max-w-2xl bg-[#0a0a0a] border border-white/10 rounded-[32px] shadow-[0_32px_128px_rgba(0,0,0,0.8)] overflow-hidden animate-in zoom-in-95 slide-in-from-top-4 duration-200">
-                {/* Search Header */}
-                <div className="flex items-center gap-4 px-6 py-5 border-b border-white/5 bg-white/[0.02]">
-                    <Search className="text-primary" size={20} />
-                    <input 
-                        ref={inputRef}
-                        type="text" 
-                        placeholder="Type a command or '50 lunch' to add entry..."
-                        value={query}
-                        onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
-                        onKeyDown={handleKeyDown}
-                        className="flex-1 bg-transparent border-none outline-none text-main text-lg font-medium placeholder:text-white/20"
-                    />
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-sm border border-white/5">
-                        <Command size={12} className="text-white/40" />
-                        <span className="text-[10px] font-bold text-white/40">K</span>
-                    </div>
-                </div>
+  const results = [
+    ...quickEntrySection,
+    ...filteredNav,
+    ...filteredWallets
+  ];
 
-                {/* Results List */}
-                <div className="max-h-[400px] overflow-y-auto py-3 custom-scrollbar">
-                    {results.length > 0 ? (
-                        <div className="space-y-1 px-3">
-                            {results.map((result, index) => {
-                                const isSelected = index === selectedIndex;
-                                return (
-                                    <button
-                                        key={result.id}
-                                        onClick={() => { result.action(); onClose(); }}
-                                        onMouseEnter={() => setSelectedIndex(index)}
-                                        className={`w-full flex items-center justify-between px-4 py-3.5 rounded-sm transition-all duration-150 ${isSelected ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-[1.01]' : 'text-white/60 hover:bg-white/5'}`}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`p-2 rounded-md ${isSelected ? 'bg-white/20' : 'bg-white/5'}`}>
-                                                <result.icon size={18} />
-                                            </div>
-                                            <div className="flex flex-col items-start">
-                                                <span className="text-sm font-bold tracking-tight">{result.label}</span>
-                                                <span className={`text-[9px] font-black uppercase tracking-widest ${isSelected ? 'text-white/60' : 'text-white/20'}`}>
-                                                    {result.section}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        {isSelected && <ArrowRight size={16} className="text-white/40" />}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="py-12 flex flex-col items-center justify-center gap-4 opacity-30">
-                            <Zap size={32} />
-                            <p className="text-sm font-bold uppercase tracking-widest">No commands found</p>
-                        </div>
-                    )}
-                </div>
+  useEffect(() => {
+    if (isOpen) {
+      setQuery('');
+      setSelectedIndex(0);
+      setAiResult(null);
+      setTimeout(() => inputRef.current?.focus(), 15);
+    }
+  }, [isOpen]);
 
-                {/* Footer Tip */}
-                <div className="px-6 py-4 bg-white/[0.01] border-t border-white/5 flex items-center justify-between">
-                    <div className="flex gap-4">
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Select</span>
-                            <div className="flex items-center gap-1 bg-white/5 px-1.5 py-0.5 rounded border border-white/5 text-[9px] text-white/40 font-mono">↑↓</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Execute</span>
-                            <div className="bg-white/5 px-1.5 py-0.5 rounded border border-white/5 text-[9px] text-white/40 font-mono">↵</div>
-                        </div>
-                    </div>
-                    <p className="text-[9px] font-black text-white/20 uppercase tracking-widest">TrackXpense Command Menu</p>
-                </div>
-            </div>
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => (results.length > 0 ? (prev + 1) % results.length : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => (results.length > 0 ? (prev - 1 + results.length) % results.length : 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (results[selectedIndex]) {
+        results[selectedIndex].action();
+        onClose();
+      }
+    } else if (e.key === 'Escape') {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  // Group results by section
+  const sectionsMap = new Map<string, typeof results>();
+  results.forEach(item => {
+    const list = sectionsMap.get(item.section) || [];
+    list.push(item);
+    sectionsMap.set(item.section, list);
+  });
+
+  let globalIndexCounter = 0;
+
+  return (
+    <div className="fixed inset-0 z-[10000] flex items-start justify-center pt-[12vh] px-4">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity duration-150" 
+        onClick={onClose} 
+      />
+      
+      {/* Modal Shell */}
+      <div className="relative w-full max-w-xl bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] shadow-2xl overflow-hidden flex flex-col z-10 text-[var(--text-primary)]">
+        {/* Top Input Bar */}
+        <div className="h-[48px] px-4 flex items-center gap-3 border-b border-[var(--border-default)] shrink-0">
+          <Search size={16} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+          <input 
+            ref={inputRef}
+            type="text" 
+            placeholder="Type 'I didn't spend 200 on coffee', jump to view, or switch wallet..."
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
+            onKeyDown={handleKeyDown}
+            className="flex-1 bg-transparent border-none outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+          />
+          <span className="flex items-center gap-1 text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-subtle)] px-1.5 py-0.5 rounded border border-[var(--border-default)]">
+            <Zap size={10} className="text-amber-400" /> RabbAi
+          </span>
+          <button 
+            onClick={onClose}
+            className="px-1.5 py-0.5 rounded-[4px] border border-[var(--border-default)] bg-[var(--bg-subtle)]/50 text-[10px] text-[var(--text-muted)] font-mono hover:text-[var(--text-primary)] transition-colors"
+          >
+            Esc
+          </button>
         </div>
-    );
+
+        {/* Results List */}
+        <div className="max-h-[380px] overflow-y-auto p-2 no-scrollbar">
+          {results.length > 0 ? (
+            Array.from(sectionsMap.entries()).map(([sectionName, items]) => (
+              <div key={sectionName} className="mb-2 last:mb-0">
+                <h3 className="px-3 pt-2 pb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] flex items-center gap-1.5">
+                  {sectionName === 'RabbAi Intelligence' && <Zap size={12} className="text-amber-400" />}
+                  {sectionName}
+                </h3>
+                <div className="space-y-0.5">
+                  {items.map((item) => {
+                    const currentIndex = globalIndexCounter++;
+                    const isSelected = currentIndex === selectedIndex;
+                    const isWalletActive = (item as any).isActive;
+                    const isDenial = (item as any).isDenial;
+
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => { item.action(); onClose(); }}
+                        onMouseEnter={() => setSelectedIndex(currentIndex)}
+                        className={`w-full h-[40px] px-3 flex items-center justify-between rounded-[6px] transition-colors text-left text-[13px] ${
+                          isDenial
+                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                            : isSelected 
+                              ? 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)]' 
+                              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <item.icon size={15} className={`${isDenial ? 'text-rose-400' : 'text-[var(--text-muted)]'} shrink-0 stroke-[1.5px]`} />
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-medium text-[var(--text-primary)] truncate">{item.label}</span>
+                            {(item as any).subtitle && (
+                              <span className="text-[11px] text-[var(--text-muted)] font-normal truncate">{(item as any).subtitle}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isWalletActive && (
+                            <span className="text-[10px] font-medium text-[var(--status-success-fg)] bg-[var(--status-success-bg)] px-1.5 py-0.5 rounded border border-[var(--status-success-fg)]/20 flex items-center gap-1">
+                              <Check size={10} /> Active
+                            </span>
+                          )}
+                          {isSelected && (
+                            <ChevronRight size={14} className="text-[var(--text-muted)] shrink-0" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-10 flex flex-col items-center justify-center text-[var(--text-muted)] gap-2">
+              <Sparkles size={20} className="stroke-[1.5px] opacity-60" />
+              <p className="text-[12px]">No matching action or query found</p>
+            </div>
+          )}
+
+          {/* Search tips section if no query */}
+          {query.trim() === '' && (
+            <div className="mt-2 pt-2 border-t border-[var(--border-default)]/40 px-3 pb-1">
+              <h3 className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1.5 flex items-center gap-1">
+                <Zap size={11} className="text-amber-400" /> Groq AI Natural Language Examples
+              </h3>
+              <div className="space-y-1 text-[12px] text-[var(--text-muted)]">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[11px] text-[var(--text-primary)]">"Spent 200 on coffee today"</span>
+                  <span>— Groq AI extracts $200, Expense, Coffee</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[11px] text-[var(--text-primary)]">"I didn't spend 200 on coffee"</span>
+                  <span>— Groq AI detects negation & cancels logging</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[11px] text-[var(--text-primary)]">"Received 1500 freelance payment"</span>
+                  <span>— Groq AI extracts $1500, Income</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Navigation Bar */}
+        <div className="px-4 py-2 bg-[var(--bg-subtle)]/40 border-t border-[var(--border-default)] flex items-center justify-between text-[11px] text-[var(--text-muted)] shrink-0">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1">
+              <kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] text-[10px] font-mono">↑</kbd>
+              <kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] text-[10px] font-mono">↓</kbd>
+              <span className="ml-1">to navigate</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] text-[10px] font-mono">↵</kbd>
+              <span className="ml-1">to select</span>
+            </span>
+          </div>
+          <span className="text-[10px] font-mono text-[var(--text-muted)] opacity-70 flex items-center gap-1">
+            <Zap size={10} className="text-amber-400" /> Powered by Groq Llama 3.1 8B
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 };

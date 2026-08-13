@@ -102,7 +102,7 @@ export const OnboardingModal: React.FC<OnboardingProps> = ({ isOpen, onComplete 
 
                 <button 
                     onClick={handleNext}
-                    className="w-full py-3.5 bg-primary text-white rounded-xl font-bold text-[10px] uppercase tracking-[0.2em] mt-8 flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg shadow-primary/20 hover:bg-primary/90"
+                    className="btn btn--primary w-full justify-center text-[10px] uppercase tracking-[0.2em] mt-8"
                 >
                     {step === 2 ? 'Get Started' : 'Continue'}
                     {step === 2 ? <CheckCircle size={14} /> : <ArrowRight size={14} />}

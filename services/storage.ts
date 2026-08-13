@@ -48,7 +48,9 @@ const DEFAULT_DATA: AppData = {
     isVaultLocked: false,
     stealthModeEnabled: false,
     stealthHotkey: 'Escape',
-    hapticsEnabled: true
+    hapticsEnabled: true,
+    groqApiKey: import.meta.env.VITE_GROQ_API_KEY || '',
+    enableAiParsing: true
   },
   profile: {
     name: 'User',

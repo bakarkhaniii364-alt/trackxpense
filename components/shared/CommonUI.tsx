@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { Haptics } from '../../services/haptics';
 
 export const COLOR_PRESETS = [
@@ -43,35 +43,29 @@ export const CustomConfirmModal: React.FC<CustomConfirmModalProps> = ({
 }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
-      <div className="relative bg-card w-full max-w-xs rounded-md p-6 border border-white/10 shadow-2xl animate-in zoom-in-95">
+      <div className="relative bg-[var(--bg-surface)] w-full max-w-[380px] rounded-[12px] p-6 border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="flex flex-col items-center text-center">
-          <div
-            className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 border ${
-              isDanger
-                ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-                : 'bg-primary/10 text-primary border-primary/20'
-            }`}
-          >
-            <AlertTriangle size={24} />
-          </div>
-          <h3 className="text-xl font-bold text-main mb-2">{title}</h3>
-          <p className="text-sm text-muted mb-6">{message}</p>
-          <div className="flex gap-3 w-full">
+          <AlertTriangle size={32} strokeWidth={1.5} className={isDanger ? "text-red-500 mb-3" : "text-[#2563EB] mb-3"} />
+          <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">{title}</h3>
+          <p className="text-xs text-[var(--text-secondary)] mb-6 leading-relaxed">{message}</p>
+          <div className="flex gap-2.5 w-full">
             <button
+              type="button"
               onClick={onClose}
-              className="flex-1 py-3 rounded-md bg-surface text-muted font-bold text-sm hover:bg-black/10 transition-colors"
+              className="flex-1 h-[36px] rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
             >
               Cancel
             </button>
             <button
+              type="button"
               onClick={onConfirm}
-              className={`flex-1 py-3 rounded-md text-white font-bold text-sm transition-colors ${
-                isDanger ? 'bg-rose-500 hover:bg-rose-600' : 'bg-primary hover:bg-primary/90'
+              className={`flex-1 h-[36px] rounded-[8px] text-white text-[13px] font-medium transition-all shadow-xs ${
+                isDanger ? 'bg-red-600 hover:bg-red-700' : 'bg-[#2563EB] hover:bg-blue-600'
               }`}
             >
               Confirm
@@ -326,3 +320,32 @@ export const Pagination: React.FC<PaginationProps> = ({
     </div>
   );
 };
+
+// --- Glass Checkbox (Project Design System) ---
+interface GlassCheckboxProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  className?: string;
+  id?: string;
+}
+
+export const GlassCheckbox: React.FC<GlassCheckboxProps> = ({ checked, onChange, className = '', id }) => {
+  return (
+    <button
+      type="button"
+      id={id}
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange(!checked);
+      }}
+      className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+        checked
+          ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-xs'
+          : 'bg-[var(--bg-surface)] border-[var(--border-strong)] hover:border-[var(--text-secondary)] text-transparent'
+      } ${className}`}
+    >
+      <Check size={11} strokeWidth={2.5} className={checked ? 'opacity-100' : 'opacity-0'} />
+    </button>
+  );
+};
+

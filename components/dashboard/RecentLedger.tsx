@@ -2,9 +2,12 @@ import React from 'react';
 import { Transaction, TransactionType, CategoryItem, AppData } from '../../types';
 import { CategoryIcon } from '../shared/CategoryIcon';
 
+import { EmptyStateSeeder } from '../shared/EmptyStateSeeder';
+
 interface RecentLedgerProps {
     walletTransactions: Transaction[];
     data: AppData;
+    updateData?: (d: Partial<AppData>) => void;
     setView: (v: any) => void;
     onEditTransaction: (t: Transaction) => void;
     formatMoney: (val: number, sym: string) => string;
@@ -13,6 +16,7 @@ interface RecentLedgerProps {
 export const RecentLedger: React.FC<RecentLedgerProps> = ({
     walletTransactions,
     data,
+    updateData,
     setView,
     onEditTransaction,
     formatMoney
@@ -23,6 +27,15 @@ export const RecentLedger: React.FC<RecentLedgerProps> = ({
                 <h2 className="text-base lg:text-xl font-bold text-main tracking-tight">Recent Transactions</h2>
                 <button onClick={() => setView('history')} className="text-[9px] text-primary font-black uppercase tracking-[0.2em] active:opacity-70 px-3 py-1.5 lg:px-4 lg:py-2 bg-primary/10 border border-primary/20 rounded-lg lg:rounded-xl hover:bg-primary/20 transition-colors">View All</button>
             </div>
+            {walletTransactions.length === 0 ? (
+                <EmptyStateSeeder 
+                    data={data} 
+                    updateData={updateData || (() => {})} 
+                    compact 
+                    title="No Recent Transactions" 
+                    description="You have no recorded activity in this wallet. Load 1-click sample data to test dashboard metrics and widgets." 
+                />
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
                 {walletTransactions.slice(0, 6).map((t: Transaction) => {
                     const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
@@ -46,6 +59,7 @@ export const RecentLedger: React.FC<RecentLedgerProps> = ({
                     );
                 })}
             </div>
+            )}
         </div>
     );
 };
