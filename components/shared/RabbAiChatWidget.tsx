@@ -137,6 +137,25 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
     reader.readAsDataURL(file);
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            if (evt.target?.result) setSelectedImage(evt.target.result as string);
+          };
+          reader.readAsDataURL(file);
+          e.preventDefault();
+          break;
+        }
+      }
+    }
+  };
+
   const patchMessage = (msgId: string, patch: Partial<RabbAiMessage>) => {
     if (!activeConv) return;
     const updated = conversations.map(c => {
@@ -428,7 +447,10 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
       )}
 
       {isOpen && (
-        <div className="fixed inset-x-0 top-0 bottom-[calc(54px+env(safe-area-inset-bottom,0px))] z-[3999] md:inset-x-auto md:right-0 md:top-0 md:w-[480px] md:border-l md:border-[var(--border-default)] bg-[var(--bg-surface)] flex flex-col shadow-2xl overflow-hidden text-[var(--text-primary)] animate-in slide-in-from-bottom duration-200">
+        <div 
+          onPaste={handlePaste}
+          className="fixed inset-x-0 top-0 bottom-[calc(54px+env(safe-area-inset-bottom,0px))] z-[3999] md:inset-x-auto md:right-0 md:top-0 md:w-[480px] md:border-l md:border-[var(--border-default)] bg-[var(--bg-surface)] flex flex-col shadow-2xl overflow-hidden text-[var(--text-primary)] animate-in slide-in-from-bottom duration-200"
+        >
           
           {/* Header */}
           <div className="h-[48px] px-3.5 border-b border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center justify-between shrink-0">
@@ -634,9 +656,10 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
 
             <input
               type="text"
-              placeholder="Ask anything or log an expense..."
+              placeholder="Ask anything, attach or paste screenshot..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
+              onPaste={handlePaste}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
               className="flex-1 h-[34px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent-solid)]"
             />

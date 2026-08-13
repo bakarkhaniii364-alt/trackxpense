@@ -286,7 +286,7 @@ Keep all responses under 2-3 concise sentences. Never use emojis.`;
 }
 
 /**
- * Send image (receipt/bill photo) to RabbAi using Groq Vision (llama-3.2-11b-vision-preview).
+ * Send image (receipt/screenshot/bill photo) to RabbAi using Groq Vision (qwen/qwen3.6-27b).
  * Performs OCR and outputs structured transaction for 1-click logging with bulletproof safety fallback.
  */
 export async function sendRabbAiImageMessage(
@@ -296,19 +296,22 @@ export async function sendRabbAiImageMessage(
 ): Promise<RabbAiMessage> {
   const apiKey = GROQ_API_KEY;
   const categories = (data.categories || []).map(c => c.name).join(', ');
+  const curr = data.settings.currencySymbol || '$';
 
-  const systemPrompt = `You are RabbAi, an expert OCR receipt & document analyzer.
-Inspect the receipt/image provided. Perform text recognition and extraction.
+  const systemPrompt = `You are RabbAi, an expert OCR analyzer for receipts, bills, invoices, and banking app screenshots.
+Analyze the image carefully. Read all text, numbers, transaction amounts, and merchant names.
 Available Categories: ${categories}.
 
-Return a JSON object inside \`\`\`json\`\`\` codeblock with:
+Return a JSON object inside a \`\`\`json\`\`\` codeblock with:
 {
-  "merchant": string,
-  "amount": number,
-  "category": string,
-  "summary": string
+  "merchant": "Merchant or Description name",
+  "amount": 12.50,
+  "category": "Food",
+  "type": "EXPENSE",
+  "summary": "Brief 1-sentence summary"
 }
-Write a brief friendly 1-2 sentence description of the scanned receipt items above the JSON block.`;
+
+Provide a concise 1-sentence explanation above the JSON block. Do not overexplain.`;
 
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -318,14 +321,14 @@ Write a brief friendly 1-2 sentence description of the scanned receipt items abo
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.2-11b-vision-preview',
+        model: 'qwen/qwen3.6-27b',
         temperature: 0.1,
         messages: [
           { role: 'system', content: systemPrompt },
           {
             role: 'user',
             content: [
-              { type: 'text', text: userPromptText || 'Please OCR scan this receipt and extract total cost and merchant.' },
+              { type: 'text', text: userPromptText || 'Please scan this receipt or screenshot, extract the merchant name, total amount, and category.' },
               {
                 type: 'image_url',
                 image_url: {
@@ -347,16 +350,20 @@ Write a brief friendly 1-2 sentence description of the scanned receipt items abo
       }
 
       if (resJson) {
-        const rawContent = resJson.choices?.[0]?.message?.content || 'Receipt OCR completed.';
+        let rawContent = resJson.choices?.[0]?.message?.content || 'Image analysis completed.';
+        // Strip out reasoning / <think> tags from Qwen models
+        rawContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
         let extracted: RabbAiMessage['extractedTransaction'] = undefined;
         const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/);
+        const bareJsonMatch = !jsonMatch && rawContent.match(/\{[\s\S]*?"amount"[\s\S]*?\}/);
+
         let cleanText = rawContent
           .replace(/```json\s*[\s\S]*?```/g, '')
           .replace(/\{[\s\S]*?"amount"[\s\S]*?\}/g, '')
           .trim();
 
-        const jsonSource = jsonMatch?.[1] ?? null;
+        const jsonSource = jsonMatch?.[1] ?? (bareJsonMatch ? bareJsonMatch[0] : null);
 
         if (jsonSource) {
           try {
@@ -364,9 +371,9 @@ Write a brief friendly 1-2 sentence description of the scanned receipt items abo
             if (typeof parsed.amount === 'number' && parsed.amount > 0) {
               extracted = {
                 amount: parsed.amount,
-                category: parsed.category || 'Food & Dining',
-                description: parsed.merchant ? `${parsed.merchant} (Receipt OCR)` : 'Receipt Scan',
-                type: TransactionType.EXPENSE
+                category: parsed.category || 'General',
+                description: parsed.merchant ? `${parsed.merchant}` : 'Receipt/Screenshot Log',
+                type: parsed.type === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE
               };
             }
           } catch (e) {
@@ -374,8 +381,7 @@ Write a brief friendly 1-2 sentence description of the scanned receipt items abo
           }
         }
 
-        // Never fall back to rawContent — that would leak the JSON block into the chat bubble.
-        const displayText = cleanText || (extracted ? 'Receipt scanned! Review the log card below.' : 'Scanned receipt details extracted below:');
+        const displayText = cleanText || (extracted ? `Extracted ${curr}${extracted.amount} for ${extracted.description}.` : 'Image scan complete.');
 
         return {
           id: `msg_${Date.now()}`,
@@ -385,6 +391,9 @@ Write a brief friendly 1-2 sentence description of the scanned receipt items abo
           extractedTransaction: extracted
         };
       }
+    } else {
+      const errText = await response.text();
+      console.warn('Groq vision API error:', response.status, errText);
     }
   } catch (err) {
     console.warn('RabbAi vision OCR call failed:', err);
@@ -394,7 +403,7 @@ Write a brief friendly 1-2 sentence description of the scanned receipt items abo
   return {
     id: `msg_${Date.now()}`,
     sender: 'rabbai',
-    text: "I couldn't scan that receipt image cleanly. Please try a clearer photo or log the expense manually.",
+    text: "I couldn't scan that image cleanly. Please try a clearer screenshot or log the expense manually.",
     timestamp: new Date().toISOString()
   };
 }
