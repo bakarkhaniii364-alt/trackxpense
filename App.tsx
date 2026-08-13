@@ -1193,6 +1193,7 @@ export default function App() {
       <RabbAiChatWidget 
         data={data} 
         onAddTransaction={handleAddTransaction}
+        onDeleteTransaction={(id) => updateData({ transactions: data.transactions.filter(t => t.id !== id) })}
         onAddWallet={(name, type, target, currency) => handleAddWallet(name, type, target, currency)}
         onDeleteWallet={handleDeleteWallet}
         onAddCategory={handleAiAddCategory}

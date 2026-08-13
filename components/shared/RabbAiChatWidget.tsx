@@ -11,7 +11,8 @@ import {
   Wallet,
   Tag,
   GitMerge,
-  AlertCircle
+  AlertCircle,
+  Download
 } from 'lucide-react';
 import { AppData, TransactionType, CategoryItem, Wallet as WalletType, WalletType as WType } from '../../types';
 import { 
@@ -24,9 +25,31 @@ import {
   sendRabbAiImageMessage 
 } from '../../services/rabbAiService';
 
+// ── CSV Generator ─────────────────────────────────────────────────────────────
+function generateTransactionsCsv(transactions: any[], wallets: any[], currencySymbol: string): string {
+  const headers = ['Date', 'Type', 'Amount', `Currency (${currencySymbol})`, 'Category', 'Description', 'Wallet'];
+  const escape = (v: string) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = [...transactions]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .map(t => {
+      const wallet = wallets.find((w: any) => w.id === t.walletId);
+      return [
+        escape(new Date(t.date).toLocaleDateString('en-CA')), // YYYY-MM-DD
+        escape(t.type),
+        t.amount.toFixed(2),
+        escape(currencySymbol),
+        escape(t.category || ''),
+        escape(t.note || ''),
+        escape(wallet?.name || 'Unknown')
+      ].join(',');
+    });
+  return [headers.join(','), ...rows].join('\n');
+}
+
 interface RabbAiChatWidgetProps {
   data: AppData;
   onAddTransaction: (t: any) => void;
+  onDeleteTransaction: (id: string) => void;
   onAddWallet: (name: string, type: WType, target: number, currency?: string) => void;
   onDeleteWallet: (id: string) => void;
   onAddCategory: (cat: Omit<CategoryItem, 'id'>) => void;
@@ -37,6 +60,7 @@ interface RabbAiChatWidgetProps {
 export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
   data,
   onAddTransaction,
+  onDeleteTransaction,
   onAddWallet,
   onDeleteWallet,
   onAddCategory,
@@ -148,6 +172,43 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
       aiMsg = await sendRabbAiTextMessage(userText, updatedMessages, data);
     }
 
+    // Auto-log any extracted transaction immediately — no button needed
+    if (aiMsg.extractedTransaction && typeof aiMsg.extractedTransaction.amount === 'number' && aiMsg.extractedTransaction.amount > 0) {
+      const txId = `tx_rabbai_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      onAddTransaction({
+        id: txId,
+        amount: aiMsg.extractedTransaction.amount,
+        type: aiMsg.extractedTransaction.type,
+        category: aiMsg.extractedTransaction.category,
+        date: new Date().toISOString(),
+        note: aiMsg.extractedTransaction.description,
+        walletId: data.currentWalletId
+      });
+      aiMsg = {
+        ...aiMsg,
+        extractedTransaction: {
+          ...aiMsg.extractedTransaction,
+          isLogged: true,
+          loggedTransactionId: txId
+        }
+      };
+    }
+
+    // Auto-execute EXPORT_CSV immediately — it's read-only, no confirm needed.
+    // Embed the data: URI in the payload so it's persisted with the message.
+    if (aiMsg.aiAction?.type === 'EXPORT_CSV' && !aiMsg.aiAction.executed) {
+      const csvContent = generateTransactionsCsv(
+        data.transactions,
+        data.wallets,
+        data.settings.currencySymbol || '$'
+      );
+      const dataUri = `data:text/csv;charset=utf-8,${encodeURIComponent(csvContent)}`;
+      aiMsg = {
+        ...aiMsg,
+        aiAction: { type: 'EXPORT_CSV', payload: { dataUri } as any, executed: true }
+      };
+    }
+
     const finalMessages = [...updatedMessages, aiMsg];
     const finalConv = {
       ...updatedConv,
@@ -161,10 +222,17 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
   };
 
   // ── Action Handlers ──────────────────────────────────────────────────────
-  const handleLogExtracted = (msgId: string, ext: NonNullable<RabbAiMessage['extractedTransaction']>) => {
-    const wallet = data.wallets.find(w => w.id === data.currentWalletId);
+  const handleUndoLog = (msgId: string, ext: NonNullable<RabbAiMessage['extractedTransaction']>) => {
+    if (ext.loggedTransactionId) {
+      onDeleteTransaction(ext.loggedTransactionId);
+      patchMessage(msgId, { extractedTransaction: { ...ext, isLogged: false, loggedTransactionId: undefined } });
+    }
+  };
+
+  const handleReLog = (msgId: string, ext: NonNullable<RabbAiMessage['extractedTransaction']>) => {
+    const txId = `tx_rabbai_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     onAddTransaction({
-      id: Date.now().toString(),
+      id: txId,
       amount: ext.amount,
       type: ext.type,
       category: ext.category,
@@ -172,7 +240,7 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
       note: ext.description,
       walletId: data.currentWalletId
     });
-    patchMessage(msgId, { extractedTransaction: { ...ext, isLogged: true } });
+    patchMessage(msgId, { extractedTransaction: { ...ext, isLogged: true, loggedTransactionId: txId } });
   };
 
   const handleExecuteAction = (msgId: string, action: RabbAiAction) => {
@@ -200,6 +268,37 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
     const action = msg.aiAction;
     if (!action) return null;
 
+    // ── EXPORT_CSV: render persistent download card ───────────────────────
+    if (action.type === 'EXPORT_CSV') {
+      const dataUri = (action.payload as any)?.dataUri as string | undefined;
+      const filename = `trackxpense_${new Date().toISOString().split('T')[0]}.csv`;
+      return (
+        <div className="pt-2 border-t border-[var(--border-default)]/60 mt-2">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-3 rounded-[8px] space-y-2.5">
+            <div className="flex items-center gap-1.5 text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-wide">
+              <Download size={13} strokeWidth={1.5} />
+              <span className="font-semibold">Transaction Export</span>
+            </div>
+            <div className="text-[13px] font-medium text-[var(--text-primary)]">
+              {data.transactions.length} transactions · CSV
+            </div>
+            {dataUri ? (
+              <a
+                href={dataUri}
+                download={filename}
+                className="w-full py-1.5 px-3 bg-[#2563eb] hover:bg-blue-600 text-white font-semibold text-[12px] rounded-[6px] flex items-center justify-center gap-1.5 transition-all"
+              >
+                <Download size={13} /> Download {filename}
+              </a>
+            ) : (
+              <div className="text-[11px] text-[var(--status-warning-fg)]">Export data unavailable — try again.</div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Generic executed state ────────────────────────────────────────────
     if (action.executed) {
       return (
         <div className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--status-success-fg)] bg-[var(--status-success-bg)] px-2.5 py-1.5 rounded-[6px] mt-2">
@@ -234,7 +333,7 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
     } else if (action.type === 'MERGE_CATEGORY') {
       icon = <GitMerge size={14} />;
       label = 'Merge Category';
-      description = `"${action.payload.from}" → "${action.payload.into}"`;
+      description = `"${action.payload.from}" \u2192 "${action.payload.into}"`;
       isDestructive = true;
     }
 
@@ -372,7 +471,7 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
 
                     <p className="whitespace-pre-wrap">{msg.text}</p>
 
-                    {/* Transaction log card */}
+                    {/* Transaction auto-log confirmation */}
                     {msg.extractedTransaction && (
                       <div className="pt-2 border-t border-[var(--border-default)]/60 space-y-2 mt-2">
                         <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-2.5 rounded-[8px] space-y-1.5">
@@ -389,12 +488,20 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
                           </div>
                         </div>
                         {msg.extractedTransaction.isLogged ? (
-                          <div className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--status-success-fg)] bg-[var(--status-success-bg)] px-2.5 py-1.5 rounded-[6px]">
-                            <Check size={13} /> Transaction Logged
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--status-success-fg)] bg-[var(--status-success-bg)] px-2.5 py-1.5 rounded-[6px] flex-1">
+                              <Check size={13} /> Logged to wallet
+                            </div>
+                            <button
+                              onClick={() => handleUndoLog(msg.id, msg.extractedTransaction!)}
+                              className="h-[30px] px-3 rounded-[6px] border border-[var(--border-default)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-rose-400 hover:border-rose-500/40 hover:bg-rose-500/10 transition-all shrink-0"
+                            >
+                              Undo
+                            </button>
                           </div>
                         ) : (
                           <button
-                            onClick={() => handleLogExtracted(msg.id, msg.extractedTransaction!)}
+                            onClick={() => handleReLog(msg.id, msg.extractedTransaction!)}
                             className="w-full py-1.5 px-3 bg-amber-500 hover:bg-amber-600 text-black font-semibold text-[12px] rounded-[6px] flex items-center justify-center gap-1.5 transition-all"
                           >
                             <img src="/rabAi icon.png" alt="" className="w-3.5 h-3.5 object-contain" />

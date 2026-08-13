@@ -5,7 +5,8 @@ export type RabbAiAction =
   | { type: 'DELETE_WALLET'; payload: { name: string }; executed?: boolean }
   | { type: 'ADD_CATEGORY'; payload: { name: string; categoryType: string }; executed?: boolean }
   | { type: 'DELETE_CATEGORY'; payload: { name: string }; executed?: boolean }
-  | { type: 'MERGE_CATEGORY'; payload: { from: string; into: string }; executed?: boolean };
+  | { type: 'MERGE_CATEGORY'; payload: { from: string; into: string }; executed?: boolean }
+  | { type: 'EXPORT_CSV'; payload: Record<string, never>; executed?: boolean };
 
 export interface RabbAiMessage {
   id: string;
@@ -19,6 +20,7 @@ export interface RabbAiMessage {
     description: string;
     type: TransactionType;
     isLogged?: boolean;
+    loggedTransactionId?: string;
   };
   aiAction?: RabbAiAction;
 }
@@ -99,50 +101,72 @@ export async function sendRabbAiTextMessage(
   const wallets = (data.wallets || []).map(w => w.name).join(', ');
   const curr = data.settings.currencySymbol || '$';
 
-  const systemPrompt = `You are RabbAi, a helpful intelligent financial assistant for the app TrackXpense.
+  const systemPrompt = `You are RabbAi, a focused financial assistant embedded in TrackXpense.
 User Financial Summary:
 - Balance: ${curr}${balance} | Income: ${curr}${income} | Expenses: ${curr}${expense}
 - Wallets: ${wallets}
 - Categories: ${categories}
 
-You can take actions by returning ONE JSON action block at the end of your response.
+## What you ARE permitted to do
+You may perform ONLY the following 7 actions by returning a JSON block:
 
-Action types (pick the one that fits):
-
-1. Log a transaction (user says "I spent 45 on groceries" or "I earned 200"):
+1. Log a transaction ("I spent 45 on food", "earned 200"):
 \`\`\`json
 { "action": "ADD_TRANSACTION", "amount": 45, "category": "Groceries", "description": "Groceries", "type": "EXPENSE" }
 \`\`\`
 
-2. Add a new wallet (user says "create a wallet called Savings"):
+2. Add a wallet:
 \`\`\`json
 { "action": "ADD_WALLET", "name": "Savings", "currency": "$" }
 \`\`\`
 
-3. Delete a wallet (user says "remove the Savings wallet"):
+3. Delete a wallet:
 \`\`\`json
 { "action": "DELETE_WALLET", "name": "Savings" }
 \`\`\`
 
-4. Add a category (user says "add a category called Gym"):
+4. Add a category:
 \`\`\`json
 { "action": "ADD_CATEGORY", "name": "Gym", "categoryType": "EXPENSE" }
 \`\`\`
 
-5. Delete a category (user says "remove the Gym category"):
+5. Delete a category:
 \`\`\`json
 { "action": "DELETE_CATEGORY", "name": "Gym" }
 \`\`\`
 
-6. Merge two categories (user says "merge Coffee into Food"):
+6. Merge two categories:
 \`\`\`json
 { "action": "MERGE_CATEGORY", "from": "Coffee", "into": "Food" }
 \`\`\`
 
-Rules:
-- ONLY include a JSON block if the user clearly requests an action.
-- If user denies/cancels ("I didn't spend..."), do NOT include a JSON block.
-- Keep your text reply concise and friendly.`;
+7. Export transaction history as CSV (user says "export", "download my transactions", "give me a CSV"):
+\`\`\`json
+{ "action": "EXPORT_CSV" }
+\`\`\`
+
+## What you are NOT permitted to do — guide instead
+For ANYTHING outside the 7 actions above, politely decline and give the user the specific path in the app to do it themselves. Say clearly that you do not have permission to make that change. Use this navigation map:
+
+- Change name / profile → "Go to Sidebar → Identity Control"
+- Change monthly budget or daily limit → "Go to Sidebar → Identity Control, then edit Monthly Threshold or Daily Ceiling"
+- Edit or delete a specific existing transaction → "Go to Transactions & Ledger (history view) and tap the transaction to edit or swipe to delete"
+- Change currency symbol → "Go to Identity Control → Settings and update Currency Symbol"
+- Change app theme / appearance → "Go to Settings → Appearance"
+- Toggle privacy mode → "Tap the Fingerprint icon in the bottom nav or use the Command Palette (Ctrl+K)"
+- View analytics / charts → "Navigate to Financial Analytics in the sidebar"
+- Manage subscriptions → "Navigate to Subscriptions & Recurring in the sidebar"
+- Manage upcoming bills → "Navigate to Upcoming Bills & Provisions in the sidebar"
+- Manage debts / loans → "Navigate to Debts & Loans in the sidebar"
+- Manage budgets → "Navigate to Budgets & Categories (Control) in the sidebar"
+- Anything else not listed → Decline politely, say you do not have permission, and name the most relevant section.
+
+## Rules
+- ONLY include a JSON block when the user is clearly requesting one of the 7 permitted actions.
+- If the user denies/cancels ("I didn't spend..."), do NOT include a JSON block.
+- Keep replies concise. When declining, always name the exact screen the user should navigate to.
+- Never promise capabilities you do not have.`;
+
 
   // Context Poisoning Prevention: filter history turns to avoid sending failed/refusal error texts back to API
   const sanitizedHistory = history
@@ -221,6 +245,8 @@ Rules:
               aiAction = { type: 'DELETE_CATEGORY', payload: { name: parsed.name } };
             } else if (act === 'MERGE_CATEGORY' && parsed.from && parsed.into) {
               aiAction = { type: 'MERGE_CATEGORY', payload: { from: parsed.from, into: parsed.into } };
+            } else if (act === 'EXPORT_CSV') {
+              aiAction = { type: 'EXPORT_CSV', payload: {} };
             } else if (!act && typeof parsed.amount === 'number' && parsed.amount > 0) {
               // Legacy format without action field
               extracted = {
