@@ -10,7 +10,8 @@ export interface AIParsedTransaction {
   source: 'groq_ai' | 'fallback_heuristic';
 }
 
-const DEFAULT_GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
+// Always use the server-side env key
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 
 /**
  * Bulletproof transaction parsing using Groq's Llama 3.1 8B Instant model.
@@ -18,13 +19,12 @@ const DEFAULT_GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
  */
 export async function parseTransactionWithAI(
   text: string,
-  categories: string[],
-  userApiKey?: string
+  categories: string[]
 ): Promise<AIParsedTransaction | null> {
   const rawText = text.trim();
   if (!rawText) return null;
 
-  const apiKey = userApiKey && userApiKey.trim() ? userApiKey.trim() : DEFAULT_GROQ_KEY;
+  const apiKey = GROQ_API_KEY;
 
   if (apiKey) {
     try {
@@ -140,8 +140,8 @@ function parseLocalHeuristic(text: string, categories: string[]): AIParsedTransa
 /**
  * Generates dynamic financial advice using Groq Llama 3.1 8B Instant with strict error handling.
  */
-export async function generateAIAdvice(data: AppData, userApiKey?: string): Promise<string[] | null> {
-  const apiKey = userApiKey && userApiKey.trim() ? userApiKey.trim() : DEFAULT_GROQ_KEY;
+export async function generateAIAdvice(data: AppData): Promise<string[] | null> {
+  const apiKey = GROQ_API_KEY;
   if (!apiKey) return null;
 
   const income = data.transactions.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0);

@@ -707,6 +707,39 @@ export default function App() {
     setIsWalletModalOpen(false);
   };
 
+  const handleDeleteWallet = (id: string) => {
+    if (!data) return;
+    const remaining = data.wallets.filter(w => w.id !== id);
+    if (remaining.length === 0) return; // never delete the last wallet
+    const newCurrentId = id === data.currentWalletId ? remaining[0].id : data.currentWalletId;
+    updateData({ wallets: remaining, currentWalletId: newCurrentId });
+  };
+
+  const handleAiAddCategory = (cat: Omit<import('./types').CategoryItem, 'id'>) => {
+    if (!data) return;
+    const newCat: import('./types').CategoryItem = { ...cat, id: `cat_${Date.now()}`, isSystem: false };
+    updateData({ categories: [...(data.categories || []), newCat] });
+  };
+
+  const handleAiDeleteCategory = (id: string) => {
+    if (!data) return;
+    updateData({ categories: data.categories.filter(c => c.id !== id) });
+  };
+
+  const handleAiMergeCategory = (fromId: string, intoId: string) => {
+    if (!data) return;
+    const fromCat = data.categories.find(c => c.id === fromId);
+    const intoCat = data.categories.find(c => c.id === intoId);
+    if (!fromCat || !intoCat) return;
+    // Remap all transactions from `from` to `into`
+    const updatedTransactions = data.transactions.map(t =>
+      t.category === fromCat.name ? { ...t, category: intoCat.name, updated_at: new Date().toISOString() } : t
+    );
+    // Remove the merged-from category
+    const updatedCategories = data.categories.filter(c => c.id !== fromId);
+    updateData({ transactions: updatedTransactions, categories: updatedCategories });
+  };
+
   const handleAddTransaction = (t: Transaction) => {
     if (!data) return;
     
@@ -1159,7 +1192,12 @@ export default function App() {
 
       <RabbAiChatWidget 
         data={data} 
-        onAddTransaction={handleAddTransaction} 
+        onAddTransaction={handleAddTransaction}
+        onAddWallet={(name, type, target, currency) => handleAddWallet(name, type, target, currency)}
+        onDeleteWallet={handleDeleteWallet}
+        onAddCategory={handleAiAddCategory}
+        onDeleteCategory={handleAiDeleteCategory}
+        onMergeCategory={handleAiMergeCategory}
       />
       
       {/* Modals */}

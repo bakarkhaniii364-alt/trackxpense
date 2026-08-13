@@ -885,31 +885,13 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[13px] font-medium text-[var(--text-primary)] block">Groq API Key</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={localSettings.groqApiKey || ''}
-                      onChange={(e) => {
-                        const updated = { ...localSettings, groqApiKey: e.target.value };
-                        setLocalSettings(updated);
-                      }}
-                      placeholder="Enter Groq API Key..."
-                      className="flex-1 h-[38px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[8px] px-3 text-[13px] font-mono text-[var(--text-primary)] outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateData({ settings: localSettings });
-                        alert('Groq API Key saved successfully!');
-                      }}
-                      className="px-4 py-2 bg-[#2563eb] hover:bg-blue-600 text-white font-medium text-[12px] rounded-[6px] transition-all"
-                    >
-                      Save Key
-                    </button>
+                  <label className="text-[13px] font-medium text-[var(--text-primary)] block">RabbAi API Status</label>
+                  <div className="flex items-center gap-2 h-[38px] bg-[var(--status-success-bg)] border border-[var(--border-default)] rounded-[8px] px-3">
+                    <span className="w-2 h-2 rounded-full bg-[var(--status-success-fg)] shrink-0" />
+                    <span className="text-[12px] text-[var(--status-success-fg)] font-medium">API Key Active — managed server-side</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-muted)]">
-                    Default Key active. Free tier allows up to 14,400 requests/day on `llama-3.1-8b-instant`.
+                    Powered by Groq Llama 3.1 · Up to 14,400 requests/day on free tier.
                   </p>
                 </div>
               </div>

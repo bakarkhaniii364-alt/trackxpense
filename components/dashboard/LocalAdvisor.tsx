@@ -16,7 +16,7 @@ export const LocalAdvisor: React.FC<LocalAdvisorProps> = ({ data, formatMoney })
 
     const handleAskGroqAI = async () => {
         setIsLoadingAi(true);
-        const tips = await generateAIAdvice(data, data.settings.groqApiKey);
+        const tips = await generateAIAdvice(data);
         if (tips && tips.length > 0) {
             setAiTips(tips);
         }

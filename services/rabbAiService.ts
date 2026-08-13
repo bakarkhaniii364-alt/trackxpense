@@ -1,5 +1,12 @@
 import { AppData, TransactionType } from '../types';
 
+export type RabbAiAction =
+  | { type: 'ADD_WALLET'; payload: { name: string; currency: string }; executed?: boolean }
+  | { type: 'DELETE_WALLET'; payload: { name: string }; executed?: boolean }
+  | { type: 'ADD_CATEGORY'; payload: { name: string; categoryType: string }; executed?: boolean }
+  | { type: 'DELETE_CATEGORY'; payload: { name: string }; executed?: boolean }
+  | { type: 'MERGE_CATEGORY'; payload: { from: string; into: string }; executed?: boolean };
+
 export interface RabbAiMessage {
   id: string;
   sender: 'user' | 'rabbai';
@@ -13,6 +20,7 @@ export interface RabbAiMessage {
     type: TransactionType;
     isLogged?: boolean;
   };
+  aiAction?: RabbAiAction;
 }
 
 export interface RabbAiConversation {
@@ -24,7 +32,8 @@ export interface RabbAiConversation {
 }
 
 const STORAGE_KEY = 'trackxpense_rabbai_conversations';
-const DEFAULT_GROQ_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
+// Always use the server-side env key — never expose or read user-stored keys
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 
 /**
  * Load all stored RabbAi conversation threads from localStorage.
@@ -81,32 +90,59 @@ export async function sendRabbAiTextMessage(
   history: RabbAiMessage[],
   data: AppData
 ): Promise<RabbAiMessage> {
-  const apiKey = data.settings.groqApiKey || DEFAULT_GROQ_KEY;
+  const apiKey = GROQ_API_KEY;
 
   const income = data.transactions.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0);
   const expense = data.transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
   const categories = (data.categories || []).map(c => c.name).join(', ');
+  const wallets = (data.wallets || []).map(w => w.name).join(', ');
+  const curr = data.settings.currencySymbol || '$';
 
-  const systemPrompt = `You are RabbAi, a helpful, intelligent financial assistant for the app TrackXpense.
+  const systemPrompt = `You are RabbAi, a helpful intelligent financial assistant for the app TrackXpense.
 User Financial Summary:
-- Current Wallet Balance: ${data.settings.currencySymbol || '$'}${balance}
-- Total Income: ${data.settings.currencySymbol || '$'}${income}
-- Total Expenses: ${data.settings.currencySymbol || '$'}${expense}
-- Available Categories: ${categories}
+- Balance: ${curr}${balance} | Income: ${curr}${income} | Expenses: ${curr}${expense}
+- Wallets: ${wallets}
+- Categories: ${categories}
 
-Instructions:
-1. Provide concise, friendly, helpful advice.
-2. If the user expresses an intent to log a transaction (e.g. "I spent 45 on groceries"), return a JSON block at the end formatted like:
-   \`\`\`json
-   {
-     "amount": 45,
-     "category": "Groceries",
-     "description": "Groceries",
-     "type": "EXPENSE"
-   }
-   \`\`\`
-3. If user denies or cancels a transaction ("I didn't spend 200"), politely acknowledge that you won't log it and DO NOT include the json block.`;
+You can take actions by returning ONE JSON action block at the end of your response.
+
+Action types (pick the one that fits):
+
+1. Log a transaction (user says "I spent 45 on groceries" or "I earned 200"):
+\`\`\`json
+{ "action": "ADD_TRANSACTION", "amount": 45, "category": "Groceries", "description": "Groceries", "type": "EXPENSE" }
+\`\`\`
+
+2. Add a new wallet (user says "create a wallet called Savings"):
+\`\`\`json
+{ "action": "ADD_WALLET", "name": "Savings", "currency": "$" }
+\`\`\`
+
+3. Delete a wallet (user says "remove the Savings wallet"):
+\`\`\`json
+{ "action": "DELETE_WALLET", "name": "Savings" }
+\`\`\`
+
+4. Add a category (user says "add a category called Gym"):
+\`\`\`json
+{ "action": "ADD_CATEGORY", "name": "Gym", "categoryType": "EXPENSE" }
+\`\`\`
+
+5. Delete a category (user says "remove the Gym category"):
+\`\`\`json
+{ "action": "DELETE_CATEGORY", "name": "Gym" }
+\`\`\`
+
+6. Merge two categories (user says "merge Coffee into Food"):
+\`\`\`json
+{ "action": "MERGE_CATEGORY", "from": "Coffee", "into": "Food" }
+\`\`\`
+
+Rules:
+- ONLY include a JSON block if the user clearly requests an action.
+- If user denies/cancels ("I didn't spend..."), do NOT include a JSON block.
+- Keep your text reply concise and friendly.`;
 
   // Context Poisoning Prevention: filter history turns to avoid sending failed/refusal error texts back to API
   const sanitizedHistory = history
@@ -148,15 +184,35 @@ Instructions:
       if (resJson) {
         const rawContent = resJson.choices?.[0]?.message?.content || 'I processed your request.';
 
-        // Extract optional transaction json block with strict try/catch
         let extracted: RabbAiMessage['extractedTransaction'] = undefined;
+        let aiAction: RabbAiMessage['aiAction'] = undefined;
         const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/);
         let cleanText = rawContent.replace(/```json\s*([\s\S]*?)\s*```/g, '').trim();
 
         if (jsonMatch && jsonMatch[1]) {
           try {
             const parsed = JSON.parse(jsonMatch[1]);
-            if (typeof parsed.amount === 'number' && parsed.amount > 0) {
+            const act = parsed.action;
+
+            if (act === 'ADD_TRANSACTION' && typeof parsed.amount === 'number' && parsed.amount > 0) {
+              extracted = {
+                amount: parsed.amount,
+                category: parsed.category || 'General',
+                description: parsed.description || 'Quick Log',
+                type: parsed.type === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE
+              };
+            } else if (act === 'ADD_WALLET' && parsed.name) {
+              aiAction = { type: 'ADD_WALLET', payload: { name: parsed.name, currency: parsed.currency || '$' } };
+            } else if (act === 'DELETE_WALLET' && parsed.name) {
+              aiAction = { type: 'DELETE_WALLET', payload: { name: parsed.name } };
+            } else if (act === 'ADD_CATEGORY' && parsed.name) {
+              aiAction = { type: 'ADD_CATEGORY', payload: { name: parsed.name, categoryType: parsed.categoryType || 'EXPENSE' } };
+            } else if (act === 'DELETE_CATEGORY' && parsed.name) {
+              aiAction = { type: 'DELETE_CATEGORY', payload: { name: parsed.name } };
+            } else if (act === 'MERGE_CATEGORY' && parsed.from && parsed.into) {
+              aiAction = { type: 'MERGE_CATEGORY', payload: { from: parsed.from, into: parsed.into } };
+            } else if (!act && typeof parsed.amount === 'number' && parsed.amount > 0) {
+              // Legacy format without action field
               extracted = {
                 amount: parsed.amount,
                 category: parsed.category || 'General',
@@ -165,7 +221,7 @@ Instructions:
               };
             }
           } catch (e) {
-            console.warn('Failed to parse RabbAi extracted transaction JSON (refusal or malformed):', e);
+            console.warn('Failed to parse RabbAi action JSON:', e);
           }
         }
 
@@ -174,7 +230,8 @@ Instructions:
           sender: 'rabbai',
           text: cleanText || rawContent,
           timestamp: new Date().toISOString(),
-          extractedTransaction: extracted
+          extractedTransaction: extracted,
+          aiAction
         };
       }
     }
@@ -182,11 +239,10 @@ Instructions:
     console.warn('RabbAi text call failed:', err);
   }
 
-  // Neutral Fallback Message (Protects Chat State & Prevents App Freezing)
   return {
     id: `msg_${Date.now()}`,
     sender: 'rabbai',
-    text: "I couldn't process that phrasing cleanly. Let's stick to tracking normal expenses, income, or receipt scans!",
+    text: "I couldn't process that request. Try again or log expenses manually!",
     timestamp: new Date().toISOString()
   };
 }
@@ -200,7 +256,7 @@ export async function sendRabbAiImageMessage(
   userPromptText: string,
   data: AppData
 ): Promise<RabbAiMessage> {
-  const apiKey = data.settings.groqApiKey || DEFAULT_GROQ_KEY;
+  const apiKey = GROQ_API_KEY;
   const categories = (data.categories || []).map(c => c.name).join(', ');
 
   const systemPrompt = `You are RabbAi, an expert OCR receipt & document analyzer.

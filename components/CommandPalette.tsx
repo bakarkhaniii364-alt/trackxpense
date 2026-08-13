@@ -83,13 +83,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     const categoryNames = (data.categories || []).map(c => c.name);
 
     const timer = setTimeout(async () => {
-      const parsed = await parseTransactionWithAI(query, categoryNames, data.settings.groqApiKey);
+      const parsed = await parseTransactionWithAI(query, categoryNames);
       setAiResult(parsed);
       setIsAiLoading(false);
     }, 200);
 
     return () => clearTimeout(timer);
-  }, [query, data.categories, data.settings.groqApiKey]);
+  }, [query, data.categories]);
 
   const filteredNav = navCommands.filter(c => 
     c.label.toLowerCase().includes(query.toLowerCase()) ||

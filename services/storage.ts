@@ -49,7 +49,7 @@ const DEFAULT_DATA: AppData = {
     stealthModeEnabled: false,
     stealthHotkey: 'Escape',
     hapticsEnabled: true,
-    groqApiKey: import.meta.env.VITE_GROQ_API_KEY || '',
+    groqApiKey: '', // Key is managed server-side; not stored on client
     enableAiParsing: true
   },
   profile: {
