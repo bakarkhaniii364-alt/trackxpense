@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   X, Info, Wallet as WalletIcon, ArrowRight, EyeOff, Save, 
   Check, PlusCircle, Trash2 
@@ -205,11 +206,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
         setSplits(updated);
     };
 
-    return (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+    return createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
             {/* Backdrop */}
             <div 
-                className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity" 
+                className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity" 
                 onClick={() => { Haptics.light(); onClose(); }} 
             />
             
@@ -224,7 +225,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
                     <div className="flex items-center gap-2">
                         {/* Segmented Type Pills */}
-                        <div className="inline-flex bg-[var(--bg-subtle)] p-0.5 rounded-[6px] border border-[var(--border-default)]">
+                        <div className="tabs">
                             {[TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER].map(t => (
                                 <button 
                                     key={t} 
@@ -234,11 +235,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                         if (!isEditing) setType(t);
                                     }}
                                     disabled={isEditing && t !== type}
-                                    className={`px-2.5 py-1 rounded-[5px] text-[11px] font-medium transition-all ${
-                                        type === t 
-                                            ? (t === TransactionType.EXPENSE ? 'bg-rose-500 text-white' : t === TransactionType.INCOME ? 'bg-emerald-500 text-white' : 'bg-[#2563EB] text-white') 
-                                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                                    } ${isEditing && t !== type ? 'opacity-30' : ''}`}
+                                    className={`tab h-[22px] px-2.5 text-[11px] font-medium leading-none ${type === t ? 'is-active' : ''} ${isEditing && t !== type ? 'opacity-30' : ''}`}
                                 >
                                     {t === TransactionType.EXPENSE ? 'Expense' : t === TransactionType.INCOME ? 'Income' : 'Transfer'}
                                 </button>
@@ -251,9 +248,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                 Haptics.light();
                                 onClose();
                             }} 
-                            className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all shrink-0"
+                            className="btn btn--outline btn--icon-sm shrink-0"
+                            aria-label="Close"
                         >
-                            <X size={16} strokeWidth={1.5} />
+                            <X size={15} strokeWidth={1.5} />
                         </button>
                     </div>
                 </div>
@@ -286,7 +284,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                 type="text" 
                                 placeholder="Note details..." 
                                 value={note} 
-                                onChange={e => setNote(e.target.value)}
+                                onChange={e => setNote(e.target.value)} 
                                 className="w-full h-[38px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[8px] px-3 text-[13px] text-[var(--text-primary)] outline-none transition-all"
                             />
                         </div>
@@ -297,56 +295,76 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     </div>
 
                     {/* Destination Vault (If Transfer) */}
-                    {type === TransactionType.TRANSFER && !isEditing && (
+                    {type === TransactionType.TRANSFER && (
                         <div className="space-y-1.5">
                             <label className="text-[13px] font-medium text-[var(--text-primary)]">Destination Wallet</label>
-                            {otherWallets.length === 0 ? (
-                                <p className="text-[12px] text-[var(--text-muted)] italic">No secondary wallet available.</p>
-                            ) : (
-                                <GlassSelect
-                                    value={toWalletId}
-                                    onChange={setToWalletId}
-                                    options={otherWallets.map((w: Wallet) => ({ value: w.id, label: w.name }))}
-                                />
-                            )}
+                            <GlassSelect 
+                                value={toWalletId} 
+                                onChange={setToWalletId} 
+                                options={data.wallets.filter((w: Wallet) => w.id !== data.currentWalletId).map((w: Wallet) => ({ label: w.name, value: w.id }))} 
+                                placeholder="Select target wallet..."
+                            />
                         </div>
                     )}
 
-                    {/* Taxonomy / Category Selector with Drag-to-Scroll & Mouse Wheel */}
-                    {!isSplit && type !== TransactionType.TRANSFER && (
+                    {/* Category Selector (If not transfer) */}
+                    {type !== TransactionType.TRANSFER && (
                         <div className="space-y-1.5">
-                            <label className="text-[13px] font-medium text-[var(--text-primary)]">Category</label>
-                            <div 
-                                ref={categoryScrollRef}
-                                onMouseDown={handleMouseDown}
-                                onMouseLeave={handleMouseLeaveOrUp}
-                                onMouseUp={handleMouseLeaveOrUp}
-                                onMouseMove={handleMouseMove}
-                                onWheel={handleWheel}
-                                className="flex overflow-x-auto gap-2 pb-1 no-scrollbar w-full cursor-grab active:cursor-grabbing select-none"
-                            >
-                                {availableCategories.map(cat => {
-                                    const isSelected = category === cat.name;
-                                    return (
-                                        <button 
-                                            key={cat.id} 
-                                            type="button"
-                                            onClick={() => {
-                                                Haptics.light();
-                                                setCategory(cat.name);
-                                            }}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded-[8px] border text-[12px] font-medium transition-all shrink-0 ${
-                                                isSelected 
-                                                    ? 'bg-[#2563EB]/10 border-[#2563EB] text-[#2563EB]' 
-                                                    : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                                            }`}
-                                        >
-                                            <CategoryIcon category={cat.name} color={isSelected ? cat.color : undefined} />
-                                            <span>{cat.name}</span>
-                                        </button>
-                                    );
-                                })}
+                            <div className="flex items-center justify-between">
+                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Category</label>
+                                {type === TransactionType.EXPENSE && (
+                                    <button 
+                                        type="button"
+                                        onClick={() => setIsSplit(!isSplit)}
+                                        className="text-[11px] font-medium text-[#2563EB] hover:underline"
+                                    >
+                                        {isSplit ? 'Single Category' : 'Split Category'}
+                                    </button>
+                                )}
                             </div>
+
+                            {!isSplit ? (
+                                <GlassSelect 
+                                    value={category} 
+                                    onChange={setCategory} 
+                                    options={data.categories.filter((c: CategoryItem) => c.type === type).map((c: CategoryItem) => ({ label: c.name, value: c.name }))}
+                                />
+                            ) : (
+                                <div className="space-y-2 pt-1">
+                                    {splits.map((s, idx) => (
+                                        <div key={idx} className="flex items-center gap-2">
+                                            <select
+                                                value={s.category}
+                                                onChange={e => updateSplit(idx, 'category', e.target.value)}
+                                                className="flex-1 h-[34px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2 text-[12px] text-[var(--text-primary)] outline-none"
+                                            >
+                                                {data.categories.filter((c: CategoryItem) => c.type === type).map((c: CategoryItem) => (
+                                                    <option key={c.id} value={c.name}>{c.name}</option>
+                                                ))}
+                                            </select>
+                                            <input
+                                                type="number"
+                                                placeholder="0.00"
+                                                value={s.amount}
+                                                onChange={e => updateSplit(idx, 'amount', e.target.value)}
+                                                className="w-24 h-[34px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2.5 text-[12px] font-mono text-[var(--text-primary)] text-right outline-none"
+                                            />
+                                            {splits.length > 1 && (
+                                                <button type="button" onClick={() => removeSplit(idx)} className="btn btn--ghost btn--icon-sm text-red-400">
+                                                    <Trash2 size={14} strokeWidth={1.5} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <button 
+                                        type="button"
+                                        onClick={addSplit}
+                                        className="text-[12px] font-medium text-[#2563EB] hover:underline pt-1 block"
+                                    >
+                                        + Add Split Category
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Loan Source Lender Field */}
                             {type === TransactionType.INCOME && category === Category.LOAN && !isEditing && (
@@ -364,59 +382,6 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         </div>
                     )}
 
-                    {/* Split Breakdown Option */}
-                    {!isEditing && type !== TransactionType.TRANSFER && (
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[13px] font-medium text-[var(--text-primary)]">Split Allocation</span>
-                                <button 
-                                    type="button"
-                                    onClick={() => { Haptics.light(); setIsSplit(!isSplit); }}
-                                    className={`w-9 h-5 rounded-full transition-all relative ${isSplit ? 'bg-[#2563EB]' : 'bg-[var(--bg-subtle)] border border-[var(--border-default)]'}`}
-                                >
-                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${isSplit ? 'left-4.5' : 'left-0.5'}`} />
-                                </button>
-                            </div>
-
-                            {isSplit && (
-                                <div className="space-y-2 pt-1">
-                                    {splits.map((s, idx) => (
-                                        <div key={idx} className="flex items-center gap-2">
-                                            <select 
-                                                value={s.category} 
-                                                onChange={e => updateSplit(idx, 'category', e.target.value)}
-                                                className="flex-1 h-[34px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2 text-[12px] text-[var(--text-primary)] outline-none"
-                                            >
-                                                {availableCategories.map(c => (
-                                                    <option key={c.id} value={c.name}>{c.name}</option>
-                                                ))}
-                                            </select>
-                                            <input 
-                                                type="number" 
-                                                placeholder="Amount" 
-                                                value={s.amount} 
-                                                onChange={e => updateSplit(idx, 'amount', e.target.value)}
-                                                className="w-24 h-[34px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2.5 text-[12px] font-mono text-[var(--text-primary)] text-right outline-none"
-                                            />
-                                            {splits.length > 1 && (
-                                                <button type="button" onClick={() => removeSplit(idx)} className="p-1 text-red-400 hover:bg-red-500/10 rounded-[4px]">
-                                                    <Trash2 size={14} strokeWidth={1.5} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    ))}
-                                    <button 
-                                        type="button"
-                                        onClick={addSplit}
-                                        className="text-[12px] font-medium text-[#2563EB] hover:underline pt-1 block"
-                                    >
-                                        + Add Split Category
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
                     {/* Stealth Ghost Mode Toggle */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -425,10 +390,12 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         </div>
                         <button 
                             type="button"
+                            role="switch"
+                            aria-checked={isPrivate}
                             onClick={() => { Haptics.light(); setIsPrivate(!isPrivate); }}
-                            className={`w-9 h-5 rounded-full transition-all relative ${isPrivate ? 'bg-[#2563EB]' : 'bg-[var(--bg-subtle)] border border-[var(--border-default)]'}`}
+                            className={`toggle-switch ${isPrivate ? 'is-active' : ''}`}
                         >
-                            <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${isPrivate ? 'left-4.5' : 'left-0.5'}`} />
+                            <div className="toggle-switch-thumb" />
                         </button>
                     </div>
 
@@ -442,10 +409,12 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                 </div>
                                 <button 
                                     type="button"
+                                    role="switch"
+                                    aria-checked={isTemplate}
                                     onClick={() => { Haptics.light(); setIsTemplate(!isTemplate); }}
-                                    className={`w-9 h-5 rounded-full transition-all relative ${isTemplate ? 'bg-[#2563EB]' : 'bg-[var(--bg-subtle)] border border-[var(--border-default)]'}`}
+                                    className={`toggle-switch ${isTemplate ? 'is-active' : ''}`}
                                 >
-                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${isTemplate ? 'left-4.5' : 'left-0.5'}`} />
+                                    <div className="toggle-switch-thumb" />
                                 </button>
                             </div>
 
@@ -467,7 +436,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     <button
                         type="button"
                         onClick={() => { Haptics.light(); onClose(); }}
-                        className="h-[38px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                        className="btn btn--outline h-[32px] px-3.5 text-[12px]"
                     >
                         Cancel
                     </button>
@@ -475,12 +444,13 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         type="button"
                         onClick={handleSave}
                         disabled={!amount}
-                        className="h-[38px] px-5 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
+                        className="btn btn--primary h-[32px] px-4 text-[12px]"
                     >
                         {isEditing ? 'Save Changes' : 'Execute Transaction'}
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

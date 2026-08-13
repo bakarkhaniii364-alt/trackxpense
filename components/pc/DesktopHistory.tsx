@@ -18,6 +18,7 @@ import { Transaction, TransactionType, AppData } from '../../types';
 import { CategoryIcon } from '../shared/CategoryIcon';
 import { GlassCheckbox } from '../shared/CommonUI';
 import { EmptyStateSeeder } from '../shared/EmptyStateSeeder';
+import { TablePaginationFooter } from '../shared/TablePaginationFooter';
 
 interface DesktopHistoryProps {
     data: AppData;
@@ -27,7 +28,7 @@ interface DesktopHistoryProps {
     onEditTransaction: (t: Transaction) => void;
 }
 
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE = 10;
 
 export const DesktopHistory: React.FC<DesktopHistoryProps> = ({ 
     data, updateData, onRequestDelete, formatMoney, onEditTransaction 
@@ -280,67 +281,14 @@ export const DesktopHistory: React.FC<DesktopHistoryProps> = ({
                             </tbody>
                         </table>
 
-                        {/* Cloudflare-Style Table Footer Bar (Screenshot 2 1:1) */}
-                        <div className="px-4 py-3 border-t border-[var(--border-default)] bg-[var(--bg-subtle)]/40 flex flex-wrap items-center justify-between gap-4">
-                            
-                            {/* Left Side: Counts, Page Indicator & Export Button */}
-                            <div className="flex items-center gap-4 text-[12px] text-[var(--text-secondary)]">
-                                <span>
-                                    Showing <strong className="font-medium text-[var(--text-primary)]">{filteredTransactions.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredTransactions.length)}</strong> of <strong className="font-medium text-[var(--text-primary)]">{filteredTransactions.length}</strong>
-                                </span>
-                                <span className="text-[var(--border-default)]">|</span>
-                                <span>Page <strong className="font-medium text-[var(--text-primary)]">{currentPage}</strong> of <strong className="font-medium text-[var(--text-primary)]">{totalPages}</strong></span>
-                                <span className="text-[var(--border-default)]">|</span>
-                                <button
-                                    onClick={exportCSV}
-                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-primary)] font-medium text-[12px] transition-all"
-                                >
-                                    <Download size={13} strokeWidth={1.5} />
-                                    <span>Export CSV</span>
-                                </button>
-                            </div>
-
-                            {/* Right Side: Cloudflare Pagination Controls */}
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => setCurrentPage(1)}
-                                    disabled={currentPage === 1}
-                                    className="p-1.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                    title="First Page"
-                                >
-                                    <ChevronsLeft size={14} strokeWidth={1.5} />
-                                </button>
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                                    disabled={currentPage === 1}
-                                    className="p-1.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                    title="Previous Page"
-                                >
-                                    <ChevronLeft size={14} strokeWidth={1.5} />
-                                </button>
-                                
-                                <span className="px-3 py-1 text-[12px] font-mono text-[var(--text-primary)] font-medium">
-                                    {currentPage} / {totalPages}
-                                </span>
-
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                    disabled={currentPage === totalPages}
-                                    className="p-1.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                    title="Next Page"
-                                >
-                                    <ChevronRight size={14} strokeWidth={1.5} />
-                                </button>
-                                <button
-                                    onClick={() => setCurrentPage(totalPages)}
-                                    disabled={currentPage === totalPages}
-                                    className="p-1.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                    title="Last Page"
-                                >
-                                    <ChevronsRight size={14} strokeWidth={1.5} />
-                                </button>
-                            </div>
-                        </div>
+                        <TablePaginationFooter
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={filteredTransactions.length}
+                            pageSize={ITEMS_PER_PAGE}
+                            onPageChange={setCurrentPage}
+                            onExportCSV={exportCSV}
+                        />
                     </div>
                 </div>
             ) : (

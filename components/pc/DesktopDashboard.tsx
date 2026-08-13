@@ -1,17 +1,19 @@
-
-import React, { useMemo } from 'react';
-import { TrendingUp, ChevronRight, ArrowUpRight, ArrowDownRight, Plus, CreditCard } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { Transaction, TransactionType, AppData, Wallet, Category } from '../../types';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { PredictiveEngine } from '../../services/PredictiveEngine';
-import { CategoryIcon } from '../shared/CategoryIcon';
-import { IntelligenceRunway } from '../dashboard/IntelligenceRunway';
 import { BalanceHero } from '../dashboard/BalanceHero';
 import { DailyBudget } from '../dashboard/DailyBudget';
+import { FinancialHealthScore } from '../dashboard/WorkstationWidgets';
+import { StreakDisplay } from '../dashboard/StreakDisplay';
+import { LocalAdvisor } from '../dashboard/LocalAdvisor';
+import { GoalSummary } from '../dashboard/GoalSummary';
+import { QuickActions } from '../dashboard/QuickActions';
 import { TemplatePresets } from '../dashboard/TemplatePresets';
-import { FinancialHealthScore, SpendingHeatmap } from '../dashboard/WorkstationWidgets';
+import { RecentLedger } from '../dashboard/RecentLedger';
+import { BudgetAlerts } from '../dashboard/BudgetAlerts';
 import { SimulationModule } from '../dashboard/SimulationModule';
-import { EmptyStateSeeder } from '../shared/EmptyStateSeeder';
 
 interface DesktopDashboardProps {
     data: AppData;
@@ -23,11 +25,18 @@ interface DesktopDashboardProps {
     onDeleteTemplate: (id: string) => void;
 }
 
+type Timeframe = '7d' | '30d' | 'month';
+
 export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({ 
     data, setView, updateData, formatMoney, onAddTransactionRequest, onEditTransaction, onDeleteTemplate
 }) => {
-    const [isSimOpen, setIsSimOpen] = React.useState(false);
-    // --- Data Processing ---
+    const [timeframe, setTimeframe] = useState<Timeframe>('7d');
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isSimOpen, setIsSimOpen] = useState(false);
+
+    const currency = data.settings.currencySymbol;
+
+    // Filter transactions for current wallet
     const walletTransactions = useMemo(() => 
         data.transactions.filter((t: Transaction) => {
             const isWalletMatch = t.walletId === data.currentWalletId;
@@ -36,18 +45,19 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
         })
     , [data.transactions, data.currentWalletId, data.settings.privacyMode]);
 
-    const stats = useMemo(() => {
-        const income = walletTransactions.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0);
-        const expense = walletTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
-        const balance = income - expense;
-        const adjustedBalance = PredictiveEngine.getAdjustedBalance(data, balance);
-        const runwayDays = PredictiveEngine.getRunwayDays(data, balance);
-        const futureLiability = PredictiveEngine.getFutureLiabilities(data, 30);
-        return { income, expense, balance, adjustedBalance, runwayDays, futureLiability };
-    }, [walletTransactions, data]);
+    const totalIncome = walletTransactions.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0);
+    const totalExpense = walletTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
+    const balance = totalIncome - totalExpense;
 
-    const currentWallet = data.wallets.find(w => w.id === data.currentWalletId);
+    const adjustedBalance = PredictiveEngine.getAdjustedBalance(data, balance);
+    const runwayDays = PredictiveEngine.getRunwayDays(data, balance);
+    const futureLiability = PredictiveEngine.getFutureLiabilities(data, 30);
 
+    const currentWallet = data.wallets.find((w: Wallet) => w.id === data.currentWalletId);
+    const goalWallets = data.wallets.filter((w: Wallet) => w.type === 'GOAL');
+    const goalProgress = currentWallet?.type === 'GOAL' ? Math.min((balance / (currentWallet.targetAmount || 1)) * 100, 100) : 0;
+
+    // Daily budget calculations
     const today = new Date().toISOString().split('T')[0];
     const dailySpent = data.transactions
         .filter(t => t.type === TransactionType.EXPENSE && t.date.startsWith(today))
@@ -56,200 +66,401 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     const dailyProgress = dailyLimit > 0 ? Math.min((dailySpent / dailyLimit) * 100, 100) : 0;
     const isOverBudget = dailyLimit > 0 && dailySpent > dailyLimit;
 
-    // Smart Quick Actions
-    const getSmartQuickActions = () => {
+    // Timeframe chart calculation
+    const { chartData, timeframeExpense, deltaPercent, isDeltaLower } = useMemo(() => {
+        const daysCount = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 30;
+        
+        const now = new Date();
+        const currentPeriodSpend: number[] = [];
+        const prevPeriodSpend: number[] = [];
+
+        const points = [...Array(daysCount)].map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (daysCount - 1 - i));
+            const dateStr = d.toISOString().split('T')[0];
+            const label = timeframe === '7d' 
+                ? d.toLocaleDateString('en-US', { weekday: 'short' }) 
+                : d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' });
+            
+            const spent = walletTransactions
+                .filter(t => t.type === TransactionType.EXPENSE && t.date.startsWith(dateStr))
+                .reduce((s, t) => s + t.amount, 0);
+            
+            currentPeriodSpend.push(spent);
+            return { name: label, spent };
+        });
+
+        // Previous period for comparison delta
+        for (let i = 0; i < daysCount; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - (daysCount * 2 - 1 - i));
+            const dateStr = d.toISOString().split('T')[0];
+            const spent = walletTransactions
+                .filter(t => t.type === TransactionType.EXPENSE && t.date.startsWith(dateStr))
+                .reduce((s, t) => s + t.amount, 0);
+            prevPeriodSpend.push(spent);
+        }
+
+        const currentTotal = currentPeriodSpend.reduce((a, b) => a + b, 0);
+        const prevTotal = prevPeriodSpend.reduce((a, b) => a + b, 0);
+
+        let delta = 0;
+        if (prevTotal > 0) {
+            delta = Math.round(((currentTotal - prevTotal) / prevTotal) * 100);
+        }
+
+        return {
+            chartData: points,
+            timeframeExpense: currentTotal,
+            deltaPercent: Math.abs(delta),
+            isDeltaLower: delta <= 0
+        };
+    }, [walletTransactions, timeframe]);
+
+    // Quick Action suggestions
+    const quickActions = useMemo(() => {
         const counts: Record<string, number> = {};
         walletTransactions.slice(0, 150).forEach(t => {
             if (t.type === TransactionType.EXPENSE) {
                 counts[t.category] = (counts[t.category] || 0) + 1;
             }
         });
-
-        const sortedCategories = Object.entries(counts)
-            .sort((a, b) => (b[1] as number) - (a[1] as number))
-            .map(([cat]) => cat);
-
+        const sortedCategories = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([cat]) => cat);
         const hour = new Date().getHours();
         let timeSuggestion = Category.SNACKS;
-
         if (hour >= 5 && hour < 11) timeSuggestion = Category.BREAKFAST;
         else if (hour >= 11 && hour < 16) timeSuggestion = Category.LUNCH;
         else if (hour >= 16 && hour < 21) timeSuggestion = Category.DINNER;
         
         const actions: string[] = [];
-        if (timeSuggestion) actions.push(timeSuggestion);
-        
-        for (const cat of sortedCategories) {
-            if (actions.length < 8 && !actions.includes(cat)) actions.push(cat);
-        }
-
+        for (const cat of sortedCategories) { if (actions.length < 2 && cat !== timeSuggestion) actions.push(cat); }
+        actions.push(timeSuggestion);
+        for (const cat of sortedCategories) { if (actions.length < 4 && !actions.includes(cat)) actions.push(cat); }
         const defaults = [Category.TRANSPORT, Category.SHOPPING, Category.BILLS, Category.FOODPANDA];
-        for (const def of defaults) {
-            if (actions.length < 8 && !actions.includes(def)) actions.push(def);
-        }
-        
-        return actions.slice(0, 8);
-    };
+        for (const def of defaults) { if (actions.length < 4 && !actions.includes(def)) actions.push(def); }
+        return actions.slice(0, 4);
+    }, [walletTransactions]);
+
+    // Category distribution calculation
+    const categoryTotals = useMemo(() => {
+        return data.categories.map(cat => {
+            const amount = walletTransactions
+                .filter(t => t.category === cat.name && t.type === TransactionType.EXPENSE)
+                .reduce((s, t) => s + t.amount, 0);
+            const percent = totalExpense > 0 ? (amount / totalExpense) * 100 : 0;
+            return { ...cat, amount, percent };
+        }).filter(c => c.amount > 0).sort((a, b) => b.amount - a.amount);
+    }, [data.categories, walletTransactions, totalExpense]);
+
+    // Budget alerts
+    const todayStr = new Date().toISOString().split('T')[0];
+    const monthStr = new Date().toISOString().slice(0, 7);
+    const spentTodayByCategory = walletTransactions
+        .filter(t => t.type === TransactionType.EXPENSE && t.date.startsWith(todayStr))
+        .reduce((acc: any, t) => { acc[t.category] = (acc[t.category] || 0) + t.amount; return acc; }, {});
+
+    const spentMonthByCategory = walletTransactions
+        .filter(t => t.type === TransactionType.EXPENSE && t.date.startsWith(monthStr))
+        .reduce((acc: any, t) => { acc[t.category] = (acc[t.category] || 0) + t.amount; return acc; }, {});
     
-    const quickActions = useMemo(() => getSmartQuickActions(), [walletTransactions]);
+    const budgetAlerts = Object.entries(data.settings.budgetLimits || {})
+        .map(([cat, config]: any) => {
+            const normalized = typeof config === 'number' ? { limit: config, period: 'MONTHLY' } : config;
+            const spent = normalized.period === 'DAILY' ? (spentTodayByCategory[cat] || 0) : (spentMonthByCategory[cat] || 0);
+            return { cat, limit: normalized.limit, period: normalized.period, spent };
+        })
+        .filter((b: any) => b.limit > 0 && b.spent > b.limit * 0.7)
+        .sort((a: any, b: any) => (b.spent/b.limit) - (a.spent/a.limit));
+
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        setTimeout(() => setIsRefreshing(false), 600);
+    };
+
+    const maxChartValue = Math.max(...chartData.map(d => d.spent || 0), 10);
 
     return (
-        <div className="grid grid-cols-12 gap-4 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full mx-auto overflow-x-hidden">
+        <div className="space-y-4 lg:space-y-5 pb-8 animate-in fade-in duration-500 w-full max-w-6xl mx-auto">
             
-            {/* --- TIER 1: COMMAND HUB & DAILY BUDGET --- */}
-            <div className="col-span-12 lg:col-span-7 xl:col-span-8 flex flex-col gap-4">
-                 <BalanceHero 
-                    balance={stats.balance} 
-                    adjustedBalance={stats.adjustedBalance} 
-                    totalIncome={stats.income} 
-                    totalExpense={stats.expense} 
-                    goalProgress={currentWallet?.type === 'GOAL' ? (stats.balance / (currentWallet.targetAmount || 1)) * 100 : 0} 
-                    currentWallet={currentWallet} 
+            {/* BENTO TIER 1: Balance Hero + Spending Sparkline (2 Cards) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
+                {/* Balance Hero (Left) */}
+                <div className="w-full flex">
+                    <BalanceHero 
+                        balance={balance} 
+                        adjustedBalance={adjustedBalance} 
+                        totalIncome={totalIncome} 
+                        totalExpense={totalExpense} 
+                        goalProgress={goalProgress} 
+                        currentWallet={currentWallet} 
+                        data={data} 
+                        updateData={updateData} 
+                        formatMoney={formatMoney} 
+                        onAddTransactionRequest={onAddTransactionRequest} 
+                        refreshing={isRefreshing} 
+                    />
+                </div>
+
+                {/* Total Spending Volume & Trend (Right) */}
+                <div className="w-full rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
+                                Total Spending
+                            </span>
+                            {/* Timeframe Selector directly in card */}
+                            <div className="tabs">
+                                <button
+                                    onClick={() => setTimeframe('7d')}
+                                    className={`tab text-[11px] py-0.5 px-2.5 ${timeframe === '7d' ? 'is-active' : ''}`}
+                                >
+                                    7D
+                                </button>
+                                <button
+                                    onClick={() => setTimeframe('30d')}
+                                    className={`tab text-[11px] py-0.5 px-2.5 ${timeframe === '30d' ? 'is-active' : ''}`}
+                                >
+                                    30D
+                                </button>
+                                <button
+                                    onClick={() => setTimeframe('month')}
+                                    className={`tab text-[11px] py-0.5 px-2.5 ${timeframe === 'month' ? 'is-active' : ''}`}
+                                >
+                                    Month
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex items-baseline justify-between mb-2">
+                            <div className="flex items-baseline gap-3">
+                                <span className="text-2xl lg:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
+                                    {formatMoney(timeframeExpense, currency)}
+                                </span>
+                                {deltaPercent > 0 && (
+                                    <span className={`inline-flex items-center text-[12px] font-medium font-mono ${
+                                        isDeltaLower ? 'text-[var(--status-success-fg)]' : 'text-[var(--status-error-fg)]'
+                                    }`}>
+                                        {isDeltaLower ? (
+                                            <ArrowDownRight size={14} strokeWidth={1.5} className="mr-0.5" />
+                                        ) : (
+                                            <ArrowUpRight size={14} strokeWidth={1.5} className="mr-0.5" />
+                                        )}
+                                        {deltaPercent}%
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Clean Recharts Area/Sparkline */}
+                    <div className="h-[145px] w-full mt-2">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -24, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="cfTopSpendGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
+                                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid stroke="var(--border-default)" strokeDasharray="2 2" vertical={false} />
+                                <XAxis 
+                                    dataKey="name" 
+                                    stroke="var(--text-muted)" 
+                                    fontSize={11} 
+                                    tickLine={false} 
+                                    axisLine={false}
+                                    dy={5}
+                                />
+                                <YAxis 
+                                    stroke="var(--text-muted)" 
+                                    fontSize={10} 
+                                    tickLine={false} 
+                                    axisLine={false}
+                                    tickFormatter={(v) => `${v}`}
+                                    domain={[0, Math.ceil(maxChartValue * 1.15)]}
+                                    orientation="right"
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: 'var(--bg-surface)',
+                                        borderColor: 'var(--border-strong)',
+                                        borderRadius: '8px',
+                                        fontSize: '12px',
+                                        color: 'var(--text-primary)',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                                        padding: '6px 10px'
+                                    }}
+                                    itemStyle={{ color: 'var(--text-primary)' }}
+                                    labelStyle={{ color: 'var(--text-secondary)', marginBottom: '2px', fontSize: '10px' }}
+                                    formatter={(val: any) => [formatMoney(Number(val) || 0, currency), 'Spent']}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="spent"
+                                    stroke="#3b82f6"
+                                    strokeWidth={1.5}
+                                    fill="url(#cfTopSpendGrad)"
+                                    activeDot={{ r: 4, fill: '#3b82f6', stroke: 'var(--bg-surface)', strokeWidth: 2 }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            {/* BENTO TIER 2: 4-Metric Grid (Cloudflare 4-card structure) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+                {/* 1. Daily Budget Cap */}
+                <DailyBudget 
+                    dailySpent={dailySpent} 
+                    dailyLimit={dailyLimit} 
+                    dailyProgress={dailyProgress} 
+                    isOverBudget={isOverBudget} 
                     data={data} 
                     updateData={updateData} 
                     formatMoney={formatMoney} 
-                    onAddTransactionRequest={onAddTransactionRequest} 
-                    refreshing={false} 
-                 />
-            </div>
+                />
 
-            <div className="col-span-12 lg:col-span-5 xl:col-span-4 flex flex-col gap-4">
-                 <DailyBudget dailySpent={dailySpent} dailyLimit={dailyLimit} dailyProgress={dailyProgress} isOverBudget={isOverBudget} data={data} updateData={updateData} formatMoney={formatMoney} />
-                 
-                 {/* Forecast Card */}
-                 <div className={`liquid-glass bento-card p-6 flex flex-col justify-between h-full transition-all group hover:border-amber-500/30 ${stats.futureLiability > 0 ? 'border-amber-500/20 bg-amber-500/5' : 'opacity-40 grayscale'}`}>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em]">Monthly Forecast</h4>
-                        </div>
-                        <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">30 Day Window</span>
-                    </div>
-                    <div className="flex items-end justify-between mt-4">
-                        <div>
-                            <p className="text-3xl font-black text-white tracking-tighter leading-none">
-                                {formatMoney(stats.futureLiability, data.settings.currencySymbol)}
-                            </p>
-                            <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest mt-2">Upcoming Expenses</p>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-2xl font-black text-amber-200/80 tracking-tighter">
-                                {stats.balance > 0 ? Math.round((stats.futureLiability / stats.balance) * 100) : 0}%
-                            </div>
-                            <p className="text-[7px] text-white/20 font-black uppercase tracking-widest">Impact on Balance</p>
-                        </div>
-                    </div>
-                 </div>
-            </div>
-
-            {/* --- TIER 2: INTELLIGENCE RUNWAY (FULL WIDTH BENTO) --- */}
-            <div className="col-span-12">
-                <IntelligenceRunway data={data} formatMoney={formatMoney} />
-            </div>
-
-            {/* --- TIER 2.5: ADVANCED METRICS --- */}
-            <div className="col-span-12 lg:col-span-4">
+                {/* 2. Financial Stability Score */}
                 <FinancialHealthScore data={data} />
-            </div>
-            <div className="col-span-12 lg:col-span-5">
-                <SpendingHeatmap data={data} />
-            </div>
-            <div className="col-span-12 lg:col-span-3">
-                <div className="liquid-glass p-6 rounded-sm border border-white/5 h-full flex flex-col justify-between group bg-primary/5 hover:border-primary/40 transition-all">
+
+                {/* 3. 30-Day Outlook & Liabilities */}
+                <div className="rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
                     <div>
-                        <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-1">Simulator</span>
-                        <h3 className="text-xl font-bold text-white tracking-tight">What-If Simulator</h3>
-                        <p className="text-[10px] text-white/40 font-medium mt-2 leading-relaxed">Model large transactions without impacting your live transactions list.</p>
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
+                                30-Day Outlook
+                            </span>
+                            <span className="text-[11px] font-medium text-[var(--text-secondary)] font-mono">
+                                {runwayDays}d runway
+                            </span>
+                        </div>
+
+                        <div className="mb-3">
+                            <div className="text-2xl lg:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
+                                {formatMoney(futureLiability, currency)}
+                            </div>
+                            <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+                                Scheduled future liabilities
+                            </div>
+                        </div>
                     </div>
-                    <button 
-                        onClick={() => setIsSimOpen(true)}
-                        className="btn btn--primary w-full justify-center text-[11px] uppercase tracking-[0.2em] mt-6"
-                    >
-                        Open Simulator
-                    </button>
+
+                    <div>
+                        <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden mb-2.5">
+                            <div 
+                                className="h-full bg-[var(--status-warning-fg)] rounded-full transition-all duration-700" 
+                                style={{ width: `${Math.min(100, balance > 0 ? (futureLiability / balance) * 100 : 0)}%` }} 
+                            />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
+                            <span>Balance impact</span>
+                            <span className="font-mono text-[var(--text-primary)] font-medium">
+                                {balance > 0 ? Math.round((futureLiability / balance) * 100) : 0}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. Active Streaks & Discipline */}
+                <StreakDisplay data={data} />
+            </div>
+
+            {/* BENTO TIER 3: Category Breakdown & Local Intelligence (2 Columns) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
+                {/* Category Allocation */}
+                <div className="w-full rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 flex flex-col justify-between transition-colors">
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
+                                Category Allocation
+                            </span>
+                            <span className="text-[11px] font-medium text-[var(--text-secondary)] font-mono">
+                                {categoryTotals.length} active
+                            </span>
+                        </div>
+
+                        <div className="mb-4">
+                            <div className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
+                                {categoryTotals.length > 0 ? categoryTotals[0].name : 'No expenses'}
+                            </div>
+                            <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+                                {categoryTotals.length > 0 ? `Leading spending category (${Math.round(categoryTotals[0].percent)}% of total)` : 'No category spend recorded'}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3 mt-1 overflow-y-auto max-h-[160px] no-scrollbar">
+                        {categoryTotals.length > 0 ? (
+                            categoryTotals.slice(0, 4).map(cat => (
+                                <div key={cat.id || cat.name} className="space-y-1.5">
+                                    <div className="flex justify-between items-center text-[12px]">
+                                        <span className="font-medium text-[var(--text-primary)] truncate max-w-[150px]">{cat.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono text-[var(--text-secondary)]">{formatMoney(cat.amount, currency)}</span>
+                                            <span className="text-[11px] font-mono text-[var(--text-muted)] w-8 text-right">{Math.round(cat.percent)}%</span>
+                                        </div>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full rounded-full transition-all duration-700 bg-[var(--accent-solid)]"
+                                            style={{ 
+                                                width: `${Math.min(100, cat.percent)}%`,
+                                                backgroundColor: cat.color || 'var(--accent-solid)'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-6 text-center text-[12px] text-[var(--text-muted)]">
+                                No spending breakdown data available.
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Local Advisor / Smart Insights */}
+                <div className="w-full">
+                    <LocalAdvisor data={data} formatMoney={formatMoney} />
                 </div>
             </div>
 
-            {/* --- TIER 3: QUICK ACTIONS & FEED --- */}
-            <div className="col-span-12 lg:col-span-4 flex flex-col gap-4">
-                {/* Quick Actions */}
-                <div className="glass-card bento-card p-6 flex flex-col h-full group transition-all hover:border-primary/30">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-2">
-                            <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Quick Actions</h3>
-                        </div>
-                        <Plus size={14} className="text-white/20 group-hover:text-primary transition-colors" />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 mb-6">
-                        {quickActions.map((cat) => (
-                            <button 
-                                key={cat}
-                                onClick={() => onAddTransactionRequest(TransactionType.EXPENSE, { category: cat })}
-                                className="flex items-center gap-3 bg-white/5 hover:bg-primary/10 border border-white/5 hover:border-primary/20 p-3 rounded-md transition-all active:scale-[0.95] group/btn"
-                            >
-                                <div className="text-white/30 group-hover/btn:text-primary transition-colors scale-90">
-                                    <CategoryIcon category={cat} color={data.categories.find(c => c.name === cat)?.color} />
-                                </div>
-                                <span className="text-[9px] font-black uppercase tracking-tight text-white/60 group-hover/btn:text-white truncate">{cat}</span>
-                            </button>
-                        ))}
-                    </div>
+            {/* BENTO TIER 4: Savings Goals & Quick Entry / Templates */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
+                {/* Savings Goals */}
+                <div className={goalWallets.length > 0 && currentWallet?.type !== 'GOAL' ? 'w-full' : 'col-span-full'}>
+                    <GoalSummary goalWallets={goalWallets} currentWallet={currentWallet} data={data} updateData={updateData} />
+                    {goalWallets.length === 0 && (
+                        <QuickActions quickActions={quickActions} data={data} onAddTransactionRequest={onAddTransactionRequest} />
+                    )}
+                </div>
 
-                    <div className="mt-auto">
+                {/* Quick Actions & Templates */}
+                {goalWallets.length > 0 && currentWallet?.type !== 'GOAL' && (
+                    <div className="w-full flex flex-col gap-4 lg:gap-5">
+                        <QuickActions quickActions={quickActions} data={data} onAddTransactionRequest={onAddTransactionRequest} />
                         <TemplatePresets data={data} onAddTransactionRequest={onAddTransactionRequest} onDeleteTemplate={onDeleteTemplate} />
                     </div>
-                </div>
+                )}
             </div>
 
-            <div className="col-span-12 lg:col-span-8">
-                 <div className="glass-card bento-card p-6 h-full">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="h-4 w-1 bg-primary rounded-full shadow-[0_0_10px_rgb(var(--color-primary)/0.5)]" />
-                            <h3 className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em]">Recent Transactions</h3>
-                        </div>
-                        <button onClick={() => setView('history')} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-sm text-[9px] font-black text-primary uppercase tracking-[0.2em] transition-all border border-white/5 hover:border-primary/20 active:scale-95">
-                            View Full History
-                        </button>
-                    </div>
-                    
-                    {walletTransactions.length === 0 ? (
-                        <EmptyStateSeeder 
-                            data={data} 
-                            updateData={updateData} 
-                            compact 
-                            title="No Recent Activity" 
-                            description="Load 1-click sample data to test workstation widgets, charts, and transaction history." 
-                        />
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 overflow-y-auto pr-2 custom-scrollbar max-h-[500px]">
-                            {walletTransactions.slice(0, 24).map((t: Transaction) => (
-                                <div key={t.id} onClick={() => onEditTransaction(t)} className="flex items-center justify-between p-4 bg-black/30 border border-white/5 rounded-md hover:border-white/20 hover:bg-white/5 transition-all cursor-pointer group active:scale-[0.98]">
-                                    <div className="flex items-center gap-4 min-w-0">
-                                        <div className="h-10 w-10 rounded-sm bg-surface flex items-center justify-center border border-white/5 text-white/40 transition-all group-hover:scale-110 group-hover:text-primary group-hover:border-primary/20 shadow-lg">
-                                            <CategoryIcon category={t.category} color={data.categories.find(c => c.name === t.category)?.color} />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="font-black text-white/80 text-[11px] leading-tight truncate tracking-tight">{t.note || t.category}</p>
-                                            <p className="text-[8px] text-white/30 font-black mt-1 uppercase tracking-widest flex items-center gap-2">
-                                                {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                <span className="w-1 h-1 rounded-full bg-white/10" />
-                                                {t.category}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className={`font-black text-[12px] tracking-tighter ${t.type === TransactionType.INCOME ? 'text-emerald-400' : 'text-white/90'}`}>
-                                            {t.type === TransactionType.INCOME ? '+' : ''}{formatMoney(t.amount, data.settings.currencySymbol)}
-                                        </p>
-                                        <div className="h-0.5 w-0 bg-primary ml-auto mt-1 transition-all group-hover:w-full" />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                 </div>
-            </div>
+            {/* Budget Alerts if any */}
+            {budgetAlerts.length > 0 && (
+                <BudgetAlerts budgetAlerts={budgetAlerts} data={data} formatMoney={formatMoney} />
+            )}
+
+            {/* BENTO TIER 5: Recent Transactions Ledger */}
+            <RecentLedger 
+                walletTransactions={walletTransactions} 
+                data={data} 
+                updateData={updateData}
+                setView={setView} 
+                onEditTransaction={onEditTransaction} 
+                formatMoney={formatMoney} 
+            />
+
+            {/* Simulator Module */}
             <SimulationModule isOpen={isSimOpen} onClose={() => setIsSimOpen(false)} data={data} />
         </div>
     );

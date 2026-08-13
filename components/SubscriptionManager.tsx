@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { AppData, Transaction, TransactionType, RecurringRule } from '../types';
 import { Calendar, CheckCircle2, Ghost, Plus, AlertCircle, TrendingUp, X, Trash2 } from 'lucide-react';
 import { Haptics } from '../services/haptics';
+import { Modal } from './shared/Modal';
 
 interface SubscriptionManagerProps {
     data: AppData;
@@ -104,7 +105,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
     const hasAnySubscriptions = activeRules.length > 0 || detectedSubscriptions.length > 0;
 
     return (
-        <div className="w-full mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 overflow-x-hidden">
+        <div className="w-full mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 px-0.5 pt-0.5">
             
             {/* Cloudflare-Style Section Header Outside Card */}
             <div className="flex items-center justify-between pb-2">
@@ -118,9 +119,9 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                         setSubAmount('');
                         setIsAddModalOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs shrink-0"
+                    className="btn btn--primary h-[32px] px-3.5 text-[12px] shrink-0"
                 >
-                    <Plus size={15} />
+                    <Plus size={14} />
                     <span>Add subscription</span>
                 </button>
             </div>
@@ -168,13 +169,14 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                                         <div className="flex items-center gap-1.5">
                                             <button 
                                                 onClick={() => toggleRuleActive(rule.id)}
-                                                className={`p-1.5 rounded-[6px] transition-all text-xs font-medium ${rule.isActive ? 'text-blue-400 hover:bg-blue-500/10' : 'text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]'}`}
+                                                className={`btn btn--xs ${rule.isActive ? 'btn--secondary text-blue-400' : 'btn--outline text-[var(--text-muted)]'}`}
                                             >
                                                 {rule.isActive ? 'Active' : 'Resume'}
                                             </button>
                                             <button 
                                                 onClick={() => deleteRule(rule.id)}
-                                                className="p-1.5 text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-[6px] transition-all opacity-0 group-hover:opacity-100"
+                                                className="btn btn--ghost btn--icon-sm text-[var(--text-muted)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                                title="Delete subscription"
                                             >
                                                 <Trash2 size={15} strokeWidth={1.5} />
                                             </button>
@@ -206,7 +208,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                                             {!isAlreadyRegistered && (
                                                 <button 
                                                     onClick={() => registerRecurringRule(sub.name, sub.amount)}
-                                                    className="px-3 py-1.5 bg-[#2563EB] hover:bg-blue-600 text-white rounded-[6px] font-medium text-[12px] transition-all shadow-xs shrink-0"
+                                                    className="btn btn--primary btn--sm shrink-0"
                                                 >
                                                     Track Service
                                                 </button>
@@ -219,7 +221,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                     )}
                 </div>
             ) : (
-                /* Cloudflare-Style Centered Empty State Box */
+                /* Centered Empty State Box */
                 <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] p-12 text-center flex flex-col items-center justify-center my-4">
                     <Ghost size={32} strokeWidth={1.5} className="text-[var(--text-muted)] mb-3" />
                     <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">No active subscriptions</h3>
@@ -232,92 +234,74 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                             setSubAmount('');
                             setIsAddModalOpen(true);
                         }}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs"
+                        className="btn btn--primary h-[32px] px-3.5 text-[12px]"
                     >
-                        <Plus size={15} />
+                        <Plus size={14} />
                         <span>Add subscription</span>
                     </button>
                 </div>
             )}
 
             {/* --- MODAL: Add Subscription --- */}
-            {isAddModalOpen && (
-                <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
-                    <div 
-                        className="absolute inset-0 bg-black/70 backdrop-blur-xs"
-                        onClick={() => setIsAddModalOpen(false)} 
-                    />
-                    <form 
-                        onSubmit={handleManualAdd}
-                        className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200"
-                    >
-                        <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
-                            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Add a Subscription</h3>
-                            <button 
-                                type="button"
-                                onClick={() => setIsAddModalOpen(false)}
-                                className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
+            <Modal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                title="Add a Subscription"
+            >
+                <form onSubmit={handleManualAdd} className="space-y-4">
+                    <div className="space-y-1.5">
+                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Service Name</label>
+                        <input 
+                            type="text" 
+                            placeholder="e.g. Netflix, Spotify, AWS, Gym..." 
+                            value={subName}
+                            onChange={e => setSubName(e.target.value)}
+                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                            required
+                        />
+                    </div>
 
-                        <div className="space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Service Name</label>
-                                <input 
-                                    type="text"
-                                    placeholder="e.g. Netflix, Spotify, AWS, Gym..." 
-                                    value={subName}
-                                    onChange={e => setSubName(e.target.value)}
-                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
-                                    required
-                                />
-                            </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Recurring Amount ({data.settings.currencySymbol})</label>
+                        <input 
+                            type="number" 
+                            placeholder="0.00" 
+                            value={subAmount}
+                            onChange={e => setSubAmount(e.target.value)}
+                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                            required
+                        />
+                    </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Recurring Amount ({data.settings.currencySymbol})</label>
-                                <input 
-                                    type="number" 
-                                    placeholder="0.00"
-                                    value={subAmount}
-                                    onChange={e => setSubAmount(e.target.value)}
-                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
-                                    required
-                                />
-                            </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Billing Cycle</label>
+                        <select 
+                            value={subFreq} 
+                            onChange={e => setSubFreq(e.target.value as any)}
+                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                        >
+                            {FREQUENCIES.map(f => <option key={f} value={f}>{f.charAt(0) + f.slice(1).toLowerCase()}</option>)}
+                        </select>
+                    </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Billing Cycle</label>
-                                <select 
-                                    value={subFreq} 
-                                    onChange={e => setSubFreq(e.target.value as any)}
-                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
-                                >
-                                    {FREQUENCIES.map(f => <option key={f} value={f}>{f.charAt(0) + f.slice(1).toLowerCase()}</option>)}
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
-                            <button
-                                type="button"
-                                onClick={() => setIsAddModalOpen(false)}
-                                className="h-[38px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={!subName || !subAmount}
-                                className="h-[38px] px-5 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
-                            >
-                                Add subscription
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
+                    <div className="flex justify-end gap-2.5 pt-3">
+                        <button
+                            type="button"
+                            onClick={() => setIsAddModalOpen(false)}
+                            className="btn btn--outline h-[32px] px-3.5 text-[12px]"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={!subName || !subAmount}
+                            className="btn btn--primary h-[32px] px-4 text-[12px]"
+                        >
+                            Add subscription
+                        </button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };

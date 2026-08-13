@@ -152,19 +152,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const ConfirmationOverlay = ({ action }: { action: 'logout' | 'delete' }) => (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-in fade-in duration-200">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setConfirmAction(null)} />
-      <div className="relative liquid-glass p-6 rounded-sm w-full max-w-[280px] border border-main/10 shadow-2xl">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-xs" onClick={() => setConfirmAction(null)} />
+      <div className="relative bg-[var(--bg-surface)] p-6 rounded-[12px] w-full max-w-[320px] border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)]">
         <div className="flex flex-col items-center text-center">
-            <div className={`w-12 h-12 rounded-md flex items-center justify-center mb-4 ${action === 'delete' ? 'bg-red-500/20 text-red-500' : 'bg-primary/20 text-primary'}`}>
-                {action === 'delete' ? <Trash2 size={24} /> : <LogOut size={24} />}
+            <div className={`mb-3 ${action === 'delete' ? 'text-rose-500' : 'text-[#2563EB]'}`}>
+                {action === 'delete' ? <Trash2 size={24} strokeWidth={1.5} /> : <LogOut size={24} strokeWidth={1.5} />}
             </div>
-            <h3 className="text-lg font-bold text-main mb-2">{action === 'delete' ? 'Delete Account?' : 'Log Out?'}</h3>
-            <p className="text-xs text-muted font-medium mb-6">
+            <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">{action === 'delete' ? 'Delete Account?' : 'Log Out?'}</h3>
+            <p className="text-[12px] text-[var(--text-secondary)] mb-5 leading-relaxed">
                 {action === 'delete' ? 'Your account and all associated data will be permanently deleted.' : 'Your financial data will remain safely stored in the cloud.'}
             </p>
-            <div className="flex gap-3 w-full">
-                <button onClick={() => setConfirmAction(null)} className="flex-1 py-3 rounded-sm bg-main/5 text-main/60 text-[10px] font-black uppercase tracking-widest hover:bg-main/10 transition-all">Cancel</button>
-                <button onClick={action === 'delete' ? handleDeleteAccount : handleLogout} className={`flex-1 py-3 rounded-sm text-white text-[10px] font-black uppercase tracking-widest transition-all ${action === 'delete' ? 'bg-red-600 shadow-lg shadow-red-600/20' : 'bg-primary shadow-lg shadow-primary/20'}`}>Confirm</button>
+            <div className="flex gap-2.5 w-full">
+                <button onClick={() => setConfirmAction(null)} className="btn btn--outline flex-1 h-[36px] text-[12px]">Cancel</button>
+                <button onClick={action === 'delete' ? handleDeleteAccount : handleLogout} className={`btn flex-1 h-[36px] text-[12px] ${action === 'delete' ? 'btn--danger' : 'btn--primary'}`}>Confirm</button>
             </div>
         </div>
       </div>
@@ -192,15 +192,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
       <div
-        className={`${isStatic ? `relative ${isCollapsed ? 'w-[56px] bg-black' : 'w-[240px] bg-[#0e121a]'} border-none shrink-0 h-screen translate-x-0 transition-[width,background-color] duration-200` : `fixed inset-y-0 left-0 h-full ${isCollapsed ? 'w-[56px] bg-black' : 'w-[240px] bg-[#0e121a]'} border-none shrink-0 z-[101] transform transition-[transform,width,background-color] duration-200 shadow-2xl ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} flex flex-col overflow-hidden`}
+        className={`${isStatic ? `relative ${isCollapsed ? 'w-[56px] bg-transparent border-r-0 shadow-none' : 'w-[240px] bg-[var(--bg-sidebar)] border-r border-[var(--border-default)]'} shrink-0 h-screen translate-x-0 transition-[width,background-color,border-color] duration-200` : `fixed inset-y-0 left-0 h-full ${isCollapsed ? 'w-[56px] bg-transparent border-r-0 shadow-none' : 'w-[240px] bg-[var(--bg-sidebar)] border-r border-[var(--border-default)] shadow-2xl'} shrink-0 z-[101] transform transition-[transform,width,background-color,border-color] duration-200 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`} flex flex-col overflow-hidden`}
       >
-        <div className={`sidebar-slider-wrapper flex-1 ${isCollapsed ? 'bg-black' : 'bg-[#0e121a]'}`}>
+        <div className={`sidebar-slider-wrapper flex-1 ${isCollapsed ? 'bg-transparent' : 'bg-[var(--bg-sidebar)]'}`}>
           <div 
-            className={`sidebar-view-container ${isCollapsed ? 'bg-black' : 'bg-[#0e121a]'}`}
+            className={`sidebar-view-container ${isCollapsed ? 'bg-transparent' : 'bg-[var(--bg-sidebar)]'}`}
             style={{ transform: `translateX(-${getViewIndex(sidebarView) * 20}%)` }}
           >
             {/* View 0: menu */}
-            <div className={`sidebar-panel flex flex-col h-full ${isCollapsed ? 'bg-black' : 'bg-[#0e121a]'}`}>
+            <div className={`sidebar-panel flex flex-col h-full ${isCollapsed ? 'bg-transparent' : 'bg-[var(--bg-sidebar)]'}`}>
               {/* Top Header: Branding + Sidebar Shrink Button */}
               <div className="h-[52px] px-2 flex items-center justify-between shrink-0">
                 <button
@@ -300,7 +300,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             size={16} 
                             className={`transition-all ${
                               isSelected 
-                                ? 'text-white stroke-[2.5px]' 
+                                ? 'text-white stroke-[1.5px]' 
                                 : 'text-[var(--text-secondary)] stroke-[1.5px]'
                             }`} 
                           />

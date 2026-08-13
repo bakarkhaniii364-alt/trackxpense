@@ -1,5 +1,6 @@
 import React from 'react';
-import { AlertTriangle, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { AlertTriangle, ChevronLeft, ChevronRight, Check, ChevronDown, Calendar } from 'lucide-react';
 import { Haptics } from '../../services/haptics';
 
 export const COLOR_PRESETS = [
@@ -24,6 +25,97 @@ export const CURRENCIES = [
   { value: 'JPY', label: 'Japanese Yen', symbol: '¥' },
 ];
 
+/* =========================================================================
+   Unified 4-Tier Button Component
+   Tier 1: 'primary'   (Single main confirming / primary action)
+   Tier 2: 'secondary' (Everyday utility / standard actions)
+   Tier 3: 'outline'   (Quiet actions, cancel, secondary choice)
+   Tier 4: 'ghost'     (Ghost actions, dismiss, icon buttons)
+   Destructive: 'danger' (Wipe, reset, irreversible delete)
+========================================================================= */
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'icon' | 'icon-sm';
+  isActive?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+}
+
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
+  variant = 'secondary',
+  size = 'md',
+  isActive = false,
+  leftIcon,
+  rightIcon,
+  className = '',
+  children,
+  onClick,
+  ...props
+}, ref) => {
+  const variantClass = `btn--${variant}`;
+  const sizeClass = `btn--${size}`;
+  const activeClass = isActive ? 'is-active' : '';
+
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    Haptics.light();
+    if (onClick) onClick(e);
+  };
+
+  return (
+    <button
+      ref={ref}
+      onClick={handleClick}
+      className={`btn ${variantClass} ${sizeClass} ${activeClass} ${className}`}
+      {...props}
+    >
+      {leftIcon && <span className="inline-flex shrink-0">{leftIcon}</span>}
+      {children}
+      {rightIcon && <span className="inline-flex shrink-0">{rightIcon}</span>}
+    </button>
+  );
+});
+Button.displayName = 'Button';
+
+/* =========================================================================
+   Unified Toggle Switch Component
+========================================================================= */
+export interface ToggleSwitchProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+  className?: string;
+  id?: string;
+  ariaLabel?: string;
+}
+
+export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
+  checked,
+  onChange,
+  disabled = false,
+  className = '',
+  id,
+  ariaLabel
+}) => {
+  return (
+    <button
+      type="button"
+      id={id}
+      role="switch"
+      aria-checked={checked}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation();
+        Haptics.light();
+        onChange(!checked);
+      }}
+      className={`toggle-switch ${checked ? 'is-active' : ''} ${className}`}
+    >
+      <div className="toggle-switch-thumb" />
+    </button>
+  );
+};
+
 interface CustomConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -42,51 +134,49 @@ export const CustomConfirmModal: React.FC<CustomConfirmModalProps> = ({
   isDanger,
 }) => {
   if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
-      <div className="relative bg-[var(--bg-surface)] w-full max-w-[380px] rounded-[12px] p-6 border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 duration-200">
+      <div className="relative bg-[var(--bg-surface)] w-full max-w-[380px] rounded-[12px] p-6 border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 duration-150 space-y-4">
         <div className="flex flex-col items-center text-center">
-          <AlertTriangle size={32} strokeWidth={1.5} className={isDanger ? "text-red-500 mb-3" : "text-[#2563EB] mb-3"} />
+          <AlertTriangle size={32} strokeWidth={1.5} className={isDanger ? "text-red-500 mb-3" : "text-[#58c4e0] mb-3"} />
           <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">{title}</h3>
-          <p className="text-xs text-[var(--text-secondary)] mb-6 leading-relaxed">{message}</p>
-          <div className="flex gap-2.5 w-full">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 h-[36px] rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={onConfirm}
-              className={`flex-1 h-[36px] rounded-[8px] text-white text-[13px] font-medium transition-all shadow-xs ${
-                isDanger ? 'bg-red-600 hover:bg-red-700' : 'bg-[#2563EB] hover:bg-blue-600'
-              }`}
-            >
-              Confirm
-            </button>
-          </div>
+          <p className="text-xs text-[var(--text-secondary)] mb-2 leading-relaxed">{message}</p>
+        </div>
+        <div className="flex gap-2.5 w-full pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn--outline flex-1 h-[38px] text-[13px]"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`btn flex-1 h-[38px] text-[13px] ${
+              isDanger ? 'btn--danger' : 'btn--primary'
+            }`}
+          >
+            Confirm
+          </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
-// --- Glass Select ---
-import { ChevronDown } from 'lucide-react';
-import { createPortal } from 'react-dom';
-
-interface GlassSelectProps {
+export interface GlassSelectProps {
     value: string;
     onChange: (val: string) => void;
     options: { label: string; value: string }[] | string[];
     placeholder?: string;
     className?: string;
+    disabled?: boolean;
 }
 
 export const GlassSelect: React.FC<GlassSelectProps> = ({ value, onChange, options, placeholder, className = "" }) => {
@@ -176,8 +266,6 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({ value, onChange, optio
 };
 
 // --- Glass Date Input ---
-import { Calendar } from 'lucide-react';
-
 interface GlassDateInputProps {
     value: string;
     onChange: (val: string) => void;

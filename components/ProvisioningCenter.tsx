@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, Plus, Trash2, Tag, X, Clock } from 'lucide-react';
 import { AppData, Provision } from '../types';
 import { Haptics } from '../services/haptics';
+import { Modal } from './shared/Modal';
 
 interface ProvisioningCenterProps {
     data: AppData;
@@ -41,7 +42,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
     const totalProvisioned = data.provisions.reduce((sum, p) => sum + p.amount, 0);
 
     return (
-        <div className="w-full mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 overflow-x-hidden">
+        <div className="w-full mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 px-0.5 pt-0.5">
             
             {/* Cloudflare-Style Section Header Outside Card */}
             <div className="flex items-center justify-between pb-2">
@@ -56,9 +57,9 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
                         setDate('');
                         setIsAddModalOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs shrink-0"
+                    className="btn btn--primary h-[32px] px-3.5 text-[12px] shrink-0"
                 >
-                    <Plus size={15} />
+                    <Plus size={14} />
                     <span>Add expense</span>
                 </button>
             </div>
@@ -103,7 +104,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
                                 </div>
                                 <button
                                     onClick={() => removeProvision(p.id)}
-                                    className="p-2 text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10 rounded-[6px] opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                                    className="btn btn--ghost btn--icon-sm text-[var(--text-muted)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                                     title="Delete expense"
                                 >
                                     <Trash2 size={15} />
@@ -113,7 +114,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
                     })}
                 </div>
             ) : (
-                /* Cloudflare-Style Centered Empty State Box */
+                /* Centered Empty State Box */
                 <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] p-12 text-center flex flex-col items-center justify-center my-4">
                     <Calendar size={32} strokeWidth={1.5} className="text-[var(--text-muted)] mb-3" />
                     <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">No upcoming expenses</h3>
@@ -127,86 +128,72 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
                             setDate('');
                             setIsAddModalOpen(true);
                         }}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs"
+                        className="btn btn--primary h-[32px] px-3.5 text-[12px]"
                     >
-                        <Plus size={15} />
+                        <Plus size={14} />
                         <span>Add expense</span>
                     </button>
                 </div>
             )}
 
             {/* --- MODAL: Add Upcoming Expense --- */}
-            {isAddModalOpen && (
-                <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
-                    <div 
-                        className="absolute inset-0 bg-black/70 backdrop-blur-xs"
-                        onClick={() => setIsAddModalOpen(false)} 
-                    />
-                    <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
-                            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Add Upcoming Expense</h3>
-                            <button 
-                                onClick={() => setIsAddModalOpen(false)}
-                                className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
+            <Modal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                title="Add Upcoming Expense"
+            >
+                <div className="space-y-4">
+                    <div className="space-y-1.5">
+                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Expense Name</label>
+                        <input 
+                            type="text" 
+                            placeholder="e.g. MacBook Pro, Taxes, Rent..."
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                        />
+                    </div>
 
-                        <div className="space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Expense Name</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="e.g. MacBook Pro, Taxes, Rent..."
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
-                                />
-                            </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Amount ({data.settings.currencySymbol})</label>
+                        <input 
+                            type="number" 
+                            placeholder="0.00"
+                            value={amount}
+                            onChange={e => setAmount(e.target.value)}
+                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                        />
+                    </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Amount ({data.settings.currencySymbol})</label>
-                                <input 
-                                    type="number" 
-                                    placeholder="0.00"
-                                    value={amount}
-                                    onChange={e => setAmount(e.target.value)}
-                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
-                                />
-                            </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Due Date</label>
+                        <input 
+                            type="date" 
+                            value={date}
+                            onChange={e => setDate(e.target.value)}
+                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all color-scheme-dark"
+                        />
+                    </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Due Date</label>
-                                <input 
-                                    type="date" 
-                                    value={date}
-                                    onChange={e => setDate(e.target.value)}
-                                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all color-scheme-dark"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
-                            <button
-                                type="button"
-                                onClick={() => setIsAddModalOpen(false)}
-                                className="h-[38px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="button"
-                                onClick={addProvision}
-                                disabled={!name || !amount || !date}
-                                className="h-[38px] px-5 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
-                            >
-                                Add expense
-                            </button>
-                        </div>
+                    <div className="flex justify-end gap-2.5 pt-3">
+                        <button
+                            type="button"
+                            onClick={() => setIsAddModalOpen(false)}
+                            className="btn btn--outline h-[32px] px-3.5 text-[12px]"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={addProvision}
+                            disabled={!name || !amount || !date}
+                            className="btn btn--primary h-[32px] px-4 text-[12px]"
+                        >
+                            Add expense
+                        </button>
                     </div>
                 </div>
-            )}
+            </Modal>
         </div>
     );
 };

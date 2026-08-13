@@ -49,7 +49,7 @@ export const EmptyStateSeeder: React.FC<EmptyStateSeederProps> = ({
         <button
           type="button"
           onClick={handleSeed}
-          className="btn-primary flex-1 h-[36px] px-3.5 text-[13px] font-medium flex items-center justify-center gap-2 rounded-[6px]"
+          className="btn btn--primary flex-1 h-[36px] px-3.5 text-[13px]"
         >
           <Database size={15} className="stroke-[1.5px]" />
           <span>Seed Demo Data</span>
@@ -62,7 +62,7 @@ export const EmptyStateSeeder: React.FC<EmptyStateSeederProps> = ({
               Haptics.light();
               onActionClick();
             }}
-            className="btn-secondary flex-1 h-[36px] px-3.5 text-[13px] font-medium flex items-center justify-center gap-2 rounded-[6px]"
+            className="btn btn--secondary flex-1 h-[36px] px-3.5 text-[13px]"
           >
             <Plus size={15} className="stroke-[1.5px]" />
             <span>{actionLabel}</span>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Plus, Check, Trash2, Calendar as CalendarIcon, Clock, User, 
   ArrowUpRight, ArrowDownRight, X, Search, MoreVertical, PlusCircle,
@@ -7,6 +8,7 @@ import {
 import { Debt, AppData, Transaction, TransactionType, Category } from '../../types';
 import { GlassCheckbox, Pagination } from '../shared/CommonUI';
 import { EmptyStateSeeder } from '../shared/EmptyStateSeeder';
+import { TablePaginationFooter } from '../shared/TablePaginationFooter';
 
 interface DesktopDebtProps {
   data: AppData;
@@ -184,7 +186,7 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
   };
 
   return (
-    <div className="w-full space-y-6 animate-in fade-in duration-300 mx-auto pb-6 overflow-x-hidden">
+    <div className="w-full space-y-6 animate-in fade-in duration-300 mx-auto pb-6 px-0.5 pt-0.5">
       
       {/* Cloudflare-Style Section Header Outside Card */}
       <div className="flex items-center justify-between pb-2">
@@ -194,12 +196,15 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
         </div>
         <button
           onClick={() => {
-            setPerson(''); setAmount(''); setNote(''); setDueDate(''); setType('OWES_ME');
+            setPerson('');
+            setAmount('');
+            setNote('');
+            setDueDate('');
             setIsAddOpen(true);
           }}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs shrink-0"
+          className="btn btn--primary h-[32px] px-3.5 text-[12px] shrink-0"
         >
-          <Plus size={15} strokeWidth={1.5} />
+          <Plus size={14} strokeWidth={1.5} />
           <span>Add debt entry</span>
         </button>
       </div>
@@ -240,16 +245,12 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
         </div>
 
         {/* Type Filter Pills */}
-        <div className="inline-flex bg-[var(--bg-subtle)] p-0.5 rounded-[6px] border border-[var(--border-default)] shrink-0 self-start sm:self-auto">
+        <div className="tabs shrink-0 self-start sm:self-auto">
           {(['ALL', 'ACTIVE', 'SETTLED', 'OWES_ME', 'I_OWE'] as const).map((filterType) => (
             <button
               key={filterType}
               onClick={() => { setTypeFilter(filterType); setCurrentPage(1); }}
-              className={`px-3 py-1 rounded-[5px] text-[12px] font-medium transition-all ${
-                typeFilter === filterType
-                  ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-xs'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+              className={`tab ${typeFilter === filterType ? 'is-active' : ''}`}
             >
               {filterType === 'ALL' ? 'All' : filterType === 'ACTIVE' ? 'Active' : filterType === 'SETTLED' ? 'Settled' : filterType === 'OWES_ME' ? 'Receivables' : 'Payables'}
             </button>
@@ -459,15 +460,13 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
           </table>
 
           {/* Table Pagination Footer */}
-          {filteredDebts.length > pageSize && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={filteredDebts.length}
-              itemsPerPage={pageSize}
-              onPageChange={setCurrentPage}
-            />
-          )}
+          <TablePaginationFooter
+            currentPage={currentPage}
+            totalPages={Math.ceil(filteredDebts.length / pageSize) || 1}
+            totalItems={filteredDebts.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+          />
         </div>
       ) : (
         <EmptyStateSeeder 
@@ -494,7 +493,7 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={handleBatchSettle}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[12px] transition-all shadow-xs"
+                className="btn btn--primary btn--sm"
               >
                 <CheckCircle size={14} strokeWidth={1.5} />
                 <span>Mark settled</span>
@@ -502,7 +501,7 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
 
               <button
                 onClick={() => setIsBatchDeleteModalOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 font-medium text-[12px] transition-all"
+                className="btn btn--danger btn--sm"
               >
                 <Trash2 size={14} strokeWidth={1.5} />
                 <span>Delete selected</span>
@@ -521,20 +520,20 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
       )}
 
       {/* --- MODAL: Add Debt Entry --- */}
-      {isAddOpen && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {isAddOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs" 
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs" 
             onClick={() => setIsAddOpen(false)} 
           />
-          <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Add a Debt Entry</h3>
+          <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Add a Debt Entry</h3>
               <button 
                 onClick={() => setIsAddOpen(false)}
-                className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
               >
-                <X size={16} strokeWidth={1.5} />
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -596,7 +595,7 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
                     type="date"
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--border-default)] outline-none"
+                    className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--border-default)] outline-none color-scheme-dark"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -612,11 +611,11 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsAddOpen(false)}
-                className="h-[38px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[32px] px-3.5 text-[12px]"
               >
                 Cancel
               </button>
@@ -624,30 +623,31 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
                 type="button"
                 onClick={handleAddDebt}
                 disabled={!amount || !person}
-                className="h-[38px] px-5 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--primary h-[32px] px-4 text-[12px]"
               >
                 Add debt entry
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL: Record Partial Payment --- */}
-      {isPaymentOpen && activeDebtId && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {isPaymentOpen && activeDebtId && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs" 
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs" 
             onClick={() => setIsPaymentOpen(false)} 
           />
-          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Record Debt Payment</h3>
+          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Record Debt Payment</h3>
               <button 
                 onClick={() => setIsPaymentOpen(false)}
-                className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline btn--icon-sm shrink-0"
               >
-                <X size={16} strokeWidth={1.5} />
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -676,11 +676,11 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsPaymentOpen(false)}
-                className="h-[38px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[32px] px-3.5 text-[12px]"
               >
                 Cancel
               </button>
@@ -714,28 +714,29 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
                   }
                 }}
                 disabled={!paymentAmount}
-                className="h-[38px] px-5 rounded-[8px] bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--primary h-[32px] px-4 text-[12px]"
               >
                 Record Payment
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL: Confirm Delete Entry --- */}
-      {deleteId && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {deleteId && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs" 
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs" 
             onClick={() => setDeleteId(null)} 
           />
-          <div className="relative w-full max-w-[400px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
+          <div className="relative w-full max-w-[400px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-[var(--text-primary)]">Delete Debt Record</h3>
               <button 
                 onClick={() => setDeleteId(null)}
-                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline btn--icon-sm shrink-0"
               >
                 <X size={15} strokeWidth={1.5} />
               </button>
@@ -746,39 +747,40 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
               <p className="text-xs text-[var(--text-secondary)]">This action cannot be undone.</p>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setDeleteId(null)}
-                className="h-[36px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[30px] px-3 text-[12px]"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmDelete}
-                className="h-[36px] px-4 rounded-[8px] bg-red-600 hover:bg-red-700 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--danger h-[30px] px-3.5 text-[12px]"
               >
                 Delete
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL: Batch Delete Confirmation --- */}
-      {isBatchDeleteModalOpen && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {isBatchDeleteModalOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs" 
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs" 
             onClick={() => setIsBatchDeleteModalOpen(false)} 
           />
-          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
+          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-[var(--text-primary)]">Delete Selected Records</h3>
               <button 
                 onClick={() => setIsBatchDeleteModalOpen(false)}
-                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline btn--icon-sm shrink-0"
               >
                 <X size={15} strokeWidth={1.5} />
               </button>
@@ -791,24 +793,25 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
               <p className="text-xs text-[var(--text-secondary)]">This action cannot be undone.</p>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsBatchDeleteModalOpen(false)}
-                className="h-[36px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[30px] px-3 text-[12px]"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleBatchDelete}
-                className="h-[36px] px-4 rounded-[8px] bg-red-600 hover:bg-red-700 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--danger h-[30px] px-3.5 text-[12px]"
               >
                 Delete Records
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

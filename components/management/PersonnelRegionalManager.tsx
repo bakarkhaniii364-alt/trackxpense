@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { AppData, Wallet, ThemeOption } from '../../types';
 import { 
   Bell, 
@@ -559,7 +560,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
 
               <button
                 onClick={() => { setNewWalletName(''); setNewWalletTarget(''); setIsAddWalletOpen(true); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[12px] transition-all shadow-xs"
+                className="btn btn--primary h-[34px] px-3.5 text-[12px] flex items-center gap-1.5 shrink-0"
               >
                 <Plus size={14} strokeWidth={1.5} />
                 <span>Add new wallet</span>
@@ -657,12 +658,12 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                           {/* Mode */}
                           <div className="space-y-1">
                             <label className="text-[11px] font-medium text-[var(--text-muted)]">Wallet Type</label>
-                            <div className="flex gap-2">
+                            <div className="tabs flex">
                               <button
                                 type="button"
                                 onClick={() => handleUpdateWallet(selectedWallet.id, { type: 'STANDARD' })}
-                                className={`flex-1 h-[30px] rounded-[5px] text-[11px] font-medium border ${
-                                  selectedWallet.type === 'STANDARD' ? 'bg-[#2563EB]/10 border-[#2563EB] text-[#2563EB]' : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)]'
+                                className={`tab flex-1 justify-center ${
+                                  selectedWallet.type === 'STANDARD' ? 'is-active' : ''
                                 }`}
                               >
                                 Standard Vault
@@ -670,8 +671,8 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                               <button
                                 type="button"
                                 onClick={() => handleUpdateWallet(selectedWallet.id, { type: 'GOAL' })}
-                                className={`flex-1 h-[30px] rounded-[5px] text-[11px] font-medium border ${
-                                  selectedWallet.type === 'GOAL' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)]'
+                                className={`tab flex-1 justify-center ${
+                                  selectedWallet.type === 'GOAL' ? 'is-active' : ''
                                 }`}
                               >
                                 Savings Goal
@@ -970,18 +971,18 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
       )}
 
       {/* --- MODAL: Add New Wallet --- */}
-      {isAddWalletOpen && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {isAddWalletOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs" 
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs" 
             onClick={() => setIsAddWalletOpen(false)} 
           />
-          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
+          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-[var(--text-primary)]">Add New Wallet</h3>
               <button 
                 onClick={() => setIsAddWalletOpen(false)}
-                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline btn--icon-sm shrink-0"
               >
                 <X size={15} strokeWidth={1.5} />
               </button>
@@ -1002,26 +1003,18 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
 
               <div className="space-y-1.5">
                 <label className="text-[13px] font-medium text-[var(--text-primary)]">Purpose / Type</label>
-                <div className="flex gap-2">
+                <div className="tabs flex">
                   <button
                     type="button"
                     onClick={() => setNewWalletIsGoal(false)}
-                    className={`flex-1 h-[36px] rounded-[6px] text-[12px] font-medium border transition-all ${
-                      !newWalletIsGoal 
-                        ? 'bg-[#2563EB]/10 border-[#2563EB] text-[#2563EB] font-semibold' 
-                        : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)]'
-                    }`}
+                    className={`tab flex-1 justify-center ${!newWalletIsGoal ? 'is-active' : ''}`}
                   >
                     Standard Vault
                   </button>
                   <button
                     type="button"
                     onClick={() => setNewWalletIsGoal(true)}
-                    className={`flex-1 h-[36px] rounded-[6px] text-[12px] font-medium border transition-all ${
-                      newWalletIsGoal 
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-semibold' 
-                        : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)]'
-                    }`}
+                    className={`tab flex-1 justify-center ${newWalletIsGoal ? 'is-active' : ''}`}
                   >
                     Savings Goal
                   </button>
@@ -1036,17 +1029,17 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                     placeholder="0.00"
                     value={newWalletTarget}
                     onChange={(e) => setNewWalletTarget(e.target.value)}
-                    className="w-full h-[38px] bg-[var(--bg-subtle)] border border-emerald-500/30 rounded-[8px] px-3 text-[13px] font-mono text-emerald-400 outline-none"
+                    className="w-full h-[36px] bg-[var(--bg-subtle)] border border-emerald-500/30 rounded-[6px] px-3 text-[12px] font-mono text-emerald-400 outline-none"
                   />
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsAddWalletOpen(false)}
-                className="h-[36px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[32px] px-3.5 text-[12px]"
               >
                 Cancel
               </button>
@@ -1054,28 +1047,29 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                 type="button"
                 onClick={handleAddWallet}
                 disabled={!newWalletName.trim()}
-                className="h-[36px] px-4 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--primary h-[32px] px-4 text-[12px]"
               >
                 Create Wallet
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL: Delete Wallet & Reassign Transactions --- */}
-      {deletingWalletId && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {deletingWalletId && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs" 
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs" 
             onClick={() => setDeletingWalletId(null)} 
           />
-          <div className="relative w-full max-w-[440px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
+          <div className="relative w-full max-w-[440px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-[var(--text-primary)]">Delete Wallet & Reassign Ledger</h3>
               <button 
                 onClick={() => setDeletingWalletId(null)}
-                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline btn--icon-sm shrink-0"
               >
                 <X size={15} strokeWidth={1.5} />
               </button>
@@ -1091,7 +1085,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                 <select
                   value={targetReassignWalletId}
                   onChange={(e) => setTargetReassignWalletId(e.target.value)}
-                  className="w-full h-[38px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[8px] px-3 text-[13px] text-[var(--text-primary)] outline-none"
+                  className="w-full h-[36px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] outline-none"
                 >
                   {(data.wallets || []).filter(w => w.id !== deletingWalletId).map(w => (
                     <option key={w.id} value={w.id}>{w.name}</option>
@@ -1100,32 +1094,33 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setDeletingWalletId(null)}
-                className="h-[36px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[30px] px-3 text-[12px]"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmDeleteWalletWithReassign}
-                className="h-[36px] px-4 rounded-[8px] bg-red-600 hover:bg-red-700 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--danger h-[30px] px-3.5 text-[12px]"
               >
                 Delete & Reassign
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Confirmation Overlays */}
-      {confirmAction && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-xs" onClick={() => setConfirmAction(null)} />
+      {confirmAction && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-xs" onClick={() => setConfirmAction(null)} />
           <div className="relative bg-[var(--bg-surface)] border border-[var(--border-default)] w-full max-w-xs rounded-[12px] p-6 shadow-2xl animate-in zoom-in-95 text-center space-y-4">
-            <AlertTriangle size={32} strokeWidth={1.5} className="text-red-500 mx-auto" />
+            <AlertTriangle size={28} strokeWidth={1.5} className="text-red-500 mx-auto" />
             <div>
               <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">
                 {confirmAction === 'logout' ? 'Confirm Log Out' : 'Delete Account'}
@@ -1136,31 +1131,33 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                   : 'This will permanently remove your user data and cannot be undone.'}
               </p>
             </div>
-            <div className="flex gap-2 pt-2 border-t border-[var(--border-default)]">
-              <button onClick={() => setConfirmAction(null)} className="flex-1 h-[36px] rounded-[8px] border border-[var(--border-default)] text-[13px] text-[var(--text-secondary)] font-medium">Cancel</button>
-              <button onClick={confirmAction === 'logout' ? handleLogout : handleDeleteAccount} className="flex-1 h-[36px] rounded-[8px] bg-red-600 text-white text-[13px] font-medium">Confirm</button>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setConfirmAction(null)} className="btn btn--outline flex-1 h-[32px] text-[12px]">Cancel</button>
+              <button onClick={confirmAction === 'logout' ? handleLogout : handleDeleteAccount} className="btn btn--danger flex-1 h-[32px] text-[12px]">Confirm</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {showPrivacy && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-xs" onClick={() => setShowPrivacy(false)} />
+      {showPrivacy && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/75 backdrop-blur-xs" onClick={() => setShowPrivacy(false)} />
           <div className="relative bg-[var(--bg-surface)] border border-[var(--border-default)] w-full max-w-md rounded-[12px] p-6 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b border-[var(--border-default)] pb-3">
+            <div className="flex justify-between items-center">
               <h3 className="text-base font-semibold text-[var(--text-primary)]">Privacy Policy</h3>
-              <button onClick={() => setShowPrivacy(false)} className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X size={16}/></button>
+              <button onClick={() => setShowPrivacy(false)} className="btn btn--outline btn--icon-sm"><X size={15} strokeWidth={1.5} /></button>
             </div>
             <div className="text-xs text-[var(--text-secondary)] space-y-2 leading-relaxed max-h-60 overflow-y-auto pr-1">
               <p>TrackXpense stores your financial records locally or encrypted via Supabase ADC security infrastructure.</p>
               <p>No raw banking credentials or personal identification details are shared with third-party tracking networks.</p>
             </div>
-            <div className="flex justify-end pt-2 border-t border-[var(--border-default)]">
-              <button onClick={() => setShowPrivacy(false)} className="px-4 py-1.5 bg-[var(--bg-subtle)] text-[12px] font-medium rounded-[6px] text-[var(--text-primary)]">Close</button>
+            <div className="flex justify-end pt-2">
+              <button onClick={() => setShowPrivacy(false)} className="btn btn--secondary h-[34px] px-4 text-[12px]">Close</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrackXpense — Mobile UI Skeleton & Architecture Mockups</title>
+  <style>
+    :root {
+      --bg-page: #0D0D0E;
+      --bg-surface: #141417;
+      --bg-surface-hover: #1A1A1E;
+      --bg-subtle: #1F1F24;
+      --border-default: #222226;
+      --border-active: #3F3F46;
+      --text-primary: #F4F4F5;
+      --text-secondary: #A1A1AA;
+      --text-muted: #71717A;
+      --accent-solid: #2563EB;
+      --accent-text: #FFFFFF;
+      --accent-soft: rgba(37, 99, 235, 0.12);
+      --status-success-bg: rgba(34, 197, 94, 0.12);
+      --status-success-fg: #22C55E;
+      --status-error-bg: rgba(239, 68, 68, 0.12);
+      --status-error-fg: #EF4444;
+      --status-warning-bg: rgba(245, 158, 11, 0.12);
+      --status-warning-fg: #F59E0B;
+      --radius-card: 12px;
+      --radius-sm: 6px;
+      --radius-pill: 9999px;
+      --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: #080809;
+      color: var(--text-primary);
+      font-family: var(--font-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 60px;
+    }
+
+    /* Top Control Bar */
+    .showcase-header {
+      text-align: center;
+      margin-bottom: 24px;
+      max-width: 600px;
+    }
+
+    .showcase-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-solid);
+      background: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(37, 99, 235, 0.25);
+      margin-bottom: 8px;
+    }
+
+    .showcase-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .showcase-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    /* Screen Nav Switcher */
+    .screen-switcher {
+      display: flex;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      padding: 3px;
+      border-radius: var(--radius-card);
+      margin-bottom: 24px;
+      gap: 4px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .screen-tab {
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .screen-tab:hover {
+      color: var(--text-primary);
+    }
+
+    .screen-tab.is-active {
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+      border: 1px solid var(--border-active);
+      font-weight: 600;
+    }
+
+    /* Phone Device Mockup Container */
+    .device-wrapper {
+      width: 100%;
+      max-width: 390px;
+      height: 820px;
+      background: var(--bg-page);
+      border: 1px solid var(--border-default);
+      border-radius: 36px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 0 8px #18181b;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Notch & Status Bar */
+    .status-bar {
+      height: 44px;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      z-index: 10;
+      user-select: none;
+    }
+
+    .status-island {
+      width: 100px;
+      height: 24px;
+      background: #000;
+      border-radius: var(--radius-pill);
+      position: absolute;
+      left: 50%;
+      top: 10px;
+      transform: translateX(-50%);
+    }
+
+    /* Top App Navigation Header */
+    .app-header {
+      height: 48px;
+      flex-shrink: 0;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-default);
+      background: rgba(13, 13, 14, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 9;
+    }
+
+    .wallet-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .runway-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--status-success-bg);
+      color: var(--status-success-fg);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-default);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .icon-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--border-active);
+    }
+
+    /* Screen Scrollable View Area */
+    .screen-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 14px 84px;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .screen-content.is-active {
+      display: flex;
+    }
+
+    /* Bento Cards System */
+    .bento-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-card);
+      padding: 16px;
+      position: relative;
+    }
+
+    .bento-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .bento-kicker {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    /* Segmented Control Switcher */
+    .segmented-control {
+      display: inline-flex;
+      background: var(--bg-subtle);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .segmented-btn {
+      background: transparent;
+      border: none;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .segmented-btn.is-active {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border-default);
+      font-weight: 600;
+    }
+
+    /* Hero Readouts */
+    .hero-amount {
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      font-family: var(--font-main);
+      margin-bottom: 10px;
+    }
+
+    .stat-pills-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-pill {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-pill-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    .stat-pill-value {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .val-income { color: var(--status-success-fg); }
+    .val-expense { color: var(--status-error-fg); }
+
+    /* Quick Action Pills */
+    .quick-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .action-btn {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 10px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-surface-hover);
+      color: var(--text-primary);
+      border-color: var(--border-active);
+    }
+
+    /* Hairline List Rows */
+    .hairline-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .hairline-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-default);
+    }
+
+    .hairline-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .hairline-row:first-child {
+      padding-top: 4px;
+    }
+
+    .row-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .row-icon {
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    .row-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .row-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .row-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .row-right {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .row-amount {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+    }
+
+    .row-tag {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Progress Bar */
+    .progress-track {
+      width: 100%;
+      height: 5px;
+      background: var(--bg-subtle);
+      border-radius: var(--radius-pill);
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent-solid);
+      border-radius: var(--radius-pill);
+    }
+
+    /* Bottom Docked Nav */
+    .docked-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: rgba(20, 20, 23, 0.92);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-default);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 12px 14px;
+      z-index: 10;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 500;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .nav-item.is-active {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .nav-fab {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-solid);
+      color: var(--accent-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    }
+
+    /* Search & Filter Bar */
+    .search-filter-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+    }
+
+    .search-input {
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-size: 12px;
+      width: 100%;
+      outline: none;
+    }
+
+    .filter-chips {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .filter-chip {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-pill);
+      padding: 4px 12px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .filter-chip.is-active {
+      background: var(--accent-solid);
+      border-color: var(--accent-solid);
+      color: var(--accent-text);
+    }
+
+    /* Grouped Settings List */
+    .grouped-menu {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+    }
+
+    .grouped-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-default);
+      cursor: pointer;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .grouped-item:last-child {
+      border-bottom: none;
+    }
+
+    .grouped-item:hover {
+      background: var(--bg-surface-hover);
+    }
+
+    .toggle-pill {
+      width: 36px;
+      height: 20px;
+      background: var(--accent-solid);
+      border-radius: var(--radius-pill);
+      position: relative;
+      display: inline-block;
+    }
+
+    .toggle-knob {
+      width: 16px;
+      height: 16px;
+      background: #FFFFFF;
+      border-radius: var(--radius-pill);
+      position: absolute;
+      top: 2px;
+      right: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Showcase Header -->
+  <div class="showcase-header">
+    <div class="showcase-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      TrackXpense Architecture
+    </div>
+    <h1 class="showcase-title">Mobile UI Skeleton & Layout Mockups</h1>
+    <p class="showcase-desc">Translating Desktop Bento & SF Pro 1px-Border Technical System directly to mobile screen viewports.</p>
+  </div>
+
+  <!-- Screen Nav Switcher -->
+  <div class="screen-switcher">
+    <button class="screen-tab is-active" onclick="switchScreen('dashboard')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+      1. Dashboard Bento
+    </button>
+    <button class="screen-tab" onclick="switchScreen('ledger')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+      2. History Ledger
+    </button>
+    <button class="screen-tab" onclick="switchScreen('analytics')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+      3. Analytics Charts
+    </button>
+    <button class="screen-tab" onclick="switchScreen('settings')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      4. Grouped Settings
+    </button>
+  </div>
+
+  <!-- Realistic Smartphone Device Frame -->
+  <div class="device-wrapper">
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="status-island"></div>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <svg width="14" height="10" viewBox="0 0 16 12" fill="currentColor"><path d="M1 8h2v4H1zm4-3h2v7H5zm4-3h2v10H9zm4-2h2v12h-2z"/></svg>
+        <svg width="14" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+        <svg width="16" height="10" viewBox="0 0 24 14" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="12" x="2" y="1" rx="3"/><path d="M22 5v4"/></svg>
+      </div>
+    </div>
+
+    <!-- Top App Navigation Header -->
+    <div class="app-header">
+      <div class="wallet-pill">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20"/></svg>
+        <span>Chase Sapphire</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+
+      <div class="header-actions">
+        <div class="runway-badge">
+          <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:currentColor;"></span>
+          154d
+        </div>
+        <button class="icon-btn" title="Toggle Privacy">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- SCREEN 1: DASHBOARD BENTO -->
+    <div id="screen-dashboard" class="screen-content is-active">
+      <!-- Bento 1: Balance Hero -->
+      <div class="bento-card">
+        <div class="bento-header">
+          <span class="bento-kicker">Net Balance</span>
+          <span style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);">USD</span>
+        </div>
+        <div class="hero-amount">$12,450.00</div>
+        <div class="stat-pills-row">
+          <div class="stat-pill">
+            <span class="stat-pill-label">Income</span>
+            <span class="stat-pill-value val-income">+$2,100.00</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-pill-label">Expense</span>
+            <span class="stat-pill-value val-expense">-$850.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bento 2: Spending Volume & Sparkline -->
+      <div class="bento-card">
+        <div class="bento-header">
+          <span class="bento-kicker">Spending Volume</span>
+          <div class="segmented-control">
+            <button class="segmented-btn is-active">7D</button>
+            <button class="segmented-btn">30D</button>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 8px;">
+          <span style="font-size: 18px; font-weight:600; font-family:var(--font-mono); color:var(--text-primary);">$850.00</span>
+          <span style="font-size: 11px; font-weight:500; color:var(--status-success-fg); display:flex; align-items:center; gap:2px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10M17 7v10H7"/></svg>
+            12% lower
+          </span>
+        </div>
+
+        <!-- SVG Vector Sparkline Chart -->
+        <svg viewBox="0 0 320 80" style="width: 100%; height: 75px; overflow: visible;">
+          <defs>
+            <linearGradient id="sparklineGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2563EB" stop-opacity="0.35"/>
+              <stop offset="100%" stop-color="#2563EB" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+          <!-- Gridline -->
+          <line x1="0" y1="65" x2="320" y2="65" stroke="#222226" stroke-dasharray="3 3"/>
+          <!-- Area Fill -->
+          <path d="M 0 55 Q 50 20 100 45 T 200 15 T 320 30 L 320 65 L 0 65 Z" fill="url(#sparklineGrad)"/>
+          <!-- Line Curve -->
+          <path d="M 0 55 Q 50 20 100 45 T 200 15 T 320 30" fill="none" stroke="#3B82F6" stroke-width="2" stroke-linecap="round"/>
+          <!-- Dots -->
+          <circle cx="200" cy="15" r="3.5" fill="#3B82F6" stroke="#141417" stroke-width="1.5"/>
+          <circle cx="320" cy="30" r="3.5" fill="#3B82F6" stroke="#141417" stroke-width="1.5"/>
+        </svg>
+
+        <div style="display:flex; justify-content:space-between; font-size:9px; color:var(--text-muted); text-transform:uppercase; margin-top:4px;">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+      </div>
+
+      <!-- Bento 3: Quick Action Presets -->
+      <div class="bento-card" style="padding: 12px 14px;">
+        <div class="bento-kicker" style="margin-bottom: 8px;">Quick Log</div>
+        <div class="quick-actions-grid">
+          <button class="action-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" x2="6" y1="1" y2="4"/><line x1="10" x2="10" y1="1" y2="4"/><line x1="14" x2="14" y1="1" y2="4"/></svg>
+            <span>Food</span>
+          </button>
+          <button class="action-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+            <span>Ride</span>
+          </button>
+          <button class="action-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>Bills</span>
+          </button>
+          <button class="action-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <span>Market</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bento 4: Recent Ledger -->
+      <div class="bento-card">
+        <div class="bento-header">
+          <span class="bento-kicker">Recent Activity</span>
+          <span style="font-size: 11px; color: var(--accent-solid); cursor:pointer; font-weight:500;">View all ›</span>
+        </div>
+
+        <div class="hairline-list">
+          <div class="hairline-row">
+            <div class="row-left">
+              <svg class="row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>
+              <div class="row-details">
+                <div class="row-title">Blue Bottle Coffee</div>
+                <div class="row-meta">Today · 10:45 AM</div>
+              </div>
+            </div>
+            <div class="row-right">
+              <div class="row-amount val-expense">-$6.50</div>
+              <div class="row-tag">Food & Drink</div>
+            </div>
+          </div>
+
+          <div class="hairline-row">
+            <div class="row-left">
+              <svg class="row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>
+              <div class="row-details">
+                <div class="row-title">Client Wire Retainer</div>
+                <div class="row-meta">Yesterday · Chase</div>
+              </div>
+            </div>
+            <div class="row-right">
+              <div class="row-amount val-income">+$1,500.00</div>
+              <div class="row-tag">Income</div>
+            </div>
+          </div>
+
+          <div class="hairline-row">
+            <div class="row-left">
+              <svg class="row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <div class="row-details">
+                <div class="row-title">Cloud VPS Server</div>
+                <div class="row-meta">Aug 12 · DigitalOcean</div>
+              </div>
+            </div>
+            <div class="row-right">
+              <div class="row-amount val-expense">-$24.00</div>
+              <div class="row-tag">Utilities</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: HISTORY LEDGER -->
+    <div id="screen-ledger" class="screen-content">
+      <!-- Search Box -->
+      <div class="search-filter-box">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" class="search-input" placeholder="Search transactions, notes, tags..." />
+      </div>
+
+      <!-- Filter Chips -->
+      <div class="filter-chips">
+        <button class="filter-chip is-active">All</button>
+        <button class="filter-chip">Expenses</button>
+        <button class="filter-chip">Income</button>
+        <button class="filter-chip">Food</button>
+        <button class="filter-chip">Transport</button>
+      </div>
+
+      <!-- Section: Today -->
+      <div class="bento-kicker" style="margin-top: 4px;">Today · Aug 14</div>
+      <div class="bento-card" style="padding: 12px 14px;">
+        <div class="hairline-list">
+          <div class="hairline-row">
+            <div class="row-left">
+              <svg class="row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/></svg>
+              <div class="row-details">
+                <div class="row-title">Blue Bottle Coffee</div>
+                <div class="row-meta">10:45 AM · #breakfast</div>
+              </div>
+            </div>
+            <div class="row-right">
+              <div class="row-amount val-expense">-$6.50</div>
+              <div class="row-tag">Cleared</div>
+            </div>
+          </div>
+          <div class="hairline-row">
+            <div class="row-left">
+              <svg class="row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+              <div class="row-details">
+                <div class="row-title">Uber Downtown</div>
+                <div class="row-meta">8:30 AM · Ride</div>
+              </div>
+            </div>
+            <div class="row-right">
+              <div class="row-amount val-expense">-$18.20</div>
+              <div class="row-tag">Pending</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Yesterday -->
+      <div class="bento-kicker" style="margin-top: 4px;">Yesterday · Aug 13</div>
+      <div class="bento-card" style="padding: 12px 14px;">
+        <div class="hairline-list">
+          <div class="hairline-row">
+            <div class="row-left">
+              <svg class="row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>
+              <div class="row-details">
+                <div class="row-title">Client Wire Retainer</div>
+                <div class="row-meta">2:15 PM · Direct Deposit</div>
+              </div>
+            </div>
+            <div class="row-right">
+              <div class="row-amount val-income">+$1,500.00</div>
+              <div class="row-tag">Income</div>
+            </div>
+          </div>
+          <div class="hairline-row">
+            <div class="row-left">
+              <svg class="row-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/></svg>
+              <div class="row-details">
+                <div class="row-title">Whole Foods Groceries</div>
+                <div class="row-meta">6:40 PM · Supplies</div>
+              </div>
+            </div>
+            <div class="row-right">
+              <div class="row-amount val-expense">-$84.30</div>
+              <div class="row-tag">Cleared</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: ANALYTICS CHARTS -->
+    <div id="screen-analytics" class="screen-content">
+      <!-- Timeframe Selector -->
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="bento-kicker">Analytics Period</span>
+        <div class="segmented-control">
+          <button class="segmented-btn">7D</button>
+          <button class="segmented-btn is-active">30D</button>
+          <button class="segmented-btn">MTD</button>
+          <button class="segmented-btn">YTD</button>
+        </div>
+      </div>
+
+      <!-- KPI 2-Pill Bento -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+        <div class="bento-card" style="padding:12px;">
+          <div class="bento-kicker">Net Savings</div>
+          <div style="font-size:17px; font-weight:600; font-family:var(--font-mono); color:var(--text-primary); margin: 4px 0 2px;">$1,066.34</div>
+          <div style="font-size:10px; color:var(--status-success-fg);">▲ 13.5% vs avg</div>
+        </div>
+        <div class="bento-card" style="padding:12px;">
+          <div class="bento-kicker">Health Score</div>
+          <div style="font-size:17px; font-weight:600; font-family:var(--font-mono); color:var(--text-primary); margin: 4px 0 2px;">88 / 100</div>
+          <div style="font-size:10px; color:var(--accent-solid);">Optimal Condition</div>
+        </div>
+      </div>
+
+      <!-- Cash Flow Area Chart -->
+      <div class="bento-card">
+        <div class="bento-header">
+          <span class="bento-kicker">Cash Flow Trend</span>
+          <span style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">30 Days</span>
+        </div>
+
+        <svg viewBox="0 0 320 110" style="width: 100%; height: 100px; overflow: visible;">
+          <defs>
+            <linearGradient id="incomeAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#22C55E" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="#22C55E" stop-opacity="0.0"/>
+            </linearGradient>
+            <linearGradient id="expenseAreaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.2"/>
+              <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+          <line x1="0" y1="90" x2="320" y2="90" stroke="#222226" stroke-dasharray="2 2"/>
+          <path d="M 0 50 Q 80 20 160 30 T 320 10 L 320 90 L 0 90 Z" fill="url(#incomeAreaGrad)"/>
+          <path d="M 0 50 Q 80 20 160 30 T 320 10" fill="none" stroke="#22C55E" stroke-width="2"/>
+          <path d="M 0 75 Q 80 65 160 55 T 320 40 L 320 90 L 0 90 Z" fill="url(#expenseAreaGrad)"/>
+          <path d="M 0 75 Q 80 65 160 55 T 320 40" fill="none" stroke="#3B82F6" stroke-width="2"/>
+        </svg>
+
+        <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:6px;">
+          <span style="display:flex; align-items:center; gap:4px;"><span style="width:6px; height:6px; border-radius:50%; background:#22C55E;"></span> Income ($3.5k)</span>
+          <span style="display:flex; align-items:center; gap:4px;"><span style="width:6px; height:6px; border-radius:50%; background:#3B82F6;"></span> Expense ($2.4k)</span>
+        </div>
+      </div>
+
+      <!-- Spending Breakdown by Category -->
+      <div class="bento-card">
+        <div class="bento-header">
+          <span class="bento-kicker">Category Breakdown</span>
+        </div>
+
+        <div class="hairline-list">
+          <div style="padding: 6px 0;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:500;">
+              <span>🍽 Food & Dining</span>
+              <span style="font-family:var(--font-mono);">$420.00 (35%)</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width: 35%; background:#3B82F6;"></div></div>
+          </div>
+          <div style="padding: 6px 0;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:500;">
+              <span>🚕 Transport</span>
+              <span style="font-family:var(--font-mono);">$210.00 (18%)</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width: 18%; background:#10B981;"></div></div>
+          </div>
+          <div style="padding: 6px 0;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:500;">
+              <span>⚡ Bills & Utilities</span>
+              <span style="font-family:var(--font-mono);">$180.00 (15%)</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width: 15%; background:#F59E0B;"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN 4: GROUPED SETTINGS -->
+    <div id="screen-settings" class="screen-content">
+      <!-- Profile Card -->
+      <div class="bento-card" style="display:flex; align-items:center; gap:12px; padding:14px;">
+        <div style="width:40px; height:40px; border-radius:50%; background:var(--bg-subtle); border:1px solid var(--border-default); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:14px; color:var(--text-primary);">
+          AB
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:14px; font-weight:600; color:var(--text-primary);">Absal Bakarkhan</div>
+          <div style="font-size:11px; color:var(--text-muted);">Personal Tier · Primary USD</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="1.5"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+
+      <!-- Group 1: Configuration -->
+      <div class="bento-kicker" style="margin-top:4px;">Configuration</div>
+      <div class="grouped-menu">
+        <div class="grouped-item">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="1.5"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>
+            <span>Budgets & Categories</span>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="1.5"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+
+        <div class="grouped-item">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="1.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span>Currency & Format</span>
+          </div>
+          <span style="font-size:12px; color:var(--text-muted); font-family:var(--font-mono);">USD ($)</span>
+        </div>
+
+        <div class="grouped-item">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="1.5"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Privacy Masking Mode</span>
+          </div>
+          <div class="toggle-pill"><div class="toggle-knob"></div></div>
+        </div>
+      </div>
+
+      <!-- Group 2: Data & Storage -->
+      <div class="bento-kicker" style="margin-top:4px;">Data & Backup</div>
+      <div class="grouped-menu">
+        <div class="grouped-item">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            <span>Export CSV Ledger</span>
+          </div>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#71717A" stroke-width="1.5"><path d="m9 18 6-6-6-6"/></svg>
+        </div>
+
+        <div class="grouped-item">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="1.5"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            <span>Cloud Backup & Sync</span>
+          </div>
+          <span style="font-size:11px; color:var(--status-success-fg); font-weight:500;">Synced</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Docked Bottom Navigation Bar -->
+    <div class="docked-nav">
+      <button class="nav-item is-active" id="nav-dashboard" onclick="switchScreen('dashboard')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+        <span>Home</span>
+      </button>
+
+      <button class="nav-item" id="nav-ledger" onclick="switchScreen('ledger')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+        <span>Ledger</span>
+      </button>
+
+      <button class="nav-fab" title="Quick Add">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+      </button>
+
+      <button class="nav-item" id="nav-analytics" onclick="switchScreen('analytics')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+        <span>Analytics</span>
+      </button>
+
+      <button class="nav-item" id="nav-settings" onclick="switchScreen('settings')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        <span>Menu</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function switchScreen(screenId) {
+      // Hide all screens
+      document.querySelectorAll('.screen-content').forEach(el => el.classList.remove('is-active'));
+      document.querySelectorAll('.screen-tab').forEach(el => el.classList.remove('is-active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('is-active'));
+
+      // Show targeted screen
+      const target = document.getElementById('screen-' + screenId);
+      if (target) target.classList.add('is-active');
+
+      // Update tabs
+      const tabs = document.querySelectorAll('.screen-tab');
+      if (screenId === 'dashboard') tabs[0].classList.add('is-active');
+      if (screenId === 'ledger') tabs[1].classList.add('is-active');
+      if (screenId === 'analytics') tabs[2].classList.add('is-active');
+      if (screenId === 'settings') tabs[3].classList.add('is-active');
+
+      // Update nav item
+      const navItem = document.getElementById('nav-' + screenId);
+      if (navItem) navItem.classList.add('is-active');
+    }
+  </script>
+</body>
+</html>

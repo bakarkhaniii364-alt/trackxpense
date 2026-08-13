@@ -247,3 +247,17 @@ export const clearAppData = async (): Promise<void> => {
     console.error("DB Clear Error:", error);
   }
 };
+
+export const wipeAllSiteData = async (): Promise<void> => {
+  try {
+    await clearAppData();
+  } catch (e) {}
+  try {
+    localStorage.clear();
+  } catch (e) {}
+  try {
+    sessionStorage.clear();
+  } catch (e) {}
+  window.location.reload();
+};
+

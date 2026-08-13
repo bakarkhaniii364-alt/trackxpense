@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Eye, EyeOff, TrendingUp } from 'lucide-react';
 import { AppData, TransactionType, Wallet } from '../../types';
+import { Haptics } from '../../services/haptics';
 
 interface BalanceHeroProps {
     balance: number;
@@ -14,6 +15,7 @@ interface BalanceHeroProps {
     formatMoney: (val: number, sym: string) => string;
     onAddTransactionRequest: (type: TransactionType) => void;
     refreshing: boolean;
+    className?: string;
 }
 
 export const BalanceHero: React.FC<BalanceHeroProps> = ({
@@ -27,20 +29,33 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
     updateData,
     formatMoney,
     onAddTransactionRequest,
-    refreshing
+    refreshing,
+    className
 }) => {
     const walletSymbol = currentWallet?.currency || data.settings.currencySymbol;
+    const lastTapRef = useRef<number>(0);
 
-    const handleDoubleTap = (e: React.MouseEvent) => {
-        if (e.detail === 2) {
-            updateData({ settings: { ...data.settings, privacyMode: !data.settings.privacyMode } });
+    const togglePrivacy = () => {
+        Haptics.light();
+        updateData({ settings: { ...data.settings, privacyMode: !data.settings.privacyMode } });
+    };
+
+    const handleCardClick = (e: React.MouseEvent) => {
+        const now = Date.now();
+        if (now - lastTapRef.current < 350) {
+            // Double click / double tap detected
+            togglePrivacy();
+            lastTapRef.current = 0;
+        } else {
+            lastTapRef.current = now;
         }
     };
 
     return (
         <div 
-            onDoubleClick={() => updateData({ settings: { ...data.settings, privacyMode: !data.settings.privacyMode } })} 
-            className="relative w-full max-w-[440px] aspect-[1.58/1] p-5 lg:p-6 rounded-[18px] bg-gradient-to-br from-[#24252a] via-[#16171a] to-[#0f1012] border-t border-l border-white/20 border-b border-r border-black/80 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6),0_12px_32px_rgba(0,0,0,0.6)] transition-all select-none cursor-pointer group flex flex-col justify-between overflow-hidden text-[var(--text-primary)] shrink-0 active:scale-[0.995]"
+            onClick={handleCardClick}
+            onDoubleClick={togglePrivacy} 
+            className={`relative w-full h-full min-h-[175px] sm:min-h-[200px] p-4 sm:p-5 lg:p-6 rounded-[14px] sm:rounded-[18px] bg-gradient-to-br from-[#24252a] via-[#16171a] to-[#0f1012] border-t border-l border-white/20 border-b border-r border-black/80 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6),0_12px_32px_rgba(0,0,0,0.6)] transition-all select-none cursor-pointer group flex flex-col justify-between overflow-hidden text-[var(--text-primary)] active:scale-[0.995] ${className || ''}`}
         >
             {/* Metallic Sheen Overlay */}
             <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.01)_45%,rgba(0,0,0,0.4)_100%)] pointer-events-none z-0" />

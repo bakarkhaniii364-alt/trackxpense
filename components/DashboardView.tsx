@@ -1,17 +1,18 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { RotateCw, Activity } from 'lucide-react';
+import { RotateCw, Plus } from 'lucide-react';
 import { Transaction, TransactionType, AppData, Wallet, Category } from '../types';
 import { PredictiveEngine } from '../services/PredictiveEngine';
 import { BalanceHero } from './dashboard/BalanceHero';
-import { QuickActions } from './dashboard/QuickActions';
 import { DailyBudget } from './dashboard/DailyBudget';
-import { LocalAdvisor } from './dashboard/LocalAdvisor';
 import { DashboardAnalytics } from './dashboard/DashboardAnalytics';
+import { FinancialHealthScore } from './dashboard/WorkstationWidgets';
+import { StreakDisplay } from './dashboard/StreakDisplay';
+import { LocalAdvisor } from './dashboard/LocalAdvisor';
 import { BudgetAlerts } from './dashboard/BudgetAlerts';
 import { GoalSummary } from './dashboard/GoalSummary';
-import { RecentLedger } from './dashboard/RecentLedger';
+import { QuickActions } from './dashboard/QuickActions';
 import { TemplatePresets } from './dashboard/TemplatePresets';
-import { StreakDisplay } from './dashboard/StreakDisplay';
+import { RecentLedger } from './dashboard/RecentLedger';
 import { Haptics } from '../services/haptics';
 
 interface DashboardProps {
@@ -31,6 +32,8 @@ export const DashboardView: React.FC<DashboardProps> = ({
     const pullStart = useRef<number>(0);
     const pullRef = useRef<HTMLDivElement>(null);
     const thresholdTriggered = useRef<boolean>(false);
+
+    const currency = data.settings.currencySymbol;
 
     const walletTransactions = useMemo(() => 
         data.transactions.filter((t: Transaction) => {
@@ -92,7 +95,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
     }, [walletTransactions]);
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const monthStr = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const monthStr = new Date().toISOString().slice(0, 7);
     
     const spentTodayByCategory = walletTransactions
         .filter(t => t.type === TransactionType.EXPENSE && t.date.startsWith(todayStr))
@@ -108,7 +111,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
             const spent = normalized.period === 'DAILY' ? (spentTodayByCategory[cat] || 0) : (spentMonthByCategory[cat] || 0);
             return { cat, limit: normalized.limit, period: normalized.period, spent };
         })
-        .filter((b: any) => b.limit > 0 && b.spent > b.limit * 0.7) // Alert at 70%
+        .filter((b: any) => b.limit > 0 && b.spent > b.limit * 0.7)
         .sort((a: any, b: any) => (b.spent/b.limit) - (a.spent/a.limit));
 
     const goalWallets = data.wallets.filter((w: Wallet) => w.type === 'GOAL');
@@ -132,7 +135,6 @@ export const DashboardView: React.FC<DashboardProps> = ({
             const opacity = Math.min(diff / 100, 1);
             pullRef.current.style.opacity = `${opacity}`;
             
-            // Premium haptic touch feedback when crossing pull threshold
             if (opacity > 0.6 && !thresholdTriggered.current) {
                 Haptics.light();
                 thresholdTriggered.current = true;
@@ -153,7 +155,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
             setTimeout(() => {
                 setRefreshing(false);
                 if (pullRef.current) { pullRef.current.style.transform = 'translateY(0px)'; pullRef.current.style.opacity = '0'; }
-            }, 1500);
+            }, 1200);
         } else {
             pullRef.current.style.transform = 'translateY(0px)';
             pullRef.current.style.opacity = '0';
@@ -163,58 +165,108 @@ export const DashboardView: React.FC<DashboardProps> = ({
     };
 
     return (
-      <div className="flex flex-col gap-5 mt-0 relative min-h-full pb-8" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+        <div className="flex flex-col gap-4 lg:gap-5 mt-0 relative min-h-full pb-8" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
             <div ref={pullRef} className="absolute top-0 left-0 w-full flex justify-center -mt-10 pointer-events-none z-0 opacity-0">
-                <div className={`p-2.5 rounded-full bg-surface shadow-xl border border-white/10 ${refreshing ? 'animate-spin' : ''}`}><RotateCw size={18} className="text-primary" /></div>
-            </div>
-
-            {/* Level 1: Primary Metrics */}
-            <BalanceHero balance={balance} adjustedBalance={adjustedBalance} totalIncome={totalIncome} totalExpense={totalExpense} goalProgress={goalProgress} currentWallet={currentWallet} data={data} updateData={updateData} formatMoney={formatMoney} onAddTransactionRequest={onAddTransactionRequest} refreshing={refreshing} />
-
-            {/* Level 2: Behavioral & Budget Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <StreakDisplay data={data} />
-                <DailyBudget dailySpent={dailySpent} dailyLimit={dailyLimit} dailyProgress={dailyProgress} isOverBudget={isOverBudget} data={data} updateData={updateData} formatMoney={formatMoney} />
-            </div>
-
-            {/* Level 3: AI Advisor (Full Width) */}
-            <LocalAdvisor data={data} formatMoney={formatMoney} />
-
-            {/* Level 4: Future & Rapid Actions Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {futureLiability > 0 && (
-                    <div className="liquid-glass p-6 rounded-[32px] border-amber-500/20 bg-amber-500/5 flex flex-col justify-between min-h-[140px]">
-                        <div className="flex items-center justify-between">
-                            <h4 className="text-[9px] font-black text-amber-500 uppercase tracking-widest">30-Day Outlook</h4>
-                            <Activity size={14} className="text-amber-500" />
-                        </div>
-                        <div className="flex items-end justify-between">
-                            <div>
-                                <p className="text-2xl font-black text-main leading-none">{formatMoney(futureLiability, data.settings.currencySymbol)}</p>
-                                <p className="text-[8px] text-muted font-bold uppercase tracking-widest mt-2">Scheduled Expenses</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] font-black text-amber-200">{Math.round((futureLiability / (balance || 1)) * 100)}%</p>
-                                <p className="text-[7px] text-muted font-black uppercase tracking-widest">Impact</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                <div className={futureLiability > 0 ? "" : "col-span-full"}>
-                    <TemplatePresets data={data} onAddTransactionRequest={onAddTransactionRequest} onDeleteTemplate={onDeleteTemplate} />
+                <div className={`p-2.5 rounded-full bg-[var(--bg-surface)] shadow-xl border border-[var(--border-default)] ${refreshing ? 'animate-spin' : ''}`}>
+                    <RotateCw size={16} className="text-[var(--text-primary)]" />
                 </div>
             </div>
 
-            {/* Level 5: Analytics & Goals */}
-            <div className="space-y-5">
-                <DashboardAnalytics chartData={chartData} data={data} walletTransactions={walletTransactions} totalExpense={totalExpense} formatMoney={formatMoney} />
-                {budgetAlerts.length > 0 && <BudgetAlerts budgetAlerts={budgetAlerts} data={data} formatMoney={formatMoney} />}
-                <QuickActions quickActions={quickActions} data={data} onAddTransactionRequest={onAddTransactionRequest} />
-                <GoalSummary goalWallets={goalWallets} currentWallet={currentWallet} data={data} updateData={updateData} />
+            {/* Level 1: Primary Balance Hero */}
+            <BalanceHero 
+                balance={balance} 
+                adjustedBalance={adjustedBalance} 
+                totalIncome={totalIncome} 
+                totalExpense={totalExpense} 
+                goalProgress={goalProgress} 
+                currentWallet={currentWallet} 
+                data={data} 
+                updateData={updateData} 
+                formatMoney={formatMoney} 
+                onAddTransactionRequest={onAddTransactionRequest} 
+                refreshing={refreshing} 
+            />
+
+            {/* Level 2: Budget Alerts (if any breached) */}
+            {budgetAlerts.length > 0 && (
+                <BudgetAlerts budgetAlerts={budgetAlerts} data={data} formatMoney={formatMoney} />
+            )}
+
+            {/* Level 3: 2-Column Compact Bento Grid (4 Core KPIs) */}
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
+                {/* 1. Daily Budget */}
+                <DailyBudget 
+                    dailySpent={dailySpent} 
+                    dailyLimit={dailyLimit} 
+                    dailyProgress={dailyProgress} 
+                    isOverBudget={isOverBudget} 
+                    data={data} 
+                    updateData={updateData} 
+                    formatMoney={formatMoney} 
+                />
+
+                {/* 2. Stability Score */}
+                <FinancialHealthScore data={data} />
+
+                {/* 3. 30-Day Outlook */}
+                <div className="rounded-[12px] sm:rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-3.5 sm:p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] truncate">
+                                Outlook
+                            </span>
+                            <span className="text-[10px] font-medium text-[var(--text-muted)] font-mono">
+                                {runwayDays}d runway
+                            </span>
+                        </div>
+
+                        <div className="mb-2">
+                            <div className="text-base sm:text-xl lg:text-2xl font-semibold text-[var(--text-primary)] tracking-tight font-mono">
+                                {formatMoney(futureLiability, currency)}
+                            </div>
+                            <div className="text-[11px] text-[var(--text-secondary)] mt-0.5 truncate">
+                                30d scheduled bills
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden mb-2">
+                            <div 
+                                className="h-full bg-[var(--status-warning-fg)] rounded-full transition-all duration-700" 
+                                style={{ width: `${Math.min(100, balance > 0 ? (futureLiability / balance) * 100 : 0)}%` }} 
+                            />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
+                            <span>Impact</span>
+                            <span className="font-mono text-[var(--text-primary)] font-medium">
+                                {balance > 0 ? Math.round((futureLiability / balance) * 100) : 0}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 4. Consistency Streaks */}
+                <StreakDisplay data={data} />
             </div>
 
-            {/* Level 6: Ledger */}
-            <RecentLedger walletTransactions={walletTransactions} data={data} setView={setView} onEditTransaction={onEditTransaction} formatMoney={formatMoney} />
-      </div>
+            {/* Level 4: 1-Tap Quick Action Entry Grid */}
+            <QuickActions quickActions={quickActions} data={data} onAddTransactionRequest={onAddTransactionRequest} />
+
+            {/* Level 5: Goal Summary (if user is on or has a goal wallet) */}
+            {currentWallet?.type === 'GOAL' && (
+                <GoalSummary goalWallets={goalWallets} currentWallet={currentWallet} data={data} updateData={updateData} />
+            )}
+
+            {/* Level 6: Recent Transactions Ledger */}
+            <RecentLedger 
+                walletTransactions={walletTransactions} 
+                data={data} 
+                updateData={updateData}
+                setView={setView} 
+                onEditTransaction={onEditTransaction} 
+                formatMoney={formatMoney} 
+            />
+        </div>
     );
 };

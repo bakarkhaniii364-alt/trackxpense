@@ -6,7 +6,8 @@ export type RabbAiAction =
   | { type: 'ADD_CATEGORY'; payload: { name: string; categoryType: string }; executed?: boolean }
   | { type: 'DELETE_CATEGORY'; payload: { name: string }; executed?: boolean }
   | { type: 'MERGE_CATEGORY'; payload: { from: string; into: string }; executed?: boolean }
-  | { type: 'EXPORT_CSV'; payload: Record<string, never>; executed?: boolean };
+  | { type: 'EXPORT_CSV'; payload: Record<string, never>; executed?: boolean }
+  | { type: 'DELETE_ALL_DATA'; payload: { userName?: string }; executed?: boolean };
 
 export interface RabbAiMessage {
   id: string;
@@ -56,14 +57,14 @@ export function loadRabbAiConversations(): RabbAiConversation[] {
   // Initial default conversation
   const initialThread: RabbAiConversation = {
     id: `conv_${Date.now()}`,
-    title: 'Financial Coaching & Receipts',
+    title: 'Assistant',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     messages: [
       {
         id: `msg_${Date.now()}`,
         sender: 'rabbai',
-        text: 'Beloved goy! I am RabbAi, your personal AI financial assistant. Ask me anything about your balance, or snap/upload a receipt photo for instant OCR logging.',
+        text: 'I can log expenses, scan receipts, and answer questions about your balance. What do you need?',
         timestamp: new Date().toISOString()
       }
     ]
@@ -101,18 +102,20 @@ export async function sendRabbAiTextMessage(
   const wallets = (data.wallets || []).map(w => w.name).join(', ');
   const curr = data.settings.currencySymbol || '$';
 
-  const systemPrompt = `You are RabbAi, a focused financial assistant embedded in TrackXpense.
-User Financial Summary:
-- Balance: ${curr}${balance} | Income: ${curr}${income} | Expenses: ${curr}${expense}
+  const systemPrompt = `You are RabbAi, a minimalist and precise financial assistant in TrackXpense.
+Be concise, direct, and factual. Do not use emojis, do not overexplain, and avoid unnecessary conversational filler.
+
+Financial Data:
+- User: ${data.profile?.name || 'User'}
+- Balance: ${curr}${balance.toFixed(2)} | Inflows: ${curr}${income.toFixed(2)} | Outflows: ${curr}${expense.toFixed(2)}
 - Wallets: ${wallets}
 - Categories: ${categories}
 
-## What you ARE permitted to do
-You may perform ONLY the following 7 actions by returning a JSON block:
+## Permitted Actions (Return JSON block when requested):
 
-1. Log a transaction ("I spent 45 on food", "earned 200"):
+1. Log a transaction ("Spent 45 on food", "Earned 200 freelance"):
 \`\`\`json
-{ "action": "ADD_TRANSACTION", "amount": 45, "category": "Groceries", "description": "Groceries", "type": "EXPENSE" }
+{ "action": "ADD_TRANSACTION", "amount": 45, "category": "Food", "description": "Food", "type": "EXPENSE" }
 \`\`\`
 
 2. Add a wallet:
@@ -127,45 +130,37 @@ You may perform ONLY the following 7 actions by returning a JSON block:
 
 4. Add a category:
 \`\`\`json
-{ "action": "ADD_CATEGORY", "name": "Gym", "categoryType": "EXPENSE" }
+{ "action": "ADD_CATEGORY", "name": "Fitness", "categoryType": "EXPENSE" }
 \`\`\`
 
 5. Delete a category:
 \`\`\`json
-{ "action": "DELETE_CATEGORY", "name": "Gym" }
+{ "action": "DELETE_CATEGORY", "name": "Fitness" }
 \`\`\`
 
-6. Merge two categories:
+6. Merge categories:
 \`\`\`json
-{ "action": "MERGE_CATEGORY", "from": "Coffee", "into": "Food" }
+{ "action": "MERGE_CATEGORY", "from": "OldCat", "into": "NewCat" }
 \`\`\`
 
-7. Export transaction history as CSV (user says "export", "download my transactions", "give me a CSV"):
+7. Export CSV:
 \`\`\`json
 { "action": "EXPORT_CSV" }
 \`\`\`
 
-## What you are NOT permitted to do — guide instead
-For ANYTHING outside the 7 actions above, politely decline and give the user the specific path in the app to do it themselves. Say clearly that you do not have permission to make that change. Use this navigation map:
+8. Delete all site data:
+\`\`\`json
+{ "action": "DELETE_ALL_DATA" }
+\`\`\`
 
-- Change name / profile → "Go to Sidebar → Identity Control"
-- Change monthly budget or daily limit → "Go to Sidebar → Identity Control, then edit Monthly Threshold or Daily Ceiling"
-- Edit or delete a specific existing transaction → "Go to Transactions & Ledger (history view) and tap the transaction to edit or swipe to delete"
-- Change currency symbol → "Go to Identity Control → Settings and update Currency Symbol"
-- Change app theme / appearance → "Go to Settings → Appearance"
-- Toggle privacy mode → "Tap the Fingerprint icon in the bottom nav or use the Command Palette (Ctrl+K)"
-- View analytics / charts → "Navigate to Financial Analytics in the sidebar"
-- Manage subscriptions → "Navigate to Subscriptions & Recurring in the sidebar"
-- Manage upcoming bills → "Navigate to Upcoming Bills & Provisions in the sidebar"
-- Manage debts / loans → "Navigate to Debts & Loans in the sidebar"
-- Manage budgets → "Navigate to Budgets & Categories (Control) in the sidebar"
-- Anything else not listed → Decline politely, say you do not have permission, and name the most relevant section.
+## Navigation Guidance (When asking for other app features):
+Keep it to 1 sentence pointing to the screen:
+- Identity / Budgets → Sidebar → Identity Control
+- Subscriptions → Menu → Subscriptions
+- Upcoming Bills → Menu → Upcoming Expenses
+- Debts → Debts tab in bottom nav
 
-## Rules
-- ONLY include a JSON block when the user is clearly requesting one of the 7 permitted actions.
-- If the user denies/cancels ("I didn't spend..."), do NOT include a JSON block.
-- Keep replies concise. When declining, always name the exact screen the user should navigate to.
-- Never promise capabilities you do not have.`;
+Keep all responses under 2-3 concise sentences. Never use emojis.`;
 
 
   // Context Poisoning Prevention: filter history turns to avoid sending failed/refusal error texts back to API
@@ -247,6 +242,8 @@ For ANYTHING outside the 7 actions above, politely decline and give the user the
               aiAction = { type: 'MERGE_CATEGORY', payload: { from: parsed.from, into: parsed.into } };
             } else if (act === 'EXPORT_CSV') {
               aiAction = { type: 'EXPORT_CSV', payload: {} };
+            } else if (act === 'DELETE_ALL_DATA') {
+              aiAction = { type: 'DELETE_ALL_DATA', payload: { userName: data.profile?.name || 'User' } };
             } else if (!act && typeof parsed.amount === 'number' && parsed.amount > 0) {
               // Legacy format without action field
               extracted = {

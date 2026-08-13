@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Download, Search, X, FileText, Calendar as CalendarIcon, PieChart, Shuffle, Trash2, ArrowUp, ArrowDown, SlidersHorizontal } from 'lucide-react';
 import { Transaction, TransactionType, AppData, CategoryItem } from '../types';
 import { CategoryIcon } from './shared/CategoryIcon';
@@ -126,82 +127,141 @@ export const HistoryView: React.FC<HistoryProps> = ({ data, updateData, onReques
            <div className="sticky top-0 z-20 bg-[rgb(var(--bg-core))] pb-3 pt-4 border-b border-main/10 mb-4 md:static md:bg-transparent md:border-b-0 md:pt-4 md:mb-6">
                <div className="flex justify-between items-end mb-4 px-1">
                      <div>
-                         <h2 className="text-xl lg:text-3xl font-bold text-main tracking-tight">Transaction History</h2>
-                         <p className="text-[10px] text-muted/40 font-black uppercase tracking-[0.2em] mt-1">View and filter your transactions</p>
+                         <h2 className="text-xl lg:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">Transaction History</h2>
+                         <p className="text-xs text-[var(--text-secondary)] mt-0.5">Filter, search, and inspect your unified ledger.</p>
                      </div>
-                     <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2.5 bg-main/5 rounded-md text-muted/60 hover:text-main border border-main/10 active:scale-95 transition-all font-black text-[9px] uppercase tracking-[0.2em]"><Download size={14}/> <span className="hidden sm:inline">Export CSV</span></button>
+                     <button 
+                         onClick={exportCSV} 
+                         className="btn btn--outline h-[30px] px-3 text-[12px] flex items-center gap-1.5"
+                     >
+                         <Download size={14} strokeWidth={1.5} /> 
+                         <span className="hidden sm:inline">Export CSV</span>
+                     </button>
                </div>
 
-               <div className="liquid-glass p-3 lg:p-4 rounded-md shadow-xl space-y-4">
-                  {isMobile ? (
-                      <div className="flex gap-2">
-                          <div className="flex-1 flex items-center gap-2.5 bg-main/5 rounded-md px-3 py-2.5 border border-main/10 group focus-within:border-primary/40 transition-colors">
-                              <Search size={14} className="text-muted/40 group-focus-within:text-primary transition-colors"/>
-                              <input type="text" placeholder="Search..." value={searchTerm} onChange={e => { setSearchTerm(e.target.value); }} className="bg-transparent text-[11px] font-bold text-main w-full outline-none placeholder:text-muted/20" />
-                              {searchTerm && <button onClick={() => setSearchTerm('')} className="text-muted/40 hover:text-main"><X size={12} /></button>}
+               <div className="bg-[var(--bg-surface)] p-3 lg:p-4 rounded-[10px] border border-[var(--border-default)] space-y-3">
+                  {/* Search Bar + Filters */}
+                  <div className="flex flex-col md:flex-row gap-2.5">
+                      <div className="flex-1 flex items-center gap-2.5 bg-[var(--bg-subtle)] rounded-[8px] px-3.5 py-2 border border-[var(--border-default)] focus-within:border-[#2563EB] transition-colors">
+                          <Search size={14} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+                          <input 
+                              type="text" 
+                              placeholder="Search transactions, notes, tags..." 
+                              value={searchTerm} 
+                              onChange={e => { setSearchTerm(e.target.value); }} 
+                              className="bg-transparent text-[13px] text-[var(--text-primary)] w-full outline-none placeholder:text-[var(--text-muted)]" 
+                          />
+                          {searchTerm && (
+                              <button onClick={() => setSearchTerm('')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                                  <X size={13} />
+                              </button>
+                          )}
+                      </div>
+
+                      {isMobile ? (
+                          <div className="flex items-center gap-2">
+                              <button 
+                                  onClick={() => {
+                                      Haptics.light();
+                                      setIsFilterDrawerOpen(true);
+                                  }} 
+                                  className={`btn btn--sm flex-1 flex items-center justify-center gap-1.5 h-[34px] ${
+                                      activeFilterCount > 0 
+                                          ? 'btn--primary' 
+                                          : 'btn--outline'
+                                  }`}
+                              >
+                                  <SlidersHorizontal size={14} strokeWidth={1.5} />
+                                  <span>Filters</span>
+                                  {activeFilterCount > 0 && (
+                                      <span className="w-4 h-4 rounded-full bg-white text-black text-[9px] flex items-center justify-center font-bold">
+                                          {activeFilterCount}
+                                      </span>
+                                  )}
+                              </button>
                           </div>
+                      ) : (
+                          <div className="flex gap-2">
+                              <div className="relative flex-1 md:w-36"><CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"/><input type="date" value={dateRange.start} className="bg-[var(--bg-subtle)] text-[var(--text-primary)] text-[12px] rounded-[8px] pl-8 pr-2.5 py-2 w-full outline-none border border-[var(--border-default)] focus:border-[#2563EB]" onChange={e => setDateRange(prev => ({...prev, start: e.target.value}))}/></div>
+                              <div className="relative flex-1 md:w-36"><CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"/><input type="date" value={dateRange.end} className="bg-[var(--bg-subtle)] text-[var(--text-primary)] text-[12px] rounded-[8px] pl-8 pr-2.5 py-2 w-full outline-none border border-[var(--border-default)] focus:border-[#2563EB]" onChange={e => setDateRange(prev => ({...prev, end: e.target.value}))}/></div>
+                          </div>
+                      )}
+                  </div>
+
+                  {/* Horizontal Filter Chips */}
+                  <div className="flex gap-1.5 overflow-x-auto no-scrollbar pt-0.5 pb-0.5">
+                      <button
+                          onClick={() => { Haptics.light(); setSearchTerm(''); setDateRange({start: '', end: ''}); }}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap border transition-all ${
+                              !searchTerm && !dateRange.start && !dateRange.end
+                                  ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)] font-semibold'
+                                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'
+                          }`}
+                      >
+                          All
+                      </button>
+                      <button
+                          onClick={() => { Haptics.light(); setSearchTerm(searchTerm === '#expense' ? '' : '#expense'); }}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap border transition-all ${
+                              searchTerm === '#expense'
+                                  ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)] font-semibold'
+                                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'
+                          }`}
+                      >
+                          Expenses
+                      </button>
+                      <button
+                          onClick={() => { Haptics.light(); setSearchTerm(searchTerm === '#income' ? '' : '#income'); }}
+                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap border transition-all ${
+                              searchTerm === '#income'
+                                  ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)] font-semibold'
+                                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'
+                          }`}
+                      >
+                          Income
+                      </button>
+                      {allTags.slice(0, 8).map(tag => (
                           <button 
-                              onClick={() => {
-                                  Haptics.light();
-                                  setIsFilterDrawerOpen(true);
-                              }} 
-                              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all border active:scale-95 ${
-                                  activeFilterCount > 0 
-                                      ? 'bg-primary/10 border-primary/30 text-primary shadow-lg shadow-primary/5' 
-                                      : 'bg-main/5 border-main/10 text-muted/85'
+                              key={tag} 
+                              onClick={() => { Haptics.light(); setSearchTerm(prev => prev === tag ? '' : tag); }} 
+                              className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap border transition-all ${
+                                  searchTerm === tag 
+                                      ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)] font-semibold' 
+                                      : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'
                               }`}
                           >
-                              <SlidersHorizontal size={14} />
-                              <span>Filters</span>
-                              {activeFilterCount > 0 && (
-                                  <span className="w-4.5 h-4.5 rounded-full bg-primary text-white text-[8px] flex items-center justify-center font-bold">
-                                      {activeFilterCount}
-                                  </span>
-                              )}
+                              {tag}
                           </button>
-                      </div>
-                  ) : (
-                      <>
-                          <div className="flex flex-col md:flex-row gap-3">
-                              <div className="flex-1 flex items-center gap-3 bg-main/5 rounded-md px-4 py-3 border border-main/10 group focus-within:border-primary/40 transition-colors">
-                                  <Search size={16} className="text-muted/40 group-focus-within:text-primary transition-colors"/>
-                                  <input type="text" placeholder="Search transactions..." value={searchTerm} onChange={e => { setSearchTerm(e.target.value); }} className="bg-transparent text-[11px] font-bold text-main w-full outline-none placeholder:text-muted/20" />
-                                  {searchTerm && <button onClick={() => setSearchTerm('')} className="text-muted/40 hover:text-main"><X size={14} /></button>}
-                              </div>
-                              <div className="flex gap-2">
-                                  <div className="relative flex-1 md:w-36"><CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted/40 pointer-events-none"/><input type="date" value={dateRange.start} className="bg-main/5 text-main text-[10px] font-bold rounded-md pl-9 pr-3 py-3 w-full outline-none border border-main/10 focus:border-primary/40 uppercase" onChange={e => setDateRange(prev => ({...prev, start: e.target.value}))}/></div>
-                                  <div className="relative flex-1 md:w-36"><CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted/40 pointer-events-none"/><input type="date" value={dateRange.end} className="bg-main/5 text-main text-[10px] font-bold rounded-md pl-9 pr-3 py-3 w-full outline-none border border-main/10 focus:border-primary/40 uppercase" onChange={e => setDateRange(prev => ({...prev, end: e.target.value}))}/></div>
-                              </div>
-                          </div>
-                      </>
-                  )}
+                      ))}
+                  </div>
 
-                   <div className="flex items-center justify-between gap-4">
-                       <div className="flex bg-[var(--bg-subtle)] p-1 rounded-[8px] border border-[var(--border-default)] w-full sm:w-auto overflow-x-auto no-scrollbar">
+                  {/* View Mode Tabs */}
+                  <div className="flex items-center justify-between gap-4 pt-1 border-t border-[var(--border-default)]/60">
+                       <div className="tabs w-full sm:w-auto overflow-x-auto no-scrollbar">
                            {[
                                { id: 'list', icon: FileText, label: 'List' },
                                { id: 'calendar', icon: CalendarIcon, label: 'Calendar' },
-                               { id: 'stats', icon: PieChart, label: 'Category Breakdown' },
+                               { id: 'stats', icon: PieChart, label: 'Breakdown' },
                                { id: 'flow', icon: Shuffle, label: 'Flow' }
                            ].map((mode: any) => (
-                               <button key={mode.id} onClick={() => { Haptics.light(); setViewMode(mode.id as any); }} className={`flex-1 sm:flex-none px-3 h-7 rounded-[6px] flex items-center justify-center gap-2 transition-colors text-[13px] whitespace-nowrap ${viewMode === mode.id ? 'bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)] font-normal hover:text-[var(--text-primary)]'}`}><mode.icon size={14} className="stroke-[1.5px]" /><span className="hidden sm:inline text-[13px] font-medium">{mode.label}</span></button>
+                               <button 
+                                   key={mode.id} 
+                                   onClick={() => { Haptics.light(); setViewMode(mode.id as any); }} 
+                                   className={`tab flex items-center gap-1.5 ${viewMode === mode.id ? 'is-active' : ''}`}
+                               >
+                                   <mode.icon size={13} strokeWidth={1.5} />
+                                   <span>{mode.label}</span>
+                               </button>
                            ))}
                        </div>
                        {!isMobile && viewMode === 'list' && filteredTransactions.length > 0 && (
-                           <div className="flex items-center gap-1.5 bg-[var(--bg-subtle)] p-1 rounded-[8px] border border-[var(--border-default)]">
-                                 <button onClick={() => { Haptics.light(); toggleSort('date'); }} className={`px-3 h-7 rounded-[6px] text-[11px] font-medium uppercase tracking-[0.06em] flex items-center gap-2 transition-colors ${sortKey === 'date' ? 'bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>Date {sortKey === 'date' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}</button>
-                                 <button onClick={() => { Haptics.light(); toggleSort('amount'); }} className={`px-3 h-7 rounded-[6px] text-[11px] font-medium uppercase tracking-[0.06em] flex items-center gap-2 transition-colors ${sortKey === 'amount' ? 'bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>Amount {sortKey === 'amount' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}</button>
+                           <div className="tabs">
+                                 <button onClick={() => { Haptics.light(); toggleSort('date'); }} className={`tab flex items-center gap-1 text-[11px] uppercase tracking-[0.06em] ${sortKey === 'date' ? 'is-active' : ''}`}>Date {sortKey === 'date' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}</button>
+                                 <button onClick={() => { Haptics.light(); toggleSort('amount'); }} className={`tab flex items-center gap-1 text-[11px] uppercase tracking-[0.06em] ${sortKey === 'amount' ? 'is-active' : ''}`}>Amount {sortKey === 'amount' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}</button>
                            </div>
                        )}
-                   </div>
-                   {!isMobile && allTags.length > 0 && (
-                       <div className="flex gap-2 overflow-x-auto no-scrollbar pt-1">
-                           {allTags.map(tag => (
-                               <button key={tag} onClick={() => { Haptics.light(); setSearchTerm(prev => prev === tag ? '' : tag); }} className={`px-3 py-1 rounded-full text-[12px] font-medium whitespace-nowrap border transition-colors ${searchTerm === tag ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)]' : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'}`}>{tag}</button>
-                           ))}
-                       </div>
-                   )}
-                </div>
+                  </div>
+               </div>
             </div>
 
             {viewMode === 'list' && (
@@ -214,28 +274,32 @@ export const HistoryView: React.FC<HistoryProps> = ({ data, updateData, onReques
                           description="Your transaction ledger is empty for this wallet. Seed pre-populated demo entries to explore cash flow, search, and analytics." 
                       />
                   ) : filteredTransactions.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-48 text-[var(--text-secondary)] border border-[var(--border-default)] rounded-[10px] bg-[var(--bg-surface)] p-6 text-center"><p className="text-[13px] font-normal">No transactions found matching your filters</p><button onClick={() => { Haptics.warning(); setSearchTerm(''); setDateRange({start: '', end: ''}); }} className="mt-3 text-[var(--text-primary)] text-[13px] font-medium hover:underline">Clear all filters</button></div>
+                      <div className="flex flex-col items-center justify-center h-48 text-[var(--text-secondary)] border border-[var(--border-default)] rounded-[10px] bg-[var(--bg-surface)] p-6 text-center">
+                          <p className="text-[13px] font-normal">No transactions found matching your filters</p>
+                          <button onClick={() => { Haptics.warning(); setSearchTerm(''); setDateRange({start: '', end: ''}); }} className="mt-3 text-[var(--text-primary)] text-[13px] font-medium hover:underline">
+                              Clear all filters
+                          </button>
+                      </div>
                   ) : (
                        <>
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-4">
+                       <div className="rounded-[12px] bg-[var(--bg-surface)] border border-[var(--border-default)] divide-y divide-[var(--border-default)] px-3.5 lg:px-5">
                        {paginatedTransactions.map((t: Transaction) => {
-                           const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
                            return (
-                               <div key={t.id} onClick={() => onEditTransaction(t)} className="p-3 lg:p-4 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-between group transition-colors cursor-pointer hover:border-[var(--border-active)]">
-                                   <div className="flex items-center gap-3 lg:gap-4">
-                                       <div className="h-8 w-8 rounded-[6px] bg-[var(--bg-subtle)] flex items-center justify-center border border-[var(--border-default)] text-[var(--text-muted)] shrink-0"><CategoryIcon category={t.category} size={isMobile ? 14 : 16} color={data.categories.find((c: CategoryItem) => c.name === t.category)?.color} /></div>
-                                       <div>
-                                           <p className="font-medium text-[var(--text-primary)] text-[13px] leading-tight flex items-center gap-2">
+                               <div key={t.id} onClick={() => onEditTransaction(t)} className="py-3 flex items-center justify-between group transition-colors cursor-pointer hover:bg-[var(--bg-surface-hover)] -mx-2 px-2 rounded-[6px]">
+                                   <div className="flex items-center gap-3 min-w-0">
+                                       <CategoryIcon category={t.category} size={16} strokeWidth={1.5} color={data.categories.find((c: CategoryItem) => c.name === t.category)?.color} />
+                                       <div className="min-w-0">
+                                           <p className="font-medium text-[var(--text-primary)] text-[13px] leading-tight flex items-center gap-2 truncate">
                                                <HighlightText text={t.note || t.category} highlight={searchTerm} />
-                                               {t.splits && <span className="px-1.5 py-0.5 bg-[var(--bg-subtle)] text-[var(--text-primary)] text-[10px] font-medium uppercase tracking-[0.06em] rounded border border-[var(--border-default)]">Split</span>}
+                                               {t.splits && <span className="px-1.5 py-0.5 bg-[var(--bg-subtle)] text-[var(--text-primary)] text-[9px] font-medium uppercase tracking-[0.06em] rounded border border-[var(--border-default)]">Split</span>}
                                            </p>
-                                           <p className="text-[10px] text-[var(--text-muted)] mt-1 font-medium uppercase tracking-[0.06em]">
+                                           <p className="text-[10px] text-[var(--text-muted)] mt-0.5 font-medium uppercase tracking-[0.06em]">
                                                {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} • <HighlightText text={t.category} highlight={searchTerm} />
                                            </p>
                                            {t.splits && (
-                                               <div className="mt-2 flex flex-wrap gap-1.5">
+                                               <div className="mt-1.5 flex flex-wrap gap-1">
                                                    {t.splits.map((s, i) => (
-                                                       <span key={i} className="text-[11px] font-mono text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-2 py-0.5 rounded border border-[var(--border-default)]">
+                                                       <span key={i} className="text-[10px] font-mono text-[var(--text-secondary)] bg-[var(--bg-subtle)] px-1.5 py-0.5 rounded border border-[var(--border-default)]">
                                                            <HighlightText text={s.category} highlight={searchTerm} />: {formatMoney(s.amount, data.settings.currencySymbol)}
                                                        </span>
                                                    ))}
@@ -243,9 +307,13 @@ export const HistoryView: React.FC<HistoryProps> = ({ data, updateData, onReques
                                            )}
                                        </div>
                                    </div>
-                                   <div className="flex items-center gap-3">
-                                       <span className={`font-mono font-medium text-[13px] ${t.type === TransactionType.INCOME ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-primary)]'}`}>{t.type === TransactionType.INCOME ? '+' : ''}{formatMoney(t.amount, data.settings.currencySymbol)}</span>
-                                       <button onClick={(e) => { e.stopPropagation(); Haptics.warning(); onRequestDelete(t.id); }} className="text-[var(--text-muted)] hover:text-[var(--status-error-fg)] p-1.5 rounded-[6px] hover:bg-[var(--status-error-bg)] transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"><Trash2 size={14} className="stroke-[1.5px]" /></button>
+                                   <div className="flex items-center gap-2.5 shrink-0 ml-3 text-right">
+                                       <span className={`font-mono font-medium text-[13px] ${t.type === TransactionType.INCOME ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-primary)]'}`}>
+                                           {t.type === TransactionType.INCOME ? '+' : '-'}{formatMoney(t.amount, data.settings.currencySymbol)}
+                                       </span>
+                                       <button onClick={(e) => { e.stopPropagation(); Haptics.warning(); onRequestDelete(t.id); }} className="text-[var(--text-muted)] hover:text-[var(--status-error-fg)] p-1 rounded-[4px] hover:bg-[var(--status-error-bg)] transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                           <Trash2 size={13} className="stroke-[1.5px]" />
+                                       </button>
                                    </div>
                                </div>
                            );
@@ -260,124 +328,124 @@ export const HistoryView: React.FC<HistoryProps> = ({ data, updateData, onReques
                      />
                       </>
                  )}
-               </div>
-           )}
+                </div>
+            )}
            {viewMode === 'calendar' && <div className="bg-surface/50 p-6 rounded-[40px] border border-main/10 shadow-xl"><CalendarView transactions={filteredTransactions} onSelectDate={(d) => { setSearchTerm(''); setDateRange({ start: d, end: d }); setViewMode('list'); }} /></div>}
            {viewMode === 'flow' && <div className="bg-surface/50 rounded-[40px] p-8 border border-main/10 shadow-xl animate-in fade-in"><h3 className="text-xl font-bold text-main mb-8 text-center tracking-tight">Cash Flow</h3><div className="max-w-xl mx-auto"><SankeyChart transactions={filteredTransactions} categories={data.categories} /></div></div>}
            {viewMode === 'stats' && <HistoryStats pieData={pieData} data={data} formatMoney={formatMoney} />}
+           {isMobile && isFilterDrawerOpen && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-end justify-center lg:hidden">
+                    <div className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity animate-in fade-in duration-150" onClick={() => setIsFilterDrawerOpen(false)}></div>
+                    <div className="relative bg-[var(--bg-surface)] border-t border-[var(--border-default)] w-full rounded-t-[20px] p-6 shadow-2xl animate-in slide-in-from-bottom duration-200 pb-[calc(1.5rem+env(safe-area-inset-bottom))] z-10 space-y-4">
+                        
+                        {/* Drag Handle */}
+                        <div className="w-10 h-1 bg-[var(--border-default)] rounded-full mx-auto shrink-0" />
+                        
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h3 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Filter Ledger</h3>
+                                <p className="text-[11px] text-[var(--text-muted)] font-mono mt-0.5">Refine your transactions list</p>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    Haptics.light();
+                                    setIsFilterDrawerOpen(false);
+                                }} 
+                                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
+                            >
+                                <X size={15} strokeWidth={1.5} />
+                            </button>
+                        </div>
 
-           {/* Mobile Drawer Sheet for Filters */}
-           {isMobile && isFilterDrawerOpen && (
-               <div className="fixed inset-0 z-[4000] flex items-end justify-center lg:hidden">
-                   <div className="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity animate-in fade-in duration-200" onClick={() => setIsFilterDrawerOpen(false)}></div>
-                   <div className="relative bg-[rgba(var(--bg-core),0.92)] backdrop-blur-xl w-full rounded-t-[32px] p-6 shadow-2xl border-t border-x border-main/10 animate-in slide-in-from-bottom duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] pb-[calc(1.5rem+env(safe-area-inset-bottom))] z-10">
-                       
-                       {/* Drag Handle */}
-                       <div className="w-12 h-1 bg-main/20 rounded-full mx-auto mb-6 shrink-0" />
-                       
-                       <div className="flex justify-between items-center mb-6">
-                           <div>
-                               <h3 className="text-lg font-bold text-main tracking-tight">Filter Ledger</h3>
-                               <p className="text-[9px] text-muted/40 font-black uppercase tracking-widest mt-0.5">Refine your transactions list</p>
-                           </div>
-                           <button 
-                               onClick={() => {
-                                   Haptics.light();
-                                   setIsFilterDrawerOpen(false);
-                               }} 
-                               className="p-2 bg-main/5 hover:bg-main/10 rounded-full text-muted active:scale-90 border border-main/10"
-                           >
-                               <X size={16} />
-                           </button>
-                       </div>
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto no-scrollbar">
+                            {/* Date range filters */}
+                            <div className="space-y-1.5">
+                                <label className="text-[12px] font-medium text-[var(--text-secondary)]">Date Range</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="relative">
+                                        <CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"/>
+                                        <input 
+                                            type="date" 
+                                            value={dateRange.start}
+                                            className="bg-[var(--bg-subtle)] text-[var(--text-primary)] text-[11px] font-medium rounded-[6px] pl-8 pr-2 py-2 w-full outline-none border border-[var(--border-default)] color-scheme-dark" 
+                                            onChange={e => {
+                                                Haptics.light();
+                                                setDateRange(prev => ({...prev, start: e.target.value}));
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"/>
+                                        <input 
+                                            type="date" 
+                                            value={dateRange.end}
+                                            className="bg-[var(--bg-subtle)] text-[var(--text-primary)] text-[11px] font-medium rounded-[6px] pl-8 pr-2 py-2 w-full outline-none border border-[var(--border-default)] color-scheme-dark" 
+                                            onChange={e => {
+                                                Haptics.light();
+                                                setDateRange(prev => ({...prev, end: e.target.value}));
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
 
-                       <div className="space-y-6 max-h-[60vh] overflow-y-auto no-scrollbar">
-                           {/* Date range filters */}
-                           <div className="space-y-2">
-                               <label className="text-[8px] font-black text-muted/50 uppercase tracking-[0.2em] ml-1">Date Range</label>
-                               <div className="grid grid-cols-2 gap-3">
-                                   <div className="relative">
-                                       <CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted/40 pointer-events-none"/>
-                                       <input 
-                                           type="date" 
-                                           value={dateRange.start}
-                                           className="bg-main/5 text-main text-[10px] font-bold rounded-md pl-9 pr-3 py-3 w-full outline-none border border-main/10 focus:border-primary/45 uppercase" 
-                                           onChange={e => {
-                                               Haptics.light();
-                                               setDateRange(prev => ({...prev, start: e.target.value}));
-                                           }}
-                                       />
-                                   </div>
-                                   <div className="relative">
-                                       <CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted/40 pointer-events-none"/>
-                                       <input 
-                                           type="date" 
-                                           value={dateRange.end}
-                                           className="bg-main/5 text-main text-[10px] font-bold rounded-md pl-9 pr-3 py-3 w-full outline-none border border-main/10 focus:border-primary/45 uppercase" 
-                                           onChange={e => {
-                                               Haptics.light();
-                                               setDateRange(prev => ({...prev, end: e.target.value}));
-                                           }}
-                                       />
-                                   </div>
-                               </div>
-                           </div>
 
-                           {/* Sort Option */}
-                           <div className="space-y-2">
-                               <label className="text-[8px] font-black text-muted/50 uppercase tracking-[0.2em] ml-1">Sort By</label>
-                               <div className="flex bg-main/5 p-1 rounded-md border border-main/10 font-bold">
-                                   <button 
-                                       onClick={() => { Haptics.light(); toggleSort('date'); }} 
-                                       className={`flex-1 py-2 rounded-md text-[9px] font-black uppercase tracking-[0.1em] flex items-center justify-center gap-1.5 transition-all ${sortKey === 'date' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted/60 hover:text-main'}`}
-                                   >
-                                       Date {sortKey === 'date' && (sortDirection === 'asc' ? <ArrowUp size={10}/> : <ArrowDown size={10}/>)}
-                                   </button>
-                                   <button 
-                                       onClick={() => { Haptics.light(); toggleSort('amount'); }} 
-                                       className={`flex-1 py-2 rounded-md text-[9px] font-black uppercase tracking-[0.1em] flex items-center justify-center gap-1.5 transition-all ${sortKey === 'amount' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-muted/60 hover:text-main'}`}
-                                   >
-                                       Amount {sortKey === 'amount' && (sortDirection === 'asc' ? <ArrowUp size={10}/> : <ArrowDown size={10}/>)}
-                                   </button>
-                               </div>
-                           </div>
+                            {/* Sort filter */}
+                            <div className="space-y-1.5">
+                                <label className="text-[12px] font-medium text-[var(--text-secondary)]">Sort By</label>
+                                <div className="tabs flex">
+                                     <button 
+                                         onClick={() => toggleSort('date')}
+                                         className={`tab flex-1 justify-center flex items-center gap-1 ${sortKey === 'date' ? 'is-active' : ''}`}
+                                     >
+                                         Date {sortKey === 'date' && (sortDirection === 'asc' ? <ArrowUp size={10}/> : <ArrowDown size={10}/>)}
+                                     </button>
+                                     <button 
+                                         onClick={() => toggleSort('amount')}
+                                         className={`tab flex-1 justify-center flex items-center gap-1 ${sortKey === 'amount' ? 'is-active' : ''}`}
+                                     >
+                                         Amount {sortKey === 'amount' && (sortDirection === 'asc' ? <ArrowUp size={10}/> : <ArrowDown size={10}/>)}
+                                     </button>
+                                 </div>
+                            </div>
 
-                           {/* Tags Option */}
-                           {allTags.length > 0 && (
-                               <div className="space-y-2">
-                                   <label className="text-[8px] font-black text-muted/50 uppercase tracking-[0.2em] ml-1">Tags</label>
-                                   <div className="flex flex-wrap gap-1.5">
-                                       {allTags.map(tag => (
-                                           <button 
-                                               key={tag} 
-                                               onClick={() => {
-                                                   Haptics.light();
-                                                   setSearchTerm(prev => prev === tag ? '' : tag);
-                                               }} 
-                                               className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${searchTerm === tag ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-main/5 text-muted border-main/10 hover:border-primary/30'}`}
-                                           >
-                                               {tag}
-                                           </button>
-                                       ))}
-                                   </div>
-                               </div>
-                           )}
+                            {/* Tags Option */}
+                            {allTags.length > 0 && (
+                                <div className="space-y-1.5">
+                                    <label className="text-[12px] font-medium text-[var(--text-secondary)]">Tags</label>
+                                    <div className="flex flex-wrap gap-1">
+                                        {allTags.map(tag => (
+                                            <button 
+                                                key={tag} 
+                                                onClick={() => {
+                                                    Haptics.light();
+                                                    setSearchTerm(prev => prev === tag ? '' : tag);
+                                                }} 
+                                                className={`px-2.5 py-1 rounded-[6px] text-[11px] font-medium border transition-all ${searchTerm === tag ? 'bg-[#2563EB] text-white border-[#2563EB]' : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)]'}`}
+                                            >
+                                                {tag}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
-                           {/* Clear all button */}
-                           <button 
-                               onClick={() => {
-                                   Haptics.warning();
-                                   setSearchTerm('');
-                                   setDateRange({start: '', end: ''});
-                                   setIsFilterDrawerOpen(false);
-                               }}
-                               className="w-full py-3.5 rounded-md bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 font-black text-[9px] uppercase tracking-[0.25em] border border-rose-500/20 active:scale-95 transition-all mt-4"
-                           >
-                               Clear Filters
-                           </button>
-                       </div>
-                   </div>
-               </div>
+                            {/* Clear all button */}
+                            <button 
+                                onClick={() => {
+                                    Haptics.warning();
+                                    setSearchTerm('');
+                                    setDateRange({start: '', end: ''});
+                                    setIsFilterDrawerOpen(false);
+                                }}
+                                className="btn btn--outline w-full h-[36px] text-[12px] mt-2"
+                            >
+                                Clear Filters
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
            )}
       </div>
     );

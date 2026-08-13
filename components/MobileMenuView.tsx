@@ -227,137 +227,105 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
             activeSubView === 'root' ? 'translate-x-0 opacity-100' : '-translate-x-12 opacity-0 pointer-events-none'
           }`}
         >
-          {/* Discord-style Profile Card */}
-          <div className="relative rounded-2xl bg-card/25 border border-main/5 overflow-hidden flex flex-col">
-            {/* Cover Gradient Banner */}
-            <div className="h-20 bg-gradient-to-r from-primary/80 via-purple-600/70 to-blue-600/50 relative overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.08),transparent_50%)]" />
-              <div className="absolute top-2.5 right-3 px-2 py-0.5 rounded-full bg-primary/20 border border-primary/30 text-[8px] font-black uppercase tracking-wider text-primary shadow-[0_0_8px_rgba(var(--color-primary),0.2)]">
-                {data.profile.isPremium ? 'Platinum Tier' : 'Personal Account'}
-              </div>
-            </div>
-
-            {/* Avatar & Profile Text */}
-            <div className="px-4 pb-3 flex flex-col items-start relative">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md border-4 border-[#09090b] relative -mt-8 shrink-0">
+          {/* Clean Technical Profile Card */}
+          <div className="rounded-[12px] bg-[var(--bg-surface)] border border-[var(--border-default)] p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-primary)] font-semibold text-sm shrink-0">
                 {data.profile.name ? data.profile.name.charAt(0).toUpperCase() : 'U'}
-                <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#09090b] shadow-sm animate-pulse" />
               </div>
-
-              <div className="mt-2 w-full flex items-center justify-between">
-                <div>
-                  <span className="text-sm font-bold text-main leading-none block">
-                    {data.profile.name || 'User'}
-                  </span>
-                  <span className="text-[10px] text-muted/60 mt-1 block font-medium">
-                    {data.profile.isPremium ? 'Premium Core Member' : 'Standard Tier'}
-                  </span>
-                </div>
-                <button
-                  onClick={() => {
-                    Haptics.light();
-                    setActiveSubView('profile');
-                  }}
-                  className="px-2.5 py-1 rounded-md bg-main/5 border border-main/5 text-[9px] font-bold text-muted hover:text-main active:scale-95 transition-all uppercase tracking-wider"
-                >
-                  Edit Profile
-                </button>
+              <div>
+                <h3 className="text-[14px] font-semibold text-[var(--text-primary)] leading-tight">
+                  {data.profile.name || 'User'}
+                </h3>
+                <span className="text-[11px] text-[var(--text-muted)] mt-0.5 block">
+                  {data.profile.isPremium ? 'Platinum Tier' : 'Personal Account'} · {walletSymbol}
+                </span>
               </div>
             </div>
+
+            <button
+              onClick={() => {
+                Haptics.light();
+                setActiveSubView('profile');
+              }}
+              className="btn btn--outline h-[30px] px-3 text-[11px] font-medium"
+            >
+              Edit Profile
+            </button>
           </div>
 
-          {/* Privacy Shield removed from settings */}
-
           {/* Quick Stats Grid */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
             {/* Wallet Balance Capsule */}
-            <div className="p-3.5 rounded-2xl bg-card/15 border border-main/5 flex flex-col justify-between h-18">
-              <div className="flex items-center gap-1.5 text-muted/50">
-                <WalletIcon size={12} className="text-primary" />
-                <span className="text-[9px] font-bold uppercase tracking-wider truncate">Active Wallet</span>
+            <div className="p-3 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex flex-col justify-between">
+              <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
+                <WalletIcon size={13} strokeWidth={1.5} className="text-[var(--accent-solid)]" />
+                <span className="text-[9px] font-semibold uppercase tracking-wider truncate">Active Wallet</span>
               </div>
-              <span className="text-sm font-black text-main tracking-tight mt-1 truncate">
+              <span className="text-sm font-semibold font-mono text-[var(--text-primary)] tracking-tight mt-1.5 truncate">
                 {data.settings.privacyMode ? '••••' : formatMoney(currentBalance, walletSymbol)}
               </span>
             </div>
 
             {/* Consistency Streak Capsule */}
-            <div className="p-3.5 rounded-2xl bg-card/15 border border-main/5 flex flex-col justify-between h-18">
-              <div className="flex items-center gap-1.5 text-muted/50">
-                <Flame size={12} className="text-orange-500 animate-pulse" />
-                <span className="text-[9px] font-bold uppercase tracking-wider truncate">Daily Streak</span>
+            <div className="p-3 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex flex-col justify-between">
+              <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
+                <Flame size={13} strokeWidth={1.5} className="text-amber-500" />
+                <span className="text-[9px] font-semibold uppercase tracking-wider truncate">Daily Streak</span>
               </div>
-              <span className="text-sm font-black text-main tracking-tight mt-1">
-                {maxStreak > 0 ? `${maxStreak} Day Streak` : 'No Streak Active'}
+              <span className="text-sm font-semibold font-mono text-[var(--text-primary)] tracking-tight mt-1.5">
+                {maxStreak > 0 ? `${maxStreak} Days` : '0 Days'}
               </span>
             </div>
           </div>
 
           {/* Group: Core Features */}
           <div className="space-y-1.5">
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted/40 px-1">Insights & Planning</p>
-            <div className="bg-card/20 border border-main/5 rounded-2xl overflow-hidden shadow-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)] px-1">Insights & Planning</p>
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] divide-y divide-[var(--border-default)] overflow-hidden">
               {[
                 {
                   id: 'analytics' as ViewState,
                   label: 'Analytics & Trends',
-                  desc: 'Spending breakdown & category charts',
+                  desc: 'Cash flow charts & spending breakdown',
                   icon: PieChart,
-                  color: 'text-blue-400',
-                  bg: 'bg-blue-400/10',
-                  border: 'border-blue-400/10',
                 },
                 {
                   id: 'provisions' as ViewState,
                   label: 'Upcoming Expenses',
                   desc: 'Plan and allocate future liabilities',
                   icon: Calendar,
-                  color: 'text-indigo-400',
-                  bg: 'bg-indigo-400/10',
-                  border: 'border-indigo-400/10',
                 },
                 {
                   id: 'subscriptions' as ViewState,
                   label: 'Subscriptions',
                   desc: 'Recurring automated cost tracking',
                   icon: Ghost,
-                  color: 'text-purple-400',
-                  bg: 'bg-purple-400/10',
-                  border: 'border-purple-400/10',
                 },
                 {
                   id: 'control' as ViewState,
                   label: 'Budgets & Categories',
                   desc: 'Set custom spending thresholds & caps',
                   icon: TrendingUp,
-                  color: 'text-emerald-400',
-                  bg: 'bg-emerald-400/10',
-                  border: 'border-emerald-400/10',
                 },
-              ].map(({ id, label, desc, icon: Icon, color, bg, border }) => {
+              ].map(({ id, label, desc, icon: Icon }) => {
                 const isActive = currentView === id;
                 return (
                   <button
                     key={id}
                     onClick={() => handleItemClick(id)}
-                    className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-main/5 active:bg-main/10 transition-colors text-left border-b last:border-b-0 border-main/5 group"
+                    className="w-full flex items-center justify-between py-3 px-3.5 hover:bg-[var(--bg-surface-hover)] active:bg-[var(--bg-subtle)] transition-colors text-left group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                          isActive ? bg : 'bg-main/5'
-                        } border ${isActive ? border : 'border-main/5'}`}
-                      >
-                        <Icon size={16} strokeWidth={2.0} className={isActive ? color : 'text-muted/70'} />
-                      </div>
+                      <Icon size={16} strokeWidth={1.5} className="text-[var(--text-secondary)] shrink-0" />
                       <div className="min-w-0">
-                        <p className={`text-xs font-semibold leading-tight ${isActive ? color : 'text-main/90'}`}>
+                        <p className={`text-[13px] font-medium leading-tight ${isActive ? 'text-[var(--accent-solid)]' : 'text-[var(--text-primary)]'}`}>
                           {label}
                         </p>
-                        <p className="text-[9px] text-muted/50 truncate mt-0.5 font-normal">{desc}</p>
+                        <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">{desc}</p>
                       </div>
                     </div>
-                    <ChevronRight size={14} className="text-muted/30 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0 group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 );
               })}
@@ -366,55 +334,40 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
 
           {/* Group: Configuration */}
           <div className="space-y-1.5">
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted/40 px-1">Settings & Config</p>
-            <div className="bg-card/20 border border-main/5 rounded-2xl overflow-hidden shadow-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)] px-1">Settings & Config</p>
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] divide-y divide-[var(--border-default)] overflow-hidden">
               {[
                 {
                   id: 'profile',
                   label: 'Profile Details',
-                  desc: 'Manage displayName and limits',
+                  desc: 'Manage display name and spending limits',
                   icon: UserCircle,
-                  color: 'text-amber-400',
-                  bg: 'bg-amber-400/10',
-                  border: 'border-amber-400/10',
                 },
                 {
                   id: 'appearance',
                   label: 'Appearance & Themes',
                   desc: 'Color accents, light & dark switcher',
                   icon: Palette,
-                  color: 'text-rose-400',
-                  bg: 'bg-rose-400/10',
-                  border: 'border-rose-400/10',
                 },
                 {
                   id: 'backup',
                   label: 'Data & Backups',
-                  desc: 'Export ledger CSV and import JSON',
+                  desc: 'Export ledger CSV and import JSON backup',
                   icon: Database,
-                  color: 'text-teal-400',
-                  bg: 'bg-teal-400/10',
-                  border: 'border-teal-400/10',
                 },
                 {
                   id: 'security',
                   label: 'Security Settings',
-                  desc: 'Alert toggles, system log out actions',
+                  desc: 'Alert toggles, session and log out actions',
                   icon: ShieldAlert,
-                  color: 'text-violet-400',
-                  bg: 'bg-violet-400/10',
-                  border: 'border-violet-400/10',
                 },
                 {
                   id: 'privacy',
                   label: 'Zero-Bullshit Privacy',
-                  desc: 'Our terms, zero-pixel guarantee details',
+                  desc: 'Local-first architecture and privacy policy',
                   icon: Fingerprint,
-                  color: 'text-pink-400',
-                  bg: 'bg-pink-400/10',
-                  border: 'border-pink-400/10',
                 },
-              ].map(({ id, label, desc, icon: Icon, color, bg, border }) => {
+              ].map(({ id, label, desc, icon: Icon }) => {
                 return (
                   <button
                     key={id}
@@ -422,18 +375,16 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                       Haptics.light();
                       setActiveSubView(id as SubView);
                     }}
-                    className="w-full flex items-center justify-between py-2.5 px-3.5 hover:bg-main/5 active:bg-main/10 transition-colors text-left border-b last:border-b-0 border-main/5 group"
+                    className="w-full flex items-center justify-between py-3 px-3.5 hover:bg-[var(--bg-surface-hover)] active:bg-[var(--bg-subtle)] transition-colors text-left group"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-main/5 border border-main/5`}>
-                        <Icon size={16} strokeWidth={2.0} className={color} />
-                      </div>
+                      <Icon size={16} strokeWidth={1.5} className="text-[var(--text-secondary)] shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold leading-tight text-main/90">{label}</p>
-                        <p className="text-[9px] text-muted/50 truncate mt-0.5 font-normal">{desc}</p>
+                        <p className="text-[13px] font-medium leading-tight text-[var(--text-primary)]">{label}</p>
+                        <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">{desc}</p>
                       </div>
                     </div>
-                    <ChevronRight size={14} className="text-muted/30 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                    <ChevronRight size={14} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0 group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 );
               })}
@@ -441,8 +392,8 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="pt-2 text-center">
-            <p className="text-[8px] font-bold uppercase tracking-[0.3em] text-muted/20">TrackXpense v4.0.0</p>
+          <div className="pt-2 pb-4 text-center">
+            <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-[var(--text-muted)]/50">TrackXpense v4.0.0 · Local-First</p>
           </div>
         </div>
 
@@ -517,11 +468,11 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                 setTimeout(() => setProfileSaved(false), 2000);
               }
             }}
-            className="w-full py-3 rounded-xl bg-primary text-white text-xs font-bold shadow-lg shadow-primary/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+            className="btn btn--primary w-full h-[40px] text-[13px] flex items-center justify-center gap-2"
           >
             {profileSaved ? (
               <>
-                <Check size={14} strokeWidth={2.5} className="text-white" />
+                <Check size={15} strokeWidth={2} />
                 <span>Changes Saved Successfully</span>
               </>
             ) : (
@@ -766,10 +717,10 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                       onLogout();
                     }
                   }}
-                  className="flex-1 py-3 px-4 flex flex-col items-center justify-center gap-1.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all group"
+                  className="btn btn--secondary flex-1 h-[44px] flex flex-col items-center justify-center gap-1"
                 >
-                  <LogOut size={16} className="text-primary" />
-                  <span className="text-[9px] font-black text-white uppercase tracking-wider">Log Out</span>
+                  <LogOut size={16} strokeWidth={1.5} />
+                  <span className="text-[11px] font-medium">Log Out</span>
                 </button>
               )}
               <button
@@ -780,10 +731,10 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                     if (onLogout) onLogout();
                   }
                 }}
-                className="flex-1 py-3 px-4 flex flex-col items-center justify-center gap-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all group"
+                className="btn btn--danger flex-1 h-[44px] flex flex-col items-center justify-center gap-1"
               >
-                <Trash2 size={16} className="text-red-500 animate-pulse" />
-                <span className="text-[9px] font-black text-white uppercase tracking-wider">Delete Account</span>
+                <Trash2 size={16} strokeWidth={1.5} />
+                <span className="text-[11px] font-medium">Delete Account</span>
               </button>
             </div>
           </div>

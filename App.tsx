@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { NavBar } from './components/NavBar';
 import { MobileMenuView } from './components/MobileMenuView';
 import { Transaction, ViewState, TransactionType, AppData, Wallet, WalletType, Debt, TransactionTemplate, DebtPayment, Category, ThemeOption } from './types';
@@ -28,7 +29,8 @@ import {
   X, PlusCircle, Check,
   Plus, Activity, AlertCircle,
   ChevronLeft, ChevronRight,
-  LayoutGrid, TrendingUp, ArrowDownRight, Calendar, Ghost, UserCircle, Search, Info
+  LayoutGrid, TrendingUp, ArrowDownRight, Calendar, Ghost, UserCircle, Search, Info,
+  Eye, EyeOff
 } from 'lucide-react';
 import { CategoryIcon } from './components/shared/CategoryIcon';
 import { getDateTime, formatMoney } from './utils/formatters';
@@ -41,45 +43,47 @@ import { RabbAiChatWidget } from './components/shared/RabbAiChatWidget';
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose: () => void, onConfirm: () => void }) => {
     if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 transition-opacity" onClick={onClose} />
-            <div className="relative bg-[var(--bg-surface)] w-full max-w-xs rounded-[10px] p-6 border border-[var(--border-default)] animate-in zoom-in-95 duration-200">
+    return createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity" onClick={onClose} />
+            <div className="relative bg-[var(--bg-surface)] w-full max-w-xs rounded-[12px] p-6 border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 duration-150">
                 <div className="flex flex-col items-center text-center">
-                    <div className="w-10 h-10 rounded-[6px] bg-[var(--status-error-bg)] text-[var(--status-error-fg)] flex items-center justify-center mb-4">
+                    <div className="w-10 h-10 rounded-[8px] bg-[var(--status-error-bg)] text-[var(--status-error-fg)] flex items-center justify-center mb-3">
                         <Trash2 size={20} className="stroke-[1.5px]" />
                     </div>
-                    <h3 className="text-[15px] font-medium text-[var(--text-primary)] mb-1">Delete Item?</h3>
-                    <p className="text-[13px] text-[var(--text-secondary)] mb-6">This action cannot be undone.</p>
+                    <h3 className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">Delete Item?</h3>
+                    <p className="text-[13px] text-[var(--text-secondary)] mb-5">This action cannot be undone.</p>
                     <div className="flex gap-2 w-full">
                         <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
                         <button onClick={onConfirm} className="btn-destructive flex-1">Delete</button>
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
 const UnsavedChangesModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose: () => void, onConfirm: () => void }) => {
     if (!isOpen) return null;
-    return (
-        <div className="fixed inset-0 z-[6100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 transition-opacity" onClick={onClose} />
-            <div className="relative bg-[var(--bg-surface)] w-full max-w-xs rounded-[10px] p-6 border border-[var(--border-default)] animate-in zoom-in-95 duration-200">
+    return createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity" onClick={onClose} />
+            <div className="relative bg-[var(--bg-surface)] w-full max-w-xs rounded-[12px] p-6 border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 duration-150">
                 <div className="flex flex-col items-center text-center">
-                    <div className="w-10 h-10 rounded-[6px] bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] flex items-center justify-center mb-4">
+                    <div className="w-10 h-10 rounded-[8px] bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] flex items-center justify-center mb-3">
                         <AlertCircle size={20} className="stroke-[1.5px]" />
                     </div>
-                    <h3 className="text-[15px] font-medium text-[var(--text-primary)] mb-1">Unsaved Changes</h3>
-                    <p className="text-[13px] text-[var(--text-secondary)] mb-6">You have unsaved modifications. Do you want to discard them and proceed?</p>
+                    <h3 className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">Unsaved Changes</h3>
+                    <p className="text-[13px] text-[var(--text-secondary)] mb-5">You have unsaved modifications. Do you want to discard them and proceed?</p>
                     <div className="flex flex-col gap-2 w-full">
                         <button onClick={onConfirm} className="btn-primary w-full">Discard & Continue</button>
                         <button onClick={onClose} className="btn-secondary w-full">Stay & Save</button>
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 
@@ -859,7 +863,7 @@ export default function App() {
   }
 
     return (
-        <div className="h-screen w-full bg-[#000] text-main font-sans selection:bg-primary/30 transition-colors duration-300 flex flex-col lg:flex-row overflow-hidden relative">
+        <div className="h-screen w-full bg-[var(--bg-page)] text-main font-sans selection:bg-primary/30 transition-colors duration-300 flex flex-col lg:flex-row overflow-hidden relative">
           {isDesktop && (
             <svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }} aria-hidden>
               <defs>
@@ -888,10 +892,10 @@ export default function App() {
       />
       
       <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden h-full relative z-10">
-        {/* Header - Hidden on Desktop Sidebar if we want a different layout, but let's keep it for now and refine */}
+        {/* Header - Mobile */}
         {!isDesktop && (
-          <div className="flex-none pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3 px-4 shadow-sm border-b border-main/10 z-40 glass">
-            <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
+          <div className="flex-none pt-[calc(env(safe-area-inset-top,0px)+8px)] pb-2.5 px-4 bg-[var(--bg-surface)]/90 backdrop-blur-md border-b border-[var(--border-default)] z-40">
+            <div className="flex items-center justify-between gap-2 max-w-md mx-auto">
               {['analytics', 'provisions', 'subscriptions', 'control', 'identity'].includes(view) ? (
                 <>
                   <button 
@@ -899,51 +903,44 @@ export default function App() {
                       Haptics.light();
                       requestViewChange('menu');
                     }}
-                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80 active:scale-95 transition-all shrink-0"
+                    className="flex items-center gap-1 text-[13px] font-medium text-[var(--accent-solid)] hover:opacity-80 active:scale-95 transition-all shrink-0"
                   >
-                      <ChevronLeft size={16} />
-                      <span>Back</span>
+                    <ChevronLeft size={16} strokeWidth={1.5} />
+                    <span>Back</span>
                   </button>
-                  <h1 className="text-xs font-bold text-main tracking-tight leading-none uppercase">
-                      {(() => {
-                          const titles: Record<string, string> = {
-                              analytics: 'Analytics & Trends',
-                              provisions: 'Upcoming Expenses',
-                              subscriptions: 'Subscriptions',
-                              control: 'Budgets & Categories',
-                              identity: 'Profile Settings'
-                          };
-                          return titles[view] || '';
-                      })()}
+                  <h1 className="text-[13px] font-medium text-[var(--text-primary)] tracking-tight">
+                    {(() => {
+                      const titles: Record<string, string> = {
+                        analytics: 'Analytics & Trends',
+                        provisions: 'Upcoming Expenses',
+                        subscriptions: 'Subscriptions',
+                        control: 'Budgets & Categories',
+                        identity: 'Profile Settings'
+                      };
+                      return titles[view] || '';
+                    })()}
                   </h1>
-                  <div className="w-12 flex justify-end shrink-0">
-                      <SyncIndicator />
-                  </div>
+                  <div className="w-[32px]" />
                 </>
               ) : (
                 <>
-                  <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary/40 p-[2px] shadow-[0_0_8px_rgba(var(--color-primary),0.25)] shrink-0">
-                          <div className="w-full h-full rounded-full bg-card flex items-center justify-center border border-main/10 animate-pulse-slow">
-                              <span className="text-xs font-bold text-primary tracking-tighter">
-                                  {data.profile.name ? data.profile.name.charAt(0).toUpperCase() : 'U'}
-                              </span>
-                          </div>
-                      </div>
-                      <div className="flex flex-col items-start justify-center">
-                          <h1 className="text-xs font-bold text-main tracking-tight leading-none">{data.profile.name.split(' ')[0]}</h1>
-                      </div>
-                  </div>
+                  {/* Left: Wallet Selector Pill */}
                   <button 
                     onClick={() => {
                       Haptics.light();
+                      setWalletSearchQuery('');
                       setIsWalletModalOpen(true);
                     }} 
-                    className="flex items-center gap-1.5 bg-main/5 hover:bg-main/10 active:scale-95 transition-all py-1 px-2.5 rounded-lg border border-main/10 max-w-[120px] shrink-0"
+                    className="flex items-center gap-1.5 bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] active:scale-95 transition-all h-[32px] px-2.5 rounded-[6px] border border-[var(--border-default)] max-w-[180px]"
                   >
-                      <span className="text-[10px] font-bold text-main truncate">{data.wallets.find(w => w.id === data.currentWalletId)?.name}</span>
-                      <ChevronDown size={12} className="text-muted/50 shrink-0" />
+                    <span className="w-2 h-2 rounded-full bg-[var(--accent-solid)] shrink-0" />
+                    <span className="text-[12px] font-medium text-[var(--text-primary)] truncate">
+                      {data.wallets.find(w => w.id === data.currentWalletId)?.name || 'Wallet'}
+                    </span>
+                    <ChevronDown size={13} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
                   </button>
+
+                  <div className="flex items-center gap-1.5" />
                 </>
               )}
             </div>
@@ -1018,7 +1015,7 @@ export default function App() {
 
               <button 
                 onClick={() => openAddModal(undefined, TransactionType.EXPENSE)} 
-                className="btn btn--primary text-[12px] h-[32px] px-3 font-medium rounded-[6px] flex items-center gap-1.5"
+                className="btn btn--primary text-[12px] h-[32px] px-3.5 font-medium rounded-[6px] flex items-center gap-1.5"
               >
                 <PlusCircle size={15} className="btn__icon" /> Add Transaction
               </button>
@@ -1029,7 +1026,7 @@ export default function App() {
         {/* Main Content */}
         <main 
           ref={mainRef}
-          className={`flex-1 min-w-0 min-h-0 w-full ${isDesktop ? 'max-w-none px-8 overflow-y-auto' : 'max-w-md mx-auto px-4 overflow-y-auto overflow-x-hidden pt-5'} relative ${!isDesktop ? 'pb-[calc(66px+env(safe-area-inset-bottom))]' : 'pb-4'}`}
+          className={`flex-1 min-w-0 min-h-0 w-full ${isDesktop ? 'max-w-none px-8 overflow-y-auto' : 'max-w-md mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-3.5'} relative ${!isDesktop ? 'pb-[calc(76px+env(safe-area-inset-bottom,0px))]' : 'pb-4'}`}
         >
           {isDesktop ? (
             <div className="w-full max-w-6xl mx-auto py-4 view-transition">
@@ -1231,27 +1228,28 @@ export default function App() {
 
         {/* Wallet Dropdown Menu */}
         {isWalletModalOpen && (
-          <div className="fixed inset-0 z-[5000] flex items-start justify-end pt-[52px] pr-8 lg:pr-[260px]">
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-xs transition-opacity" onClick={() => setIsWalletModalOpen(false)} />
+          <div className="fixed inset-0 z-[5000] pointer-events-auto">
+            {/* Transparent click-away backdrop: does NOT dim screen */}
+            <div className="fixed inset-0 bg-transparent" onClick={() => setIsWalletModalOpen(false)} />
             
-            <div className="relative w-[300px] bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] shadow-2xl overflow-visible z-10 text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150 p-1.5">
-              {/* Triangular Pointer / Nudge */}
-              <div className="absolute -top-[6px] right-[88px] w-2.5 h-2.5 bg-[var(--bg-surface)] border-t border-l border-[var(--border-default)] rotate-45 z-20" />
+            {/* Popover anchored directly below wallet trigger: left on mobile, right on desktop */}
+            <div className="absolute left-3 top-[calc(50px+env(safe-area-inset-top,0px))] md:left-auto md:right-8 lg:right-[260px] md:top-[52px] w-[calc(100vw-24px)] max-w-[270px] md:w-[260px] bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] shadow-[0_16px_40px_rgba(0,0,0,0.65),0_2px_8px_rgba(0,0,0,0.4)] z-10 text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150 p-1.5 space-y-1">
 
               {/* Top Search Input */}
-              <div className="px-2.5 py-1.5 flex items-center gap-2 border-b border-[var(--border-default)]/60 mb-1 relative z-10">
-                <Search size={14} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+              <div className="px-2.5 py-1.5 flex items-center gap-2 bg-[var(--bg-subtle)] rounded-[6px]">
+                <Search size={13} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
                 <input 
                   type="text" 
                   placeholder="Search wallets..." 
                   value={walletSearchQuery}
                   onChange={(e) => setWalletSearchQuery(e.target.value)}
                   className="w-full bg-transparent border-none outline-none text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] font-normal"
+                  autoFocus
                 />
               </div>
 
-              {/* Wallet List */}
-              <div className="max-h-[220px] overflow-y-auto space-y-0.5 no-scrollbar relative z-10">
+              {/* Wallet List (no divider lines) */}
+              <div className="max-h-[220px] overflow-y-auto space-y-0.5 no-scrollbar py-0.5">
                 {data.wallets
                   .filter(w => w.name.toLowerCase().includes(walletSearchQuery.toLowerCase()))
                   .map(w => {
@@ -1264,73 +1262,71 @@ export default function App() {
                           updateData({ currentWalletId: w.id }); 
                           setIsWalletModalOpen(false); 
                         }} 
-                        className={`w-full h-[34px] px-2.5 flex items-center justify-between rounded-[6px] text-[13px] transition-colors ${
+                        className={`w-full h-[32px] px-2.5 flex items-center justify-between rounded-[6px] text-[12px] transition-colors ${
                           isSelected 
                             ? 'bg-[var(--bg-subtle)] text-[var(--text-primary)] font-medium' 
                             : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)] font-normal'
                         }`}
                       >
                         <span className="truncate">{w.name}</span>
-                        {isSelected && <Check size={14} className="text-[var(--text-primary)] shrink-0 stroke-[2px]" />}
+                        {isSelected && <Check size={13} className="text-[var(--text-primary)] shrink-0 stroke-[2px]" />}
                       </button>
                     );
                   })}
               </div>
 
-              {/* Action Divider & Create Wallet Button */}
-              <div className="border-t border-[var(--border-default)]/60 my-1 pt-1 relative z-10">
-                <button 
-                  onClick={() => {
-                    setIsWalletModalOpen(false);
-                    setCreateWalletStep(1);
-                    setNewWalletName('');
-                    setNewWalletCurrency(data.settings.currencySymbol || '$');
-                    setNewWalletIsGoal(false);
-                    setNewWalletTarget(0);
-                    setNewWalletColor('indigo');
-                    setIsCreateWalletModalOpen(true);
-                  }}
-                  className="w-full h-[32px] px-2.5 flex items-center gap-2 rounded-[6px] text-[12px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
-                >
-                  <Plus size={14} className="stroke-[1.5px]" />
-                  <span>Create Wallet</span>
-                </button>
-              </div>
+              {/* Create Wallet Button (no top divider line) */}
+              <button 
+                onClick={() => {
+                  setIsWalletModalOpen(false);
+                  setCreateWalletStep(1);
+                  setNewWalletName('');
+                  setNewWalletCurrency(data.settings.currencySymbol || '$');
+                  setNewWalletIsGoal(false);
+                  setNewWalletTarget(0);
+                  setNewWalletColor('indigo');
+                  setIsCreateWalletModalOpen(true);
+                }}
+                className="w-full h-[30px] px-2.5 flex items-center gap-2 rounded-[6px] text-[12px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+              >
+                <Plus size={13} className="stroke-[1.5px]" />
+                <span>Create Wallet</span>
+              </button>
             </div>
           </div>
         )}
 
         {/* Create Wallet Modal (2-Step Flow) */}
-        {isCreateWalletModalOpen && (
-          <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity animate-in fade-in duration-200" onClick={() => setIsCreateWalletModalOpen(false)} />
+        {isCreateWalletModalOpen && createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity animate-in fade-in duration-150" onClick={() => setIsCreateWalletModalOpen(false)} />
             
-            <div className="relative w-full max-w-[480px] bg-[var(--bg-surface)] rounded-[16px] p-7 border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)] animate-in zoom-in-95 duration-200">
+            <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] rounded-[12px] p-6 border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)] animate-in zoom-in-95 duration-150 space-y-4">
               {/* Modal Header */}
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Create a Wallet</h2>
-                  <p className="text-[12px] text-[var(--text-muted)] mt-1">
+                  <h3 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Create a Wallet</h3>
+                  <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
                     {createWalletStep === 1 ? 'Step 1 of 2: Enter wallet name' : `Step 2 of 2: Configuration for "${newWalletName}"`}
                   </p>
                 </div>
                 <button 
                   onClick={() => setIsCreateWalletModalOpen(false)}
-                  className="w-9 h-9 rounded-[8px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                  className="btn btn--outline btn--icon-sm shrink-0"
                 >
-                  <X size={18} />
+                  <X size={15} strokeWidth={1.5} />
                 </button>
               </div>
 
               {/* Step 1: Wallet Name Input & Callout Banner */}
               {createWalletStep === 1 ? (
-                <div className="space-y-5">
-                  <div className="space-y-2">
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5 relative">
-                      <label className="text-[14px] font-medium text-[var(--text-primary)]">Wallet name</label>
+                      <label className="text-[13px] font-medium text-[var(--text-primary)]">Wallet name</label>
                       <div className="relative group cursor-pointer inline-flex items-center">
-                        <Info size={15} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" />
-                        <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-[250px] px-3 py-2 rounded-[6px] bg-[#1a1a1e] border border-[var(--border-default)] text-[12px] text-[var(--text-secondary)] shadow-xl z-50 pointer-events-none">
+                        <Info size={14} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors" />
+                        <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-[240px] px-3 py-2 rounded-[6px] bg-[#1a1a1e] border border-[var(--border-default)] text-[11px] text-[var(--text-secondary)] shadow-xl z-50 pointer-events-none">
                           You can rename the Wallet at any time in settings
                         </div>
                       </div>
@@ -1340,53 +1336,49 @@ export default function App() {
                       value={newWalletName}
                       onChange={(e) => setNewWalletName(e.target.value)}
                       placeholder="My Wallet" 
-                      className="w-full h-[44px] px-3.5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] focus:border-[var(--border-active)] outline-none text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 transition-colors"
+                      className="w-full h-[40px] px-3.5 rounded-[8px] bg-[var(--bg-subtle)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 transition-colors"
                       autoFocus
                     />
                   </div>
 
                   {/* Info Callout Banner */}
-                  <div className="p-4 rounded-[10px] bg-blue-500/10 border border-blue-500/20 flex items-start gap-3 text-[13px] text-blue-400 leading-relaxed my-4">
-                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0 mt-0.5 font-bold text-[11px]">i</div>
+                  <div className="p-3 rounded-[8px] bg-blue-500/10 border border-blue-500/20 flex items-start gap-2.5 text-[12px] text-blue-400 leading-relaxed">
+                    <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0 mt-0.5 font-bold text-[10px]">i</div>
                     <span>This Wallet will be created with default settings. You can customize currency, target goals, and color theme anytime.</span>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-2">
+                  <div className="flex items-center justify-end gap-2.5 pt-2">
                     <button 
                       type="button" 
                       onClick={() => setIsCreateWalletModalOpen(false)}
-                      className="h-[40px] px-5 rounded-[8px] border border-[var(--border-default)] text-[14px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                      className="btn btn--outline h-[32px] px-3.5 text-[12px]"
                     >
                       Cancel
                     </button>
                     <button 
-                      type="button"
+                      type="button" 
                       disabled={!newWalletName.trim()}
                       onClick={() => {
                         if (newWalletName.trim()) setCreateWalletStep(2);
                       }}
-                      className="h-[40px] px-5 rounded-[8px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-[14px] font-medium transition-colors disabled:opacity-40 shadow-sm"
+                      className="btn btn--primary h-[32px] px-4 text-[12px]"
                     >
-                      Create Wallet
+                      Continue
                     </button>
                   </div>
                 </div>
               ) : (
                 /* Step 2: Currency, Savings Goal & Theme Color (loads in same modal) */
-                <div className="space-y-5 animate-in fade-in duration-150">
-                  <div className="space-y-2">
+                <div className="space-y-4 animate-in fade-in duration-150">
+                  <div className="space-y-1.5">
                     <label className="text-[13px] font-medium text-[var(--text-primary)]">Wallet Currency</label>
-                    <div className="flex bg-[var(--bg-subtle)] p-1 rounded-[8px] border border-[var(--border-default)]">
+                    <div className="tabs flex">
                       {['৳', '$', '€', '£'].map(curr => (
                         <button 
                           key={curr} 
                           type="button"
                           onClick={() => setNewWalletCurrency(curr)}
-                          className={`flex-1 py-2 rounded-[6px] text-[13px] font-medium transition-all ${
-                            newWalletCurrency === curr 
-                              ? 'bg-[var(--accent-solid)] text-[var(--accent-text)]' 
-                              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                          }`}
+                          className={`tab flex-1 justify-center ${newWalletCurrency === curr ? 'is-active' : ''}`}
                         >
                           {curr}
                         </button>
@@ -1403,7 +1395,7 @@ export default function App() {
                         onChange={(e) => setNewWalletIsGoal(e.target.checked)}
                         className="w-4 h-4 rounded border-[var(--border-default)] accent-[#2563eb] cursor-pointer"
                       />
-                      <label htmlFor="modalIsGoal" className="text-[14px] font-medium text-[var(--text-primary)] cursor-pointer select-none">Savings Goal</label>
+                      <label htmlFor="modalIsGoal" className="text-[13px] font-medium text-[var(--text-primary)] cursor-pointer select-none">Savings Goal</label>
                     </div>
                     {newWalletIsGoal && (
                       <input 
@@ -1411,12 +1403,12 @@ export default function App() {
                         value={newWalletTarget || ''}
                         onChange={(e) => setNewWalletTarget(parseFloat(e.target.value) || 0)}
                         placeholder="Target Amount..."
-                        className="w-full h-[40px] px-3.5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]/50"
+                        className="w-full h-[36px] px-3 rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[12px] font-mono text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)]/50"
                       />
                     )}
                   </div>
 
-                  <div className="space-y-2 pt-1">
+                  <div className="space-y-1.5 pt-1">
                     <label className="text-[13px] font-medium text-[var(--text-primary)]">Theme Color</label>
                     <div className="flex gap-3 py-1">
                       {[
@@ -1430,7 +1422,7 @@ export default function App() {
                           key={col.name}
                           type="button"
                           onClick={() => setNewWalletColor(col.name)}
-                          className={`w-8 h-8 rounded-full relative transition-all ${
+                          className={`w-6 h-6 rounded-full relative transition-all ${
                             newWalletColor === col.name 
                               ? 'ring-2 ring-white ring-offset-2 ring-offset-[#141417] scale-110' 
                               : 'opacity-70 hover:opacity-100'
@@ -1441,16 +1433,16 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-4">
+                  <div className="flex items-center justify-end gap-2.5 pt-2">
                     <button 
                       type="button" 
                       onClick={() => setCreateWalletStep(1)}
-                      className="h-[40px] px-5 rounded-[8px] border border-[var(--border-default)] text-[14px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
+                      className="btn btn--outline h-[32px] px-3.5 text-[12px]"
                     >
                       Back
                     </button>
                     <button 
-                      type="button"
+                      type="button" 
                       onClick={() => {
                         if (newWalletName.trim()) {
                           Haptics.success();
@@ -1464,7 +1456,7 @@ export default function App() {
                           setIsCreateWalletModalOpen(false);
                         }
                       }}
-                      className="h-[40px] px-5 rounded-[8px] bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-[14px] font-medium transition-colors shadow-sm"
+                      className="btn btn--primary h-[32px] px-4 text-[12px]"
                     >
                       Finish & Save
                     </button>
@@ -1472,7 +1464,8 @@ export default function App() {
                 </div>
               )}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       
       {isUnsavedModalOpen && <UnsavedChangesModal isOpen={isUnsavedModalOpen} onClose={() => setIsUnsavedModalOpen(false)} onConfirm={handleDiscardChanges} />}

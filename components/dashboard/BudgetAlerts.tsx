@@ -9,28 +9,69 @@ interface BudgetAlertsProps {
 
 export const BudgetAlerts: React.FC<BudgetAlertsProps> = ({ budgetAlerts, data, formatMoney }) => {
     if (budgetAlerts.length === 0) return null;
+    const currency = data.settings.currencySymbol;
 
     return (
-        <div className="bento-grid gap-y-3">
-            <h3 className="text-[9px] font-black text-muted/40 uppercase tracking-[0.2em] px-1">Budget Limits</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
-                {budgetAlerts.map((b: any) => (
-                    <div key={b.cat} className="glass-card bento-card border-rose-500/20 flex-row items-center justify-between shadow-lg shadow-rose-500/5 group">
-                        <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded-md ${b.period === 'DAILY' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
-                                    {b.period === 'DAILY' ? 'DAILY' : 'MONTHLY'}
-                                </span>
-                                <p className="text-sm font-bold text-main tracking-tight">{b.cat}</p>
+        <div className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+                <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
+                    Budget Threshold Alerts
+                </span>
+                <span className="text-[11px] font-medium text-[var(--status-warning-fg)] font-mono">
+                    {budgetAlerts.length} near limit
+                </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-5">
+                {budgetAlerts.map((b: any) => {
+                    const ratio = b.spent / b.limit;
+                    const isExceeded = ratio >= 1;
+
+                    return (
+                        <div
+                            key={b.cat}
+                            className="rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 flex flex-col justify-between transition-colors"
+                        >
+                            <div className="flex items-start justify-between mb-2">
+                                <div>
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <span className={`w-1.5 h-1.5 rounded-full ${isExceeded ? 'bg-[var(--status-error-fg)]' : 'bg-[var(--status-warning-fg)]'}`} />
+                                        <span className="text-[10px] uppercase font-mono text-[var(--text-muted)]">
+                                            {b.period || 'MONTHLY'}
+                                        </span>
+                                    </div>
+                                    <h4 className="text-[13px] font-semibold text-[var(--text-primary)] truncate max-w-[130px]">
+                                        {b.cat}
+                                    </h4>
+                                </div>
+
+                                <div className="text-right">
+                                    <span className="text-[13px] font-mono font-semibold text-[var(--text-primary)]">
+                                        {formatMoney(b.spent, currency)}
+                                    </span>
+                                    <div className="text-[10px] text-[var(--text-muted)]">
+                                        of {formatMoney(b.limit, currency)}
+                                    </div>
+                                </div>
                             </div>
-                            <p className="text-[9px] text-rose-400 font-black uppercase tracking-widest">{Math.round((b.spent/b.limit)*100)}% Spent</p>
+
+                            <div>
+                                <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden mb-1.5">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ${isExceeded ? 'bg-[var(--status-error-fg)]' : 'bg-[var(--status-warning-fg)]'}`}
+                                        style={{ width: `${Math.min(100, ratio * 100)}%` }}
+                                    />
+                                </div>
+                                <div className="flex justify-between text-[10px] text-[var(--text-secondary)]">
+                                    <span>{Math.round(ratio * 100)}% utilized</span>
+                                    <span className={isExceeded ? 'text-[var(--status-error-fg)] font-medium' : 'text-[var(--status-warning-fg)]'}>
+                                        {isExceeded ? 'Exceeded' : 'Near limit'}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <p className="text-sm font-bold text-main">{formatMoney(b.spent, data.settings.currencySymbol)}</p>
-                            <p className="text-[8px] font-black text-muted/40 uppercase tracking-tighter">of {formatMoney(b.limit, data.settings.currencySymbol)}</p>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );

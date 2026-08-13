@@ -20,28 +20,22 @@ export function SegmentedSubTabs<T extends string>({
   className = '',
 }: SegmentedSubTabsProps<T>) {
   return (
-    <div
-      className={`inline-flex items-center gap-1 bg-[var(--bg-subtle)]/70 border border-[var(--border-default)] p-1 rounded-[8px] ${className}`}
-    >
+    <div className={`tabs ${className}`}>
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
-            className={`px-3 py-1.5 rounded-[6px] text-[13px] font-medium transition-all flex items-center gap-2 select-none ${
-              isActive
-                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-xs font-semibold'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'
-            }`}
+            className={`tab ${isActive ? 'is-active' : ''}`}
           >
             <span>{tab.label}</span>
             {tab.count !== undefined && (
               <span
-                className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                className={`text-[11px] font-mono px-1.5 py-0.5 rounded-full ${
                   isActive
-                    ? 'bg-[var(--bg-subtle)] text-[var(--text-primary)]'
-                    : 'bg-white/5 text-[var(--text-muted)]'
+                    ? 'bg-black/30 text-[var(--ds-text)]'
+                    : 'bg-white/5 text-[var(--ds-text-faint)]'
                 }`}
               >
                 {tab.count}

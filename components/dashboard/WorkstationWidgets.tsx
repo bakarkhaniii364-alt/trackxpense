@@ -1,29 +1,15 @@
 import React from 'react';
 import { AppData, TransactionType, Streak } from '../../types';
-import { 
-    Zap, 
-    TrendingUp, 
-    AlertCircle, 
-    CheckCircle2, 
-    Activity
-} from 'lucide-react';
-import { formatMoney } from '../../utils/formatters';
 
 interface WidgetProps {
     data: AppData;
 }
 
 export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
-    // Logic: 
-    // 1. Budget Adherence (40%)
-    // 2. Savings Rate (30%)
-    // 3. Debt-to-Income (20%)
-    // 4. Streak Consistency (10%)
-
     const calculateScore = () => {
         let score = 0;
 
-        // Budget Adherence
+        // Budget Adherence (40%)
         const limits = data.settings.budgetLimits || {};
         const breaches = Object.keys(limits).filter(cat => {
             const limit = typeof limits[cat] === 'number' ? limits[cat] : limits[cat].limit;
@@ -34,18 +20,18 @@ export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
         }).length;
         score += Math.max(0, 40 - (breaches * 10));
 
-        // Savings Rate
+        // Savings Rate (30%)
         const totalIncome = data.transactions.filter(t => t.type === TransactionType.INCOME).reduce((sum, t) => sum + t.amount, 0);
         const totalExpense = data.transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((sum, t) => sum + t.amount, 0);
         const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome) * 100 : 0;
         score += Math.min(30, savingsRate > 0 ? (savingsRate / 20) * 30 : 0);
 
-        // Debt/Income
+        // Debt/Income (20%)
         const totalDebt = data.debts.filter(d => !d.isSettled && d.type === 'I_OWE').reduce((sum, d) => sum + d.amount, 0);
         const debtRatio = totalIncome > 0 ? (totalDebt / totalIncome) : 0;
         score += Math.max(0, 20 - (debtRatio * 40));
 
-        // Streaks
+        // Streaks (10%)
         const totalStreaks: number = (Object.values(data.streaks || {}) as Streak[]).reduce((sum: number, s) => sum + s.current, 0);
         score += Math.min(10, totalStreaks > 0 ? 10 : 0);
 
@@ -54,44 +40,55 @@ export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
 
     const score = calculateScore();
     const getStatus = () => {
-        if (score >= 80) return { label: 'Optimum', color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
-        if (score >= 50) return { label: 'Stable', color: 'text-primary', bg: 'bg-primary/10' };
-        return { label: 'Critical', color: 'text-rose-500', bg: 'bg-rose-500/10' };
+        if (score >= 80) return { label: 'Optimum', textClass: 'text-[var(--status-success-fg)]', dotClass: 'bg-[var(--status-success-fg)]' };
+        if (score >= 50) return { label: 'Stable', textClass: 'text-[var(--status-warning-fg)]', dotClass: 'bg-[var(--status-warning-fg)]' };
+        return { label: 'Critical', textClass: 'text-[var(--status-error-fg)]', dotClass: 'bg-[var(--status-error-fg)]' };
     };
 
     const status = getStatus();
 
     return (
-        <div className="liquid-glass p-6 rounded-sm border border-white/5 h-full flex flex-col justify-between group overflow-hidden relative">
-            <div className="absolute -right-4 -top-4 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
-                <Activity size={120} />
-            </div>
-            
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">Stability Index</span>
-                    <h3 className="text-xl font-bold text-white tracking-tight">Financial Health</h3>
-                </div>
-                <span className="pill">
-                    {status.label}
-                </span>
-            </div>
-
-            <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-6xl font-black text-white tracking-tighter">{score}</span>
-                <span className="text-sm font-bold text-white/20 uppercase tracking-widest">/ 100</span>
-            </div>
-
-            <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">Market Standing</span>
-                    <div className="flex items-center gap-1.5">
-                        {score >= 50 ? <CheckCircle2 size={12} className="text-emerald-500" /> : <AlertCircle size={12} className="text-rose-500" />}
-                        <span className="text-[10px] font-bold text-white/80">{score >= 50 ? 'Strong' : 'At Risk'}</span>
+        <div className="rounded-[12px] sm:rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-3.5 sm:p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
+            <div>
+                <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] truncate">
+                        Stability
+                    </span>
+                    <div className="flex items-center gap-1">
+                        <span className={`w-1.5 h-1.5 rounded-full ${status.dotClass}`} />
+                        <span className={`text-[10px] font-medium ${status.textClass}`}>{status.label}</span>
                     </div>
                 </div>
-                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${score}%` }} />
+
+                <div className="mb-2">
+                    <div className="text-base sm:text-xl lg:text-2xl font-semibold text-[var(--text-primary)] tracking-tight font-mono">
+                        {score} <span className="text-[11px] font-normal text-[var(--text-secondary)]">/ 100</span>
+                    </div>
+                    <div className="text-[11px] text-[var(--text-secondary)] mt-0.5 font-normal truncate">
+                        Health rating
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden mb-2.5">
+                    <div
+                        className={`h-full rounded-full transition-all duration-700 ${
+                            score >= 80
+                                ? 'bg-[var(--status-success-fg)]'
+                                : score >= 50
+                                    ? 'bg-[var(--status-warning-fg)]'
+                                    : 'bg-[var(--status-error-fg)]'
+                        }`}
+                        style={{ width: `${score}%` }}
+                    />
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
+                    <span>Performance tier</span>
+                    <span className="font-mono text-[var(--text-primary)] font-medium">
+                        {score >= 80 ? 'Top 15%' : score >= 50 ? 'Moderate' : 'Needs Review'}
+                    </span>
                 </div>
             </div>
         </div>
@@ -99,7 +96,6 @@ export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
 };
 
 export const SpendingHeatmap: React.FC<WidgetProps> = ({ data }) => {
-    // Last 21 days
     const days = Array.from({ length: 21 }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (20 - i));
@@ -111,45 +107,56 @@ export const SpendingHeatmap: React.FC<WidgetProps> = ({ data }) => {
             .filter(t => t.type === TransactionType.EXPENSE && t.date.startsWith(date))
             .reduce((sum, t) => sum + t.amount, 0);
         
-        if (daySpend === 0) return 'bg-white/[0.02] border-white/[0.02]';
-        if (daySpend < 20) return 'bg-primary/20 border-primary/20';
-        if (daySpend < 100) return 'bg-primary/50 border-primary/40';
-        return 'bg-primary border-primary shadow-[0_0_12px_rgb(var(--color-primary)/0.3)]';
+        if (daySpend === 0) return 'bg-[var(--bg-subtle)] border-transparent';
+        if (daySpend < 30) return 'bg-blue-600/30 border-blue-500/20';
+        if (daySpend < 100) return 'bg-blue-600/60 border-blue-500/40';
+        return 'bg-blue-500 border-blue-400';
     };
 
+    const noSpendDays = days.filter(d => 
+        data.transactions.filter(t => t.type === TransactionType.EXPENSE && t.date.startsWith(d)).length === 0
+    ).length;
+
     return (
-        <div className="liquid-glass p-6 rounded-sm border border-white/5 h-full flex flex-col justify-between group">
-            <div className="flex justify-between items-start mb-6">
-                <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mb-1">Consumption Graph</span>
-                    <h3 className="text-xl font-bold text-white tracking-tight">Active Velocity</h3>
+        <div className="rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
+            <div>
+                <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
+                        Spending Velocity
+                    </span>
+                    <span className="text-[11px] font-medium text-[var(--text-secondary)] font-mono">
+                        21-day matrix
+                    </span>
                 </div>
-                <Zap size={18} className="text-primary animate-pulse" />
-            </div>
 
-            <div className="grid grid-cols-7 gap-2">
-                {days.map(date => (
-                    <div 
-                        key={date}
-                        className={`aspect-square rounded-sm border transition-all hover:scale-110 cursor-help ${getIntensity(date)}`}
-                        title={date}
-                    />
-                ))}
-            </div>
-
-            <div className="mt-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-white/20 uppercase tracking-widest leading-none mb-1">Efficiency</span>
-                        <span className="text-xs font-bold text-emerald-500">
-                            {days.filter(d => data.transactions.filter(t => t.type === TransactionType.EXPENSE && t.date.startsWith(d)).length === 0).length} No-Spend Days
-                        </span>
+                <div className="mb-3">
+                    <div className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
+                        {noSpendDays} <span className="text-sm font-normal text-[var(--text-secondary)]">no-spend days</span>
+                    </div>
+                    <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+                        Daily transaction frequency
                     </div>
                 </div>
-                <div className="flex items-center gap-1.5 opacity-20">
-                    <div className="w-2 h-2 rounded-sm bg-white/5" />
-                    <div className="w-2 h-2 rounded-sm bg-primary/40" />
-                    <div className="w-2 h-2 rounded-sm bg-primary" />
+
+                <div className="grid grid-cols-7 gap-1.5 py-1">
+                    {days.map(date => (
+                        <div 
+                            key={date}
+                            className={`aspect-square rounded-[4px] border transition-transform hover:scale-110 cursor-default ${getIntensity(date)}`}
+                            title={date}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            <div className="pt-2 mt-2 border-t border-[var(--border-default)] flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
+                <span>Velocity index</span>
+                <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-[var(--text-muted)] mr-1">Low</span>
+                    <div className="w-2 h-2 rounded-[2px] bg-[var(--bg-subtle)]" />
+                    <div className="w-2 h-2 rounded-[2px] bg-blue-600/40" />
+                    <div className="w-2 h-2 rounded-[2px] bg-blue-500" />
+                    <span className="text-[10px] text-[var(--text-muted)] ml-1">High</span>
                 </div>
             </div>
         </div>

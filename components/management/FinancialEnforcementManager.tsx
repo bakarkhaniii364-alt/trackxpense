@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AppData, TransactionType, CategoryItem } from '../../types';
 import { 
   Trash2, Shield, Edit2, Plus, X, ArrowUpRight, ArrowDownRight, 
@@ -6,6 +7,7 @@ import {
 } from 'lucide-react';
 import { FieldHelp } from '../pc/FieldHelp';
 import { COLOR_PRESETS, GlassSelect, GlassCheckbox } from '../shared/CommonUI';
+import { TablePaginationFooter } from '../shared/TablePaginationFooter';
 import { SegmentedSubTabs } from '../shared/SegmentedSubTabs';
 
 interface FinancialEnforcementManagerProps {
@@ -31,9 +33,11 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
   // Category View Mode state (card vs table)
   const [catViewMode, setCatViewMode] = useState<'card' | 'table'>('card');
 
-  // Category Sorting state
+  // Category Sorting & Pagination state
   const [catSortKey, setCatSortKey] = useState<'type' | 'name' | 'volume'>('name');
   const [catSortDirection, setCatSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [catCurrentPage, setCatCurrentPage] = useState(1);
+  const CAT_PAGE_SIZE = 10;
 
   // Multi-Select & Batch Action States
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -374,9 +378,9 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                 setBudgetLimit('');
                 setIsAddBudgetModalOpen(true);
               }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs shrink-0"
+              className="btn btn--secondary h-[32px] px-3.5 text-[12px] flex items-center gap-1.5 shrink-0"
             >
-              <Plus size={15} strokeWidth={1.5} />
+              <Plus size={14} strokeWidth={1.5} />
               <span>Add budget</span>
             </button>
           </div>
@@ -439,7 +443,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                   setBudgetLimit('');
                   setIsAddBudgetModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs"
+                className="btn btn-secondary flex items-center gap-1.5 px-4 py-2 rounded-[8px] font-medium text-[13px] transition-all"
               >
                 <Plus size={15} strokeWidth={1.5} />
                 <span>Add budget</span>
@@ -494,9 +498,9 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                   setNewCatName('');
                   setIsAddCategoryModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[13px] transition-all shadow-xs shrink-0"
+                className="btn btn--secondary h-[32px] px-3.5 text-[12px] flex items-center gap-1.5 shrink-0"
               >
-                <Plus size={15} strokeWidth={1.5} />
+                <Plus size={14} strokeWidth={1.5} />
                 <span>Add category</span>
               </button>
             </div>
@@ -592,45 +596,47 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
             </div>
           ) : (
             /* --- TABLE VIEW --- */
-            <div className="bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] overflow-hidden shadow-xs">
+            <div className="bg-[#0D0D0E] rounded-[10px] border-[1.25px] border-[#35363C] overflow-hidden shadow-none">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[var(--border-default)] bg-[var(--bg-subtle)]/50">
-                    <th className="px-4 py-3 w-10">
+                  <tr className="border-b-[1.25px] border-[#35363C] bg-[#0D0D0E]">
+                    <th className="px-5 py-2.5 w-10 leading-tight">
                       <GlassCheckbox 
                         checked={data.categories?.length > 0 && selectedCategoryIds.length === data.categories?.length}
                         onChange={selectAllCategories}
                       />
                     </th>
                     <th 
-                      className="px-4 py-3 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em] cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none"
+                      className="px-5 py-2.5 text-[12px] font-medium text-[#A1A1AA] cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
                       onClick={() => handleCatSort('type')}
                     >
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         Type / Direction {catSortKey === 'type' && (catSortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
                       </div>
                     </th>
                     <th 
-                      className="px-4 py-3 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em] cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none"
+                      className="px-5 py-2.5 text-[12px] font-medium text-[#A1A1AA] cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
                       onClick={() => handleCatSort('name')}
                     >
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         Category Name {catSortKey === 'name' && (catSortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
                       </div>
                     </th>
                     <th 
-                      className="px-4 py-3 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em] cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none"
+                      className="px-5 py-2.5 text-[12px] font-medium text-[#A1A1AA] cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
                       onClick={() => handleCatSort('volume')}
                     >
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         Total Volume {catSortKey === 'volume' && (catSortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em] text-right select-none">Actions</th>
+                    <th className="px-5 py-2.5 text-[12px] font-medium text-[#A1A1AA] text-right select-none leading-tight">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--border-default)]">
-                  {sortedCategories.map((cat: CategoryItem) => {
+                <tbody className="divide-y divide-[#35363C]">
+                  {sortedCategories
+                    .slice((catCurrentPage - 1) * CAT_PAGE_SIZE, catCurrentPage * CAT_PAGE_SIZE)
+                    .map((cat: CategoryItem) => {
                     const isIncome = cat.type === TransactionType.INCOME;
                     const isSelected = selectedCategoryIds.includes(cat.id);
                     const stats = categoryStats[cat.name] || { count: 0, total: 0 };
@@ -639,49 +645,49 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                     return (
                       <tr 
                         key={cat.id} 
-                        className={`hover:bg-[var(--bg-surface-hover)] transition-colors ${
-                          isSelected ? 'bg-[var(--bg-subtle)]' : ''
+                        className={`hover:bg-[#141417] transition-colors ${
+                          isSelected ? 'bg-[#141417] border-l-2 border-l-[#2563eb]' : 'border-l-2 border-l-transparent'
                         }`}
                       >
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-2.5 leading-tight">
                           <GlassCheckbox 
                             checked={isSelected}
                             onChange={() => toggleSelectCategory(cat.id)}
                           />
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-2.5 leading-tight">
                           <div className="flex items-center gap-2">
                             {isIncome ? (
-                              <ArrowUpRight size={18} strokeWidth={1.5} style={{ color: cat.color }} className="shrink-0" />
+                              <ArrowUpRight size={14} strokeWidth={1.5} className="shrink-0 text-[#71717A]" />
                             ) : (
-                              <ArrowDownRight size={18} strokeWidth={1.5} style={{ color: cat.color }} className="shrink-0" />
+                              <ArrowDownRight size={14} strokeWidth={1.5} className="shrink-0 text-[#71717A]" />
                             )}
-                            <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                            <span className="text-[11px] font-mono uppercase tracking-[0.04em] text-[#71717A]">
                               {cat.type}
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="text-[13px] font-medium text-[var(--text-primary)]">{cat.name}</span>
+                        <td className="px-5 py-2.5 leading-tight">
+                          <span className="text-[13.5px] font-medium text-[#F4F4F5] tracking-tight">{cat.name}</span>
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="text-[12px] font-mono">
-                            <span className="text-[var(--text-primary)] font-medium">
+                        <td className="px-5 py-2.5 leading-tight">
+                          <div className="text-[13px] font-mono flex items-center gap-2">
+                            <span className="text-[#A1A1AA] font-normal">
                               {formatMoney(stats.total, data.settings.currencySymbol)}
                             </span>
-                            <span className="text-[var(--text-muted)] ml-2">
+                            <span className="text-[11px] text-[#71717A] font-normal">
                               ({stats.count} {stats.count === 1 ? 'entry' : 'entries'})
                             </span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-5 py-2.5 text-right leading-tight">
                           <div className="relative inline-block text-left">
                             <button
                               onClick={() => setActiveCatMenuId(isMenuOpen ? null : cat.id)}
-                              className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[6px] hover:bg-[var(--bg-subtle)] transition-all"
+                              className="p-1 text-[#71717A] hover:text-[#F4F4F5] rounded-[6px] hover:bg-[#141417] transition-all"
                               title="Actions"
                             >
-                              <MoreVertical size={15} strokeWidth={1.5} />
+                              <MoreVertical size={14} strokeWidth={1.5} />
                             </button>
 
                             {/* Context Menu Dropdown */}
@@ -725,6 +731,14 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                   })}
                 </tbody>
               </table>
+
+              <TablePaginationFooter
+                currentPage={catCurrentPage}
+                totalPages={Math.ceil(sortedCategories.length / CAT_PAGE_SIZE) || 1}
+                totalItems={sortedCategories.length}
+                pageSize={CAT_PAGE_SIZE}
+                onPageChange={setCatCurrentPage}
+              />
             </div>
           )}
         </div>
@@ -743,7 +757,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
               {selectedCategoryIds.length >= 2 && (
                 <button
                   onClick={openMergeModal}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] bg-[#2563EB] hover:bg-blue-600 text-white font-medium text-[12px] transition-all shadow-xs"
+                  className="btn btn-secondary flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] font-medium text-[12px] transition-all"
                 >
                   <GitMerge size={14} strokeWidth={1.5} />
                   <span>Merge selected</span>
@@ -771,20 +785,20 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
       )}
 
       {/* --- MODAL: Rename Category --- */}
-      {renamingCategory && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {renamingCategory && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setRenamingCategory(null)} 
           />
-          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Rename Category</h3>
+          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Rename Category</h3>
               <button 
                 onClick={() => setRenamingCategory(null)}
-                className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline btn--icon-sm shrink-0"
               >
-                <X size={16} strokeWidth={1.5} />
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -800,11 +814,11 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
               <p className="text-[11px] text-[var(--text-muted)]">All previous transaction entries in this category will be updated automatically.</p>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setRenamingCategory(null)}
-                className="h-[38px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[38px] px-4 text-[13px]"
               >
                 Cancel
               </button>
@@ -812,30 +826,31 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                 type="button"
                 onClick={handleRenameCategory}
                 disabled={!renameInput.trim()}
-                className="h-[38px] px-5 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--primary h-[38px] px-5 text-[13px]"
               >
                 Save Name
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL: Merge Categories --- */}
-      {isMergeModalOpen && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {isMergeModalOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setIsMergeModalOpen(false)} 
           />
-          <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Merge Categories</h3>
+          <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Merge Categories</h3>
               <button 
                 onClick={() => setIsMergeModalOpen(false)}
-                className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline btn--icon-sm shrink-0"
               >
-                <X size={16} strokeWidth={1.5} />
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -904,11 +919,11 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsMergeModalOpen(false)}
-                className="h-[38px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[32px] px-3.5 text-[12px]"
               >
                 Cancel
               </button>
@@ -916,28 +931,29 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                 type="button"
                 onClick={handleConfirmMerge}
                 disabled={selectedMergeTarget === 'CUSTOM' && !customMergedName.trim()}
-                className="h-[38px] px-5 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--primary h-[32px] px-4 text-[12px]"
               >
                 Merge Categories
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL: Batch Delete Categories Confirmation --- */}
-      {isBatchDeleteModalOpen && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {isBatchDeleteModalOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setIsBatchDeleteModalOpen(false)} 
           />
-          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
+          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-[var(--text-primary)]">Delete Selected Categories</h3>
               <button 
                 onClick={() => setIsBatchDeleteModalOpen(false)}
-                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline btn--icon-sm shrink-0"
               >
                 <X size={15} strokeWidth={1.5} />
               </button>
@@ -952,43 +968,44 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
               </p>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsBatchDeleteModalOpen(false)}
-                className="h-[36px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[30px] px-3 text-[12px]"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleBatchDeleteCategories}
-                className="h-[36px] px-4 rounded-[8px] bg-red-600 hover:bg-red-700 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--danger h-[30px] px-3.5 text-[12px]"
               >
                 Delete Categories
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL: Add / Edit Budget --- */}
-      {isAddBudgetModalOpen && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {isAddBudgetModalOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setIsAddBudgetModalOpen(false)} 
           />
-          <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+          <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">
                 {editingCat ? 'Edit Budget' : 'Add a Budget'}
               </h3>
               <button 
                 onClick={() => setIsAddBudgetModalOpen(false)}
-                className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline btn--icon-sm shrink-0"
               >
-                <X size={16} strokeWidth={1.5} />
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -1006,26 +1023,18 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
 
               <div className="space-y-1.5">
                 <label className="text-[13px] font-medium text-[var(--text-primary)]">Budget Cycle</label>
-                <div className="flex gap-2">
+                <div className="tabs flex">
                   <button 
                     type="button"
                     onClick={() => setBudgetPeriod('DAILY')}
-                    className={`flex-1 py-2 text-[12px] font-medium rounded-[6px] transition-all border ${
-                      budgetPeriod === 'DAILY' 
-                        ? 'bg-[#2563EB] border-[#2563EB] text-white font-semibold' 
-                        : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
+                    className={`tab flex-1 justify-center ${budgetPeriod === 'DAILY' ? 'is-active' : ''}`}
                   >
                     Daily Limit
                   </button>
                   <button 
                     type="button"
                     onClick={() => setBudgetPeriod('MONTHLY')}
-                    className={`flex-1 py-2 text-[12px] font-medium rounded-[6px] transition-all border ${
-                      budgetPeriod === 'MONTHLY' 
-                        ? 'bg-[#2563EB] border-[#2563EB] text-white font-semibold' 
-                        : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
+                    className={`tab flex-1 justify-center ${budgetPeriod === 'MONTHLY' ? 'is-active' : ''}`}
                   >
                     Monthly Limit
                   </button>
@@ -1039,16 +1048,16 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                   placeholder="0.00"
                   value={budgetLimit}
                   onChange={(e) => setBudgetLimit(e.target.value)}
-                  className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                  className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all font-mono"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsAddBudgetModalOpen(false)}
-                className="h-[38px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[32px] px-3.5 text-[12px]"
               >
                 Cancel
               </button>
@@ -1056,30 +1065,31 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                 type="button"
                 onClick={handleSaveBudget}
                 disabled={!budgetCat || !budgetLimit}
-                className="h-[38px] px-5 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--primary h-[32px] px-4 text-[12px]"
               >
                 {editingCat ? 'Update Budget' : 'Save Budget'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL: Add Category --- */}
-      {isAddCategoryModalOpen && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {isAddCategoryModalOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setIsAddCategoryModalOpen(false)} 
           />
-          <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Add a Category</h3>
+          <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Add a Category</h3>
               <button 
                 onClick={() => setIsAddCategoryModalOpen(false)}
-                className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline btn--icon-sm shrink-0"
               >
-                <X size={16} strokeWidth={1.5} />
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
 
@@ -1091,32 +1101,24 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                   placeholder="Category label..."
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
-                  className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                  className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-[13px] font-medium text-[var(--text-primary)]">Transaction Type</label>
-                <div className="flex gap-2">
+                <div className="tabs flex">
                   <button
                     type="button"
                     onClick={() => setNewCatType(TransactionType.EXPENSE)}
-                    className={`flex-1 py-2 text-[12px] font-medium rounded-[6px] transition-all border ${
-                      newCatType === TransactionType.EXPENSE
-                        ? 'bg-rose-500/20 border-rose-500/40 text-rose-400 font-semibold'
-                        : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)]'
-                    }`}
+                    className={`tab flex-1 justify-center ${newCatType === TransactionType.EXPENSE ? 'is-active text-rose-400' : ''}`}
                   >
                     Expense
                   </button>
                   <button
                     type="button"
                     onClick={() => setNewCatType(TransactionType.INCOME)}
-                    className={`flex-1 py-2 text-[12px] font-medium rounded-[6px] transition-all border ${
-                      newCatType === TransactionType.INCOME
-                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 font-semibold'
-                        : 'bg-[var(--bg-subtle)] border-[var(--border-default)] text-[var(--text-secondary)]'
-                    }`}
+                    className={`tab flex-1 justify-center ${newCatType === TransactionType.INCOME ? 'is-active text-emerald-400' : ''}`}
                   >
                     Income
                   </button>
@@ -1141,11 +1143,11 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
               </div>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsAddCategoryModalOpen(false)}
-                className="h-[38px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[32px] px-3.5 text-[12px]"
               >
                 Cancel
               </button>
@@ -1153,28 +1155,29 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                 type="button"
                 onClick={handleAddCategory}
                 disabled={!newCatName}
-                className="h-[38px] px-5 rounded-[8px] bg-[#2563EB] hover:bg-blue-600 disabled:opacity-40 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--primary h-[32px] px-4 text-[12px]"
               >
                 Create category
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* --- MODAL: Delete Category Confirmation --- */}
-      {deletingCategory && (
-        <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4">
+      {deletingCategory && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setDeletingCategory(null)} 
           />
-          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-3">
+          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold text-[var(--text-primary)]">Delete Category</h3>
               <button 
                 onClick={() => setDeletingCategory(null)}
-                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline btn--icon-sm shrink-0"
               >
                 <X size={15} strokeWidth={1.5} />
               </button>
@@ -1193,24 +1196,25 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
               </p>
             </div>
 
-            <div className="flex justify-end gap-2.5 pt-3 border-t border-[var(--border-default)]">
+            <div className="flex justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setDeletingCategory(null)}
-                className="h-[36px] px-4 rounded-[8px] border border-[var(--border-default)] text-[13px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-all"
+                className="btn btn--outline h-[30px] px-3 text-[12px]"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={confirmDeleteCategory}
-                className="h-[36px] px-4 rounded-[8px] bg-red-600 hover:bg-red-700 text-white text-[13px] font-medium transition-all shadow-xs"
+                className="btn btn--danger h-[30px] px-3.5 text-[12px]"
               >
                 Delete Category
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
