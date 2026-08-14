@@ -93,6 +93,13 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
     if (isOpen) {
       setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, activeConv?.messages.length, isLoading]);
 
   const updateConversations = (updated: RabbAiConversation[]) => {
@@ -432,248 +439,264 @@ export const RabbAiChatWidget: React.FC<RabbAiChatWidgetProps> = ({
 
   return (
     <>
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px))] right-3.5 sm:bottom-6 sm:right-6 z-[3999] h-[36px] px-3.5 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-solid)] text-[var(--text-primary)] shadow-lg transition-all flex items-center gap-2 group active:scale-95"
-          title="Open Assistant"
-        >
-          <div className="relative flex items-center justify-center">
-            <img src="/rabAi icon.png" alt="RabbAi" className="w-3.5 h-3.5 object-contain" />
-            <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)]" />
-          </div>
-          <span className="text-[12px] font-medium tracking-tight">RabbAi</span>
-        </button>
-      )}
+      {/* Floating Trigger Button */}
+      <button
+        onClick={() => setIsOpen(true)}
+        className={`fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px))] right-3.5 sm:bottom-6 sm:right-6 z-[3997] h-[36px] px-3.5 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--accent-solid)] text-[var(--text-primary)] shadow-lg transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] flex items-center gap-2 group active:scale-95 cursor-pointer ${
+          isOpen ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100 pointer-events-auto'
+        }`}
+        title="Open Assistant"
+      >
+        <div className="relative flex items-center justify-center">
+          <img src="/rabAi icon.png" alt="RabbAi" className="w-3.5 h-3.5 object-contain" />
+          <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)]" />
+        </div>
+        <span className="text-[12px] font-medium tracking-tight">RabbAi</span>
+      </button>
 
-      {isOpen && (
-        <div 
-          onPaste={handlePaste}
-          className="fixed inset-x-0 top-0 bottom-[calc(54px+env(safe-area-inset-bottom,0px))] z-[3999] md:inset-x-auto md:right-0 md:top-0 md:w-[480px] md:border-l md:border-[var(--border-default)] bg-[var(--bg-surface)] flex flex-col shadow-2xl overflow-hidden text-[var(--text-primary)] animate-in slide-in-from-bottom duration-200"
-        >
+      {/* Backdrop overlay for smooth dismissal on desktop & mobile */}
+      <div 
+        className={`fixed inset-0 bg-black/40 backdrop-blur-[1.5px] z-[3998] transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsOpen(false)} 
+      />
+
+      {/* Chat Drawer Panel */}
+      <div 
+        onPaste={handlePaste}
+        className={`fixed z-[3999] bg-[var(--bg-surface)] flex flex-col shadow-[-16px_0_40px_rgba(0,0,0,0.5),0_0_0_1px_var(--border-default)] overflow-hidden text-[var(--text-primary)] transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]
+          /* Mobile styles (slides up from bottom) */
+          inset-x-0 top-0 bottom-[calc(54px+env(safe-area-inset-bottom,0px))]
+          ${isOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none'}
           
-          {/* Header */}
-          <div className="h-[48px] px-3.5 border-b border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <img src="/rabAi icon.png" alt="RabbAi" className="w-4 h-4 object-contain" />
-                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)]" />
-              </div>
-              <span className="text-[13px] font-semibold text-[var(--text-primary)] tracking-tight">RabbAi</span>
+          /* Desktop/PC styles (smooth slide in from right edge) */
+          md:inset-x-auto md:right-0 md:top-0 md:bottom-0 md:w-[480px] md:border-l md:border-[var(--border-default)]
+          ${isOpen ? 'md:translate-x-0 md:translate-y-0' : 'md:translate-x-full md:translate-y-0 md:pointer-events-none'}
+        `}
+      >
+        
+        {/* Header */}
+        <div className="h-[48px] px-3.5 border-b border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <img src="/rabAi icon.png" alt="RabbAi" className="w-4 h-4 object-contain" />
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)]" />
             </div>
-
-            <div className="flex items-center gap-1.5">
-              <div className="relative">
-                <button
-                  onClick={() => setIsThreadDropdownOpen(!isThreadDropdownOpen)}
-                  className="h-[28px] px-2.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-subtle)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-all"
-                >
-                  <MessageSquare size={12} strokeWidth={1.5} />
-                  <span className="max-w-[90px] truncate">{activeConv?.title || 'Chat'}</span>
-                  <ChevronDown size={12} />
-                </button>
-
-                {isThreadDropdownOpen && (
-                  <div className="absolute right-0 top-8 w-[200px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-xl p-1.5 z-50 space-y-1">
-                    <button
-                      onClick={handleCreateNewThread}
-                      className="w-full h-[30px] px-2.5 rounded-[6px] bg-[var(--accent-solid)] text-[var(--accent-text)] text-[11px] font-semibold flex items-center justify-between transition-all"
-                    >
-                      <span className="flex items-center gap-1.5"><Plus size={12} /> New Chat</span>
-                    </button>
-                    <div className="max-h-[180px] overflow-y-auto space-y-0.5 pt-0.5">
-                      {conversations.map(c => (
-                        <div
-                          key={c.id}
-                          onClick={() => { setActiveConvId(c.id); setIsThreadDropdownOpen(false); }}
-                          className={`w-full h-[30px] px-2 rounded-[6px] text-[11px] flex items-center justify-between cursor-pointer transition-colors ${
-                            c.id === activeConv?.id
-                              ? 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)] font-medium'
-                              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)]'
-                          }`}
-                        >
-                          <span className="truncate flex-1">{c.title}</span>
-                          {conversations.length > 1 && (
-                            <button
-                              onClick={(e) => handleDeleteThread(c.id, e)}
-                              className="p-1 text-[var(--text-muted)] hover:text-rose-400 transition-colors"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <button
-                onClick={() => setIsOpen(false)}
-                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"
-                title="Close"
-              >
-                <X size={14} strokeWidth={1.5} />
-              </button>
-            </div>
+            <span className="text-[13px] font-semibold text-[var(--text-primary)] tracking-tight">RabbAi</span>
           </div>
 
-          {/* Chat Body */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3.5 no-scrollbar text-[13px]">
-            {activeConv?.messages.map((msg) => {
-              const isUser = msg.sender === 'user';
-              return (
-                <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}>
-                  <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)] px-1">
-                    <span>{isUser ? 'You' : 'RabbAi'}</span>
-                    <span>•</span>
-                    <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                  </div>
+          <div className="flex items-center gap-1.5">
+            <div className="relative">
+              <button
+                onClick={() => setIsThreadDropdownOpen(!isThreadDropdownOpen)}
+                className="h-[28px] px-2.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-subtle)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <MessageSquare size={12} strokeWidth={1.5} />
+                <span className="max-w-[90px] truncate">{activeConv?.title || 'Chat'}</span>
+                <ChevronDown size={12} />
+              </button>
 
-                  <div className={`max-w-[88%] rounded-[8px] p-3 text-[13px] leading-relaxed border ${
-                    isUser
-                      ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)] font-medium rounded-tr-none'
-                      : 'bg-[var(--bg-subtle)] text-[var(--text-primary)] border-[var(--border-default)] rounded-tl-none'
-                  }`}>
-                    {msg.imageUrl && (
-                      <div className="rounded-[6px] overflow-hidden border border-white/20 max-h-[180px] mb-2">
-                        <img src={msg.imageUrl} alt="Receipt Scan" className="w-full object-cover" />
-                      </div>
-                    )}
-
-                    {isUser ? (
-                      <p className="whitespace-pre-wrap">{msg.text}</p>
-                    ) : (
-                      <MarkdownRenderer content={msg.text} />
-                    )}
-
-                    {/* Transaction auto-log confirmation */}
-                    {msg.extractedTransaction && (
-                      <div className="pt-2 border-t border-[var(--border-default)]/60 space-y-2 mt-2">
-                        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-2.5 rounded-[6px] space-y-1.5">
-                          <div className="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)]">
-                            <span>EXTRACTED RECORD</span>
-                            <span className="text-[var(--status-success-fg)] font-semibold">{msg.extractedTransaction.type}</span>
-                          </div>
-                          <div className="flex items-center justify-between font-semibold font-mono text-[13px] text-[var(--text-primary)]">
-                            <span>{msg.extractedTransaction.description}</span>
-                            <span>{data.settings.currencySymbol || '$'}{msg.extractedTransaction.amount}</span>
-                          </div>
-                          <div className="text-[11px] text-[var(--text-secondary)] font-medium">
-                            Category: {msg.extractedTransaction.category}
-                          </div>
-                        </div>
-                        {msg.extractedTransaction.isLogged ? (
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--status-success-fg)] bg-[var(--status-success-bg)] px-2.5 py-1.5 rounded-[6px] flex-1">
-                              <Check size={13} /> Auto-logged to ledger
-                            </div>
-                            <button
-                              onClick={() => handleUndoLog(msg.id, msg.extractedTransaction!)}
-                              className="h-[28px] px-2.5 rounded-[6px] border border-[var(--border-default)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-rose-400 hover:border-rose-500/40 hover:bg-rose-500/10 transition-all shrink-0"
-                            >
-                              Undo
-                            </button>
-                          </div>
-                        ) : (
+              {isThreadDropdownOpen && (
+                <div className="absolute right-0 top-8 w-[200px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-xl p-1.5 z-50 space-y-1">
+                  <button
+                    onClick={handleCreateNewThread}
+                    className="w-full h-[30px] px-2.5 rounded-[6px] bg-[var(--accent-solid)] text-[var(--accent-text)] text-[11px] font-semibold flex items-center justify-between transition-all cursor-pointer"
+                  >
+                    <span className="flex items-center gap-1.5"><Plus size={12} /> New Chat</span>
+                  </button>
+                  <div className="max-h-[180px] overflow-y-auto space-y-0.5 pt-0.5">
+                    {conversations.map(c => (
+                      <div
+                        key={c.id}
+                        onClick={() => { setActiveConvId(c.id); setIsThreadDropdownOpen(false); }}
+                        className={`w-full h-[30px] px-2 rounded-[6px] text-[11px] flex items-center justify-between cursor-pointer transition-colors ${
+                          c.id === activeConv?.id
+                            ? 'bg-[var(--bg-subtle)] text-[var(--text-primary)] font-medium'
+                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]'
+                        }`}
+                      >
+                        <span className="truncate pr-2">{c.title}</span>
+                        {conversations.length > 1 && (
                           <button
-                            onClick={() => handleReLog(msg.id, msg.extractedTransaction!)}
-                            className="w-full py-1.5 px-3 bg-[var(--accent-solid)] text-[var(--accent-text)] font-semibold text-[12px] rounded-[6px] flex items-center justify-center gap-1.5 transition-all"
+                            onClick={(e) => handleDeleteThread(c.id, e)}
+                            className="text-[var(--text-muted)] hover:text-rose-400 p-1 shrink-0"
                           >
-                            <img src="/rabAi icon.png" alt="" className="w-3.5 h-3.5 object-contain" />
-                            Log {data.settings.currencySymbol || '$'}{msg.extractedTransaction.amount} to Wallet
+                            <Trash2 size={12} />
                           </button>
                         )}
                       </div>
-                    )}
-
-                    {/* AI action card (wallet/category actions) */}
-                    {msg.aiAction && renderActionCard(msg)}
+                    ))}
                   </div>
                 </div>
-              );
-            })}
-
-            {isLoading && (
-              <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] p-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" />
-                <span>Thinking...</span>
-              </div>
-            )}
-            <div ref={chatBottomRef} />
-          </div>
-
-          {/* Quick suggestions bar without top separator, larger pills, seamless side fade */}
-          <div className="relative px-3 pt-1 pb-2 bg-[var(--bg-surface)] shrink-0 overflow-hidden">
-            <div 
-              className="flex items-center gap-2 overflow-x-auto no-scrollbar whitespace-nowrap py-0.5"
-              style={{
-                maskImage: 'linear-gradient(to right, black 0%, black calc(100% - 28px), transparent 100%)',
-                WebkitMaskImage: 'linear-gradient(to right, black 0%, black calc(100% - 28px), transparent 100%)'
-              }}
-            >
-              {[
-                "Spending breakdown",
-                "Runway estimate",
-                "Log expense",
-                "Recent outflows",
-                "Export CSV"
-              ].map(prompt => (
-                <button
-                  key={prompt}
-                  onClick={() => { setInputText(prompt); }}
-                  className="h-[30px] px-3.5 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-active)] hover:bg-[var(--bg-surface-hover)] whitespace-nowrap transition-all shrink-0 active:scale-95"
-                >
-                  {prompt}
-                </button>
-              ))}
+              )}
             </div>
-          </div>
-
-          {/* Image preview */}
-          {selectedImage && (
-            <div className="px-3 py-2 bg-[var(--bg-subtle)] border-t border-[var(--border-default)] flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <img src={selectedImage} alt="Preview" className="w-8 h-8 rounded object-cover border border-[var(--border-default)] shrink-0" />
-                <span className="text-[11px] text-[var(--text-secondary)] truncate">Receipt ready for scan</span>
-              </div>
-              <button onClick={() => setSelectedImage(null)} className="p-1 text-[var(--text-muted)] hover:text-rose-400">
-                <X size={14} />
-              </button>
-            </div>
-          )}
-
-          {/* Input bar */}
-          <div className="p-3 bg-[var(--bg-surface)] border-t border-[var(--border-default)] flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="p-2 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-all shrink-0"
-              title="Attach receipt"
-            >
-              <Paperclip size={15} strokeWidth={1.5} />
-            </button>
-            <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
-
-            <input
-              type="text"
-              placeholder="Ask anything, attach or paste screenshot..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onPaste={handlePaste}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
-              className="flex-1 h-[34px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent-solid)]"
-            />
 
             <button
-              onClick={handleSend}
-              disabled={(!inputText.trim() && !selectedImage) || isLoading}
-              className="btn btn--primary h-[34px] px-3.5 text-[12px] flex items-center gap-1 shrink-0 font-medium"
+              onClick={() => setIsOpen(false)}
+              className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
+              title="Close"
             >
-              <Send size={13} />
+              <X size={14} strokeWidth={1.5} />
             </button>
           </div>
         </div>
-      )}
+
+        {/* Chat Body */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3.5 no-scrollbar text-[13px]">
+          {activeConv?.messages.map((msg) => {
+            const isUser = msg.sender === 'user';
+            return (
+              <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}>
+                <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)] px-1">
+                  <span>{isUser ? 'You' : 'RabbAi'}</span>
+                  <span>•</span>
+                  <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+
+                <div className={`max-w-[88%] rounded-[8px] p-3 text-[13px] leading-relaxed border ${
+                  isUser
+                    ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)] font-medium rounded-tr-none'
+                    : 'bg-[var(--bg-subtle)] text-[var(--text-primary)] border-[var(--border-default)] rounded-tl-none'
+                }`}>
+                  {msg.imageUrl && (
+                    <div className="rounded-[6px] overflow-hidden border border-white/20 max-h-[180px] mb-2">
+                      <img src={msg.imageUrl} alt="Receipt Scan" className="w-full object-cover" />
+                    </div>
+                  )}
+
+                  {isUser ? (
+                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                  ) : (
+                    <MarkdownRenderer content={msg.text} />
+                  )}
+
+                  {/* Transaction auto-log confirmation */}
+                  {msg.extractedTransaction && (
+                    <div className="pt-2 border-t border-[var(--border-default)]/60 space-y-2 mt-2">
+                      <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-2.5 rounded-[6px] space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)]">
+                          <span>EXTRACTED RECORD</span>
+                          <span className="text-[var(--status-success-fg)] font-semibold">{msg.extractedTransaction.type}</span>
+                        </div>
+                        <div className="flex items-center justify-between font-semibold font-mono text-[13px] text-[var(--text-primary)]">
+                          <span>{msg.extractedTransaction.description}</span>
+                          <span>{data.settings.currencySymbol || '$'}{msg.extractedTransaction.amount}</span>
+                        </div>
+                        <div className="text-[11px] text-[var(--text-secondary)] font-medium">
+                          Category: {msg.extractedTransaction.category}
+                        </div>
+                      </div>
+                      {msg.extractedTransaction.isLogged ? (
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--status-success-fg)] bg-[var(--status-success-bg)] px-2.5 py-1.5 rounded-[6px] flex-1">
+                            <Check size={13} /> Auto-logged to ledger
+                          </div>
+                          <button
+                            onClick={() => handleUndoLog(msg.id, msg.extractedTransaction!)}
+                            className="h-[28px] px-2.5 rounded-[6px] border border-[var(--border-default)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-rose-400 hover:border-rose-500/40 hover:bg-rose-500/10 transition-all shrink-0 cursor-pointer"
+                          >
+                            Undo
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleReLog(msg.id, msg.extractedTransaction!)}
+                          className="w-full py-1.5 px-3 bg-[var(--accent-solid)] text-[var(--accent-text)] font-semibold text-[12px] rounded-[6px] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <img src="/rabAi icon.png" alt="" className="w-3.5 h-3.5 object-contain" />
+                          Log {data.settings.currencySymbol || '$'}{msg.extractedTransaction.amount} to Wallet
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* AI action card (wallet/category actions) */}
+                  {msg.aiAction && renderActionCard(msg)}
+                </div>
+              </div>
+            );
+          })}
+
+          {isLoading && (
+            <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] p-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)] animate-pulse" />
+              <span>Thinking...</span>
+            </div>
+          )}
+          <div ref={chatBottomRef} />
+        </div>
+
+        {/* Quick suggestions bar */}
+        <div className="relative px-3 pt-1 pb-2 bg-[var(--bg-surface)] shrink-0 overflow-hidden">
+          <div 
+            className="flex items-center gap-2 overflow-x-auto no-scrollbar whitespace-nowrap py-0.5"
+            style={{
+              maskImage: 'linear-gradient(to right, black 0%, black calc(100% - 28px), transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to right, black 0%, black calc(100% - 28px), transparent 100%)'
+            }}
+          >
+            {[
+              "Spending breakdown",
+              "Runway estimate",
+              "Log expense",
+              "Recent outflows",
+              "Export CSV"
+            ].map(prompt => (
+              <button
+                key={prompt}
+                onClick={() => { setInputText(prompt); }}
+                className="h-[30px] px-3.5 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-active)] hover:bg-[var(--bg-surface-hover)] whitespace-nowrap transition-all shrink-0 active:scale-95 cursor-pointer"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Image preview */}
+        {selectedImage && (
+          <div className="px-3 py-2 bg-[var(--bg-subtle)] border-t border-[var(--border-default)] flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <img src={selectedImage} alt="Preview" className="w-8 h-8 rounded object-cover border border-[var(--border-default)] shrink-0" />
+              <span className="text-[11px] text-[var(--text-secondary)] truncate">Receipt ready for scan</span>
+            </div>
+            <button onClick={() => setSelectedImage(null)} className="p-1 text-[var(--text-muted)] hover:text-rose-400 cursor-pointer">
+              <X size={14} />
+            </button>
+          </div>
+        )}
+
+        {/* Input bar */}
+        <div className="p-3 bg-[var(--bg-surface)] border-t border-[var(--border-default)] flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-all shrink-0 cursor-pointer"
+            title="Attach receipt"
+          >
+            <Paperclip size={15} strokeWidth={1.5} />
+          </button>
+          <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/*" className="hidden" />
+
+          <input
+            type="text"
+            placeholder="Ask anything, attach or paste screenshot..."
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onPaste={handlePaste}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
+            className="flex-1 h-[34px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[var(--text-muted)] focus:border-[var(--accent-solid)]"
+          />
+
+          <button
+            onClick={handleSend}
+            disabled={(!inputText.trim() && !selectedImage) || isLoading}
+            className="btn btn--primary h-[34px] px-3.5 text-[12px] flex items-center gap-1 shrink-0 font-medium cursor-pointer"
+          >
+            <Send size={13} />
+          </button>
+        </div>
+      </div>
     </>
   );
 };

@@ -4,6 +4,7 @@ import {
   Calendar,
   Ghost,
   TrendingUp,
+  Sliders,
   UserCircle,
   ChevronRight,
   ChevronLeft,
@@ -306,7 +307,7 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                   id: 'control' as ViewState,
                   label: 'Budgets & Categories',
                   desc: 'Set custom spending thresholds & caps',
-                  icon: TrendingUp,
+                  icon: Sliders,
                 },
               ].map(({ id, label, desc, icon: Icon }) => {
                 const isActive = currentView === id;

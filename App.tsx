@@ -29,7 +29,7 @@ import {
   X, PlusCircle, Check,
   Plus, Activity, AlertCircle,
   ChevronLeft, ChevronRight,
-  LayoutGrid, TrendingUp, ArrowDownRight, Calendar, Ghost, UserCircle, Search, Info,
+  LayoutGrid, TrendingUp, ArrowDownRight, HandCoins, Sliders, Calendar, Ghost, UserCircle, Search, Info,
   Eye, EyeOff
 } from 'lucide-react';
 import { CategoryIcon } from './components/shared/CategoryIcon';
@@ -977,8 +977,8 @@ export default function App() {
                   dashboard: { title: 'Dashboard', icon: LayoutGrid },
                   history: { title: 'Transactions', icon: Activity },
                   analytics: { title: 'Analytics', icon: TrendingUp },
-                  debts: { title: 'Debts & Loans', icon: ArrowDownRight },
-                  control: { title: 'Budgets & Categories', icon: TrendingUp },
+                  debts: { title: 'Debts & Loans', icon: HandCoins },
+                  control: { title: 'Budgets & Categories', icon: Sliders },
                   provisions: { title: 'Upcoming Expenses', icon: Calendar },
                   subscriptions: { title: 'Subscriptions', icon: Ghost },
                   identity: { title: 'Profile & Settings', icon: UserCircle },

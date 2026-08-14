@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ArrowLeft,
   User,
@@ -7,6 +8,8 @@ import {
   LayoutGrid,
   Activity,
   ArrowDownRight,
+  HandCoins,
+  Sliders,
   Calendar,
   Ghost,
   ChevronRight,
@@ -92,14 +95,49 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const historyRef = useRef<HTMLButtonElement>(null);
   const analyticsRef = useRef<HTMLButtonElement>(null);
   const debtsRef = useRef<HTMLButtonElement>(null);
+  const userButtonRef = useRef<HTMLDivElement>(null);
 
   const [mainIndicatorStyle, setMainIndicatorStyle] = useState({ top: 0, height: 0, opacity: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState<{ bottom: number; left: number }>({ bottom: 60, left: 8 });
 
   useEffect(() => {
     if (isOpen) {
       setSidebarView('menu');
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+
+    const updateCoords = () => {
+      if (userButtonRef.current) {
+        const rect = userButtonRef.current.getBoundingClientRect();
+        const bottomDistance = Math.max(12, window.innerHeight - rect.top + 8);
+        const leftPos = Math.max(8, Math.min(rect.left, window.innerWidth - 230));
+        setDropdownPosition({
+          bottom: bottomDistance,
+          left: leftPos,
+        });
+      }
+    };
+
+    updateCoords();
+    window.addEventListener('resize', updateCoords);
+    window.addEventListener('scroll', updateCoords, true);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsUserMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('resize', updateCoords);
+      window.removeEventListener('scroll', updateCoords, true);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isUserMenuOpen]);
 
   useEffect(() => {
     const updatePosition = () => {
@@ -150,8 +188,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     await handleLogout();
   };
 
-  const ConfirmationOverlay = ({ action }: { action: 'logout' | 'delete' }) => (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 animate-in fade-in duration-200">
+  const ConfirmationOverlay = ({ action }: { action: 'logout' | 'delete' }) => createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 animate-in fade-in duration-200">
       <div className="absolute inset-0 bg-black/75 backdrop-blur-xs" onClick={() => setConfirmAction(null)} />
       <div className="relative bg-[var(--bg-surface)] p-6 rounded-[12px] w-full max-w-[320px] border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)]">
         <div className="flex flex-col items-center text-center">
@@ -168,7 +206,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 
   const getViewIndex = (v: typeof sidebarView) => {
@@ -203,36 +242,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className={`sidebar-panel flex flex-col h-full ${isCollapsed ? 'bg-transparent' : 'bg-[var(--bg-sidebar)]'}`}>
               {/* Top Header: Branding + Sidebar Shrink Button */}
               <div className="h-[52px] px-2 flex items-center justify-between shrink-0">
-                <button
-                  onClick={() => setIsCollapsed(!isCollapsed)}
-                  title={isCollapsed ? "Expand sidebar" : "TrackXpense"}
-                  className="h-8 px-1 rounded-[6px] flex items-center gap-2.5 hover:bg-white/5 transition-colors text-left shrink-0"
+                <div
+                  onClick={() => {
+                    if (isCollapsed) {
+                      Haptics.light();
+                      setIsCollapsed(false);
+                    }
+                  }}
+                  title={isCollapsed ? "Expand sidebar" : undefined}
+                  className={`h-8 px-1 flex items-center text-left select-none overflow-hidden ${isCollapsed ? 'cursor-pointer' : ''}`}
                 >
                   <div className="w-7 h-7 flex items-center justify-center shrink-0">
                     <img 
                       src="icon.png" 
                       alt="Favicon" 
-                      className="w-5 h-5 rounded-[4px] object-cover shrink-0" 
+                      className="w-5 h-5 rounded-[4px] object-cover shrink-0 select-none pointer-events-none" 
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
                         const fallback = e.currentTarget.nextElementSibling as HTMLElement;
                         if (fallback) fallback.style.display = 'flex';
                       }}
                     />
-                    <div className="w-5 h-5 rounded-[4px] bg-white/10 hidden items-center justify-center text-[var(--text-primary)] font-bold text-[10px] shrink-0">
+                    <div className="w-5 h-5 rounded-[4px] bg-white/10 hidden items-center justify-center text-[var(--text-primary)] font-bold text-[10px] shrink-0 select-none">
                       T
                     </div>
                   </div>
-                  <span className={`text-[13px] font-medium text-[var(--text-primary)] tracking-tight whitespace-nowrap overflow-hidden transition-all duration-200 ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
-                    TrackXpense
-                  </span>
-                </button>
+                  <div className={`flex-1 flex items-center pl-2.5 whitespace-nowrap transition-all duration-200 ${isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
+                    <span className="text-[13px] font-medium text-[var(--text-primary)] tracking-tight">
+                      TrackXpense
+                    </span>
+                  </div>
+                </div>
 
                 {!isCollapsed && (
                   <button
                     onClick={() => setIsCollapsed(true)}
                     title="Collapse sidebar"
-                    className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors shrink-0"
+                    className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
                   >
                     <PanelLeft size={16} className="stroke-[1.5px]" />
                   </button>
@@ -272,8 +318,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid, btnRef: dashboardRef },
                     { id: 'history', label: 'Transactions', icon: Activity, btnRef: historyRef },
                     { id: 'analytics', label: 'Analytics', icon: TrendingUp, btnRef: analyticsRef },
-                    { id: 'debts', label: 'Debts & Loans', icon: ArrowDownRight, btnRef: debtsRef },
-                    { id: 'control', label: 'Budgets & Categories', icon: TrendingUp },
+                    { id: 'debts', label: 'Debts & Loans', icon: HandCoins, btnRef: debtsRef },
+                    { id: 'control', label: 'Budgets & Categories', icon: Sliders },
                     { id: 'provisions', label: 'Upcoming Expenses', icon: Calendar },
                     { id: 'subscriptions', label: 'Subscriptions', icon: Ghost },
                     { id: 'identity', label: 'Profile & Settings', icon: UserCircle },
@@ -317,103 +363,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
               {/* Bottom User Section */}
               <div className="p-2 mt-auto shrink-0 relative">
-                {/* Backdrop overlay for dropdown */}
-                {isUserMenuOpen && (
-                  <div 
-                    className="fixed inset-0 z-[499]" 
-                    onClick={() => setIsUserMenuOpen(false)} 
-                  />
-                )}
-
-                {/* Cloudflare-style User Profile Dropdown */}
-                {isUserMenuOpen && (
-                  <div className="absolute bottom-[52px] left-2 z-[500] w-[220px] bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] shadow-2xl p-1.5 text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150 overflow-visible">
-                    {/* Pointer Nudge */}
-                    <div className="absolute -bottom-[6px] left-5 w-2.5 h-2.5 bg-[var(--bg-surface)] border-b border-r border-[var(--border-default)] rotate-45 z-20" />
-
-                    {/* Email Header */}
-                    <div className="px-3 py-2 text-[12px] text-[var(--text-muted)] border-b border-[var(--border-default)]/60 truncate font-normal relative z-10">
-                      {data.profile.email || data.profile.name || 'user@trackxpense.app'}
-                    </div>
-
-                    {/* Options List */}
-                    <div className="py-1 space-y-0.5 relative z-10">
-                      <button 
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          onViewChange('identity');
-                          if (!isStatic) onClose();
-                        }}
-                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal"
-                      >
-                        <span>Profile</span>
-                      </button>
-
-                      <button 
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          onViewChange('control');
-                          if (!isStatic) onClose();
-                        }}
-                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal"
-                      >
-                        <span>Billing</span>
-                      </button>
-
-                      <button 
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          onViewChange('identity');
-                          if (!isStatic) onClose();
-                        }}
-                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal"
-                      >
-                        <span>Appearance</span>
-                        <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60" />
-                      </button>
-
-                      <button 
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          onViewChange('identity');
-                          if (!isStatic) onClose();
-                        }}
-                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal"
-                      >
-                        <span>Language</span>
-                        <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60" />
-                      </button>
-
-                      <button 
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          onViewChange('identity');
-                          if (!isStatic) onClose();
-                        }}
-                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal"
-                      >
-                        <span>Timezone</span>
-                        <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60" />
-                      </button>
-                    </div>
-
-                    {/* Logout Option */}
-                    <div className="border-t border-[var(--border-default)]/60 pt-1 mt-0.5 relative z-10">
-                      <button 
-                        onClick={() => {
-                          setIsUserMenuOpen(false);
-                          if (onLogout) onLogout();
-                          else handleLogout();
-                        }}
-                        className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[#ef4444] hover:bg-red-500/10 transition-colors text-left font-medium"
-                      >
-                        <span>Log out</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-
+                {/* User Trigger Button */}
                 <div 
+                  ref={userButtonRef}
                   onClick={() => { 
                     Haptics.light(); 
                     setIsUserMenuOpen(!isUserMenuOpen); 
@@ -429,9 +381,117 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <h2 className="text-[12px] font-medium text-[var(--text-primary)] leading-tight truncate">{data.profile.name}</h2>
                       <span className="text-[10px] text-[var(--text-muted)] font-normal truncate">Standard Account</span>
                     </div>
-                    <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60 shrink-0" />
+                    <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60 shrink-0 stroke-[1.5px]" />
                   </div>
                 </div>
+
+                {/* Cloudflare-style User Profile Dropdown (Portaled to prevent clipping) */}
+                {isUserMenuOpen && createPortal(
+                  <div className="fixed inset-0 z-[9999] pointer-events-auto">
+                    {/* Transparent backdrop overlay */}
+                    <div 
+                      className="fixed inset-0 bg-transparent" 
+                      onClick={() => setIsUserMenuOpen(false)} 
+                    />
+
+                    {/* Anchored Popover Menu */}
+                    <div 
+                      style={{ 
+                        position: 'fixed',
+                        bottom: `${dropdownPosition.bottom}px`, 
+                        left: `${dropdownPosition.left}px` 
+                      }}
+                      className="w-[220px] bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] shadow-[0_16px_40px_rgba(0,0,0,0.65),0_2px_8px_rgba(0,0,0,0.4)] p-1.5 text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150 select-none z-[10000]"
+                    >
+                      {/* Pointer Nudge */}
+                      <div 
+                        className="absolute -bottom-[6px] w-2.5 h-2.5 bg-[var(--bg-surface)] border-b border-r border-[var(--border-default)] rotate-45 z-20" 
+                        style={{ left: '18px' }}
+                      />
+
+                      {/* Email Header */}
+                      <div className="px-3 py-2 text-[12px] text-[var(--text-muted)] border-b border-[var(--border-default)]/60 truncate font-normal relative z-10">
+                        {data.profile.email || data.profile.name || 'user@trackxpense.app'}
+                      </div>
+
+                      {/* Options List */}
+                      <div className="py-1 space-y-0.5 relative z-10">
+                        <button 
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            onViewChange('identity');
+                            if (!isStatic) onClose();
+                          }}
+                          className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal cursor-pointer"
+                        >
+                          <span>Profile</span>
+                        </button>
+
+                        <button 
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            onViewChange('control');
+                            if (!isStatic) onClose();
+                          }}
+                          className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal cursor-pointer"
+                        >
+                          <span>Billing</span>
+                        </button>
+
+                        <button 
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            onViewChange('identity');
+                            if (!isStatic) onClose();
+                          }}
+                          className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal cursor-pointer"
+                        >
+                          <span>Appearance</span>
+                          <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60 stroke-[1.5px]" />
+                        </button>
+
+                        <button 
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            onViewChange('identity');
+                            if (!isStatic) onClose();
+                          }}
+                          className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal cursor-pointer"
+                        >
+                          <span>Language</span>
+                          <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60 stroke-[1.5px]" />
+                        </button>
+
+                        <button 
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            onViewChange('identity');
+                            if (!isStatic) onClose();
+                          }}
+                          className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal cursor-pointer"
+                        >
+                          <span>Timezone</span>
+                          <ChevronRight size={14} className="text-[var(--text-muted)] opacity-60 stroke-[1.5px]" />
+                        </button>
+                      </div>
+
+                      {/* Logout Option */}
+                      <div className="border-t border-[var(--border-default)]/60 pt-1 mt-0.5 relative z-10">
+                        <button 
+                          onClick={() => {
+                            setIsUserMenuOpen(false);
+                            if (onLogout) onLogout();
+                            else handleLogout();
+                          }}
+                          className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[#ef4444] hover:bg-red-500/10 transition-colors text-left font-medium cursor-pointer"
+                        >
+                          <span>Log out</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>,
+                  document.body
+                )}
               </div>
             </div>
 
