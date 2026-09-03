@@ -1,5 +1,12 @@
 import React from 'react';
-import { Newspaper, TrendingUp, Cloud, Menu, Search, User } from 'lucide-react';
+import {
+  Newspaper,
+  TrendUp as TrendingUp,
+  Cloud,
+  List as Menu,
+  MagnifyingGlass as Search,
+  User
+} from '@phosphor-icons/react';
 
 export const StealthOverlay: React.FC = () => {
     return (

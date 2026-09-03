@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { AppData } from '../../types';
-import { Bell, AlertTriangle } from 'lucide-react';
+import {
+  Bell,
+  Warning as AlertTriangle
+} from '@phosphor-icons/react';
 import { CURRENCIES } from '../shared/CommonUI';
 
 interface SettingsManagerProps {

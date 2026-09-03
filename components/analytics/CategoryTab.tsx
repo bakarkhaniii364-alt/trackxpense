@@ -1,6 +1,13 @@
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
-import { Layers, AlertTriangle, CheckCircle, Tag, Wallet, ArrowRight } from 'lucide-react';
+import {
+  Stack as Layers,
+  Warning as AlertTriangle,
+  CheckCircle,
+  Tag,
+  Wallet,
+  ArrowRight
+} from '@phosphor-icons/react';
 import { AppData, Transaction, TransactionType, CategoryItem } from '../../types';
 
 interface CategoryTabProps {

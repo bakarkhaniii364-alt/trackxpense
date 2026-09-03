@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { Calendar, Plus, Trash2, Tag, X, Clock } from 'lucide-react';
+import {
+  Calendar,
+  Plus,
+  Trash as Trash2,
+  Tag,
+  X,
+  Clock
+} from '@phosphor-icons/react';
 import { AppData, Provision } from '../types';
 import { Haptics } from '../services/haptics';
 import { Modal } from './shared/Modal';
@@ -150,7 +157,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
                             placeholder="e.g. MacBook Pro, Taxes, Rent..."
                             value={name}
                             onChange={e => setName(e.target.value)}
-                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all"
                         />
                     </div>
 
@@ -161,7 +168,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
                             placeholder="0.00"
                             value={amount}
                             onChange={e => setAmount(e.target.value)}
-                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all font-mono"
                         />
                     </div>
 
@@ -171,7 +178,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
                             type="date" 
                             value={date}
                             onChange={e => setDate(e.target.value)}
-                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all color-scheme-dark"
+                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all color-scheme-dark"
                         />
                     </div>
 

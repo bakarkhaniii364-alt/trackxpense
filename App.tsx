@@ -24,22 +24,21 @@ import { PrivacyShield } from './services/crypto';
 import { Haptics } from './services/haptics';
 import { Sidebar } from './components/Sidebar';
 import { 
-  Trash2, 
-  ChevronDown, 
+  Trash as Trash2, 
+  CaretDown as ChevronDown, 
   X, PlusCircle, Check,
-  Plus, Activity, AlertCircle,
-  ChevronLeft, ChevronRight,
-  LayoutGrid, TrendingUp, ArrowDownRight, HandCoins, Sliders, Calendar, Ghost, UserCircle, Search, Info,
-  Eye, EyeOff
-} from 'lucide-react';
+  Plus, Pulse as Activity, WarningCircle as AlertCircle,
+  CaretLeft as ChevronLeft, CaretRight as ChevronRight,
+  SquaresFour as LayoutGrid, TrendUp as TrendingUp, ArrowDownRight, HandCoins, Sliders, Calendar, Ghost, UserCircle, MagnifyingGlass as Search, Info,
+  Eye, EyeSlash as EyeOff, Sparkle
+} from '@phosphor-icons/react';
+import { parseCurrentRoute, subscribeToRoutes, navigateTo } from './src/services/router';
 import { CategoryIcon } from './components/shared/CategoryIcon';
 import { getDateTime, formatMoney } from './utils/formatters';
 import { AppSkeleton } from './components/ui/Skeletons';
 import { useAuth } from './hooks/useAuth';
 import { AuthScreen } from './components/AuthScreen';
 import { syncEngine } from './services/SyncEngine';
-import { SyncIndicator } from './components/SyncIndicator';
-import { RabbAiChatWidget } from './components/shared/RabbAiChatWidget';
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose: () => void, onConfirm: () => void }) => {
     if (!isOpen) return null;
@@ -87,65 +86,15 @@ const UnsavedChangesModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, 
     );
 };
 
-const VaultLock = ({ correctPasscode, onUnlock }: { correctPasscode: string, onUnlock: () => void }) => {
-    const [passcode, setPasscode] = useState('');
-    const [error, setError] = useState(false);
-
-    return (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl">
-            <div className={`w-full max-w-xs text-center space-y-8 animate-in zoom-in-95 duration-300 ${error ? 'animate-shake' : ''}`}>
-                <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 rounded-md bg-primary/20 flex items-center justify-center text-primary mb-4 border border-primary/20 shadow-lg shadow-primary/10">
-                        <PlusCircle size={32} />
-                    </div>
-                    <h2 className="text-2xl font-black text-white tracking-tighter uppercase">App Locked</h2>
-                    <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em] mt-2">Enter Passcode</p>
-                </div>
-
-                <div className="flex justify-center gap-4">
-                    {[0, 1, 2, 3].map(i => (
-                        <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${passcode.length > i ? 'bg-primary border-primary shadow-[0_0_10px_rgb(var(--color-primary)/0.5)]' : 'border-white/10'}`} />
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 px-4">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, 'del'].map((num, idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => {
-                                if (num === 'del') setPasscode(prev => prev.slice(0, -1));
-                                else if (num !== '') {
-                                    if (passcode.length < 4) {
-                                        const newPass = passcode + num;
-                                        setPasscode(newPass);
-                                        if (newPass.length === 4) {
-                                            setTimeout(() => {
-                                                if (newPass === correctPasscode) onUnlock();
-                                                else { setError(true); setPasscode(''); setTimeout(() => setError(false), 500); }
-                                            }, 200);
-                                        }
-                                    }
-                                }
-                            }}
-                            className={`h-16 w-16 rounded-md flex items-center justify-center text-xl font-bold transition-all active:scale-90 ${num === '' ? 'opacity-0' : 'bg-white/5 hover:bg-white/10 border border-white/5 text-white'}`}
-                        >
-                            {num === 'del' ? '←' : num}
-                        </button>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-};
-
 export default function App() {
   const { user, loading: authLoading, continueAsGuest, isAuthenticated, signOut } = useAuth();
   const mainRef = React.useRef<HTMLElement>(null);
-  const [view, setView] = useState<ViewState>(() => {
-    const hash = window.location.hash.replace('#', '');
-    const validViews: ViewState[] = ['dashboard', 'history', 'analytics', 'debts', 'identity', 'control', 'provisions', 'subscriptions', 'menu'];
-    return (validViews.includes(hash as ViewState) ? hash : 'dashboard') as ViewState;
-  });
+  
+  // Router-driven state
+  const initialRoute = parseCurrentRoute();
+  const [view, setView] = useState<ViewState>(initialRoute.view);
+  const [activeSubTab, setActiveSubTab] = useState<string | undefined>(initialRoute.subTab);
+
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [addModalData, setAddModalData] = useState<{ type: TransactionType, category?: string, amount?: number, note?: string }>({ type: TransactionType.EXPENSE });
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
@@ -177,21 +126,19 @@ export default function App() {
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '');
-      const validViews: ViewState[] = ['dashboard', 'history', 'analytics', 'debts', 'identity', 'control', 'provisions', 'subscriptions', 'menu'];
-      if (validViews.includes(hash as ViewState)) {
-        setView(hash as ViewState);
-      } else if (!hash) {
-        setView('dashboard');
-      }
-    };
-
     window.addEventListener('resize', handleResize);
-    window.addEventListener('hashchange', handleHashChange);
+    
+    // Subscribe to router navigation events
+    const unsubscribe = subscribeToRoutes((route) => {
+      setView(route.view);
+      if (route.subTab) {
+        setActiveSubTab(route.subTab);
+      }
+    });
+
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('hashchange', handleHashChange);
+      unsubscribe();
     };
   }, []);
 
@@ -299,11 +246,9 @@ export default function App() {
     };
     document.title = `TrackXpense | ${titles[view] || 'Finance'}`;
     
-    // Sync hash with view
-    if (window.location.hash !== `#${view}`) {
-        window.location.hash = view;
-    }
-  }, [view]);
+    // Sync canonical route with view and subTab
+    navigateTo(view, activeSubTab, { replace: true });
+  }, [view, activeSubTab]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
@@ -491,9 +436,7 @@ export default function App() {
   useEffect(() => {
      if (!isAuthenticated) {
          setView('dashboard');
-         if (window.location.hash) {
-             window.location.hash = '';
-         }
+         navigateTo('dashboard');
      }
   }, [isAuthenticated]);
 
@@ -858,13 +801,14 @@ export default function App() {
       setIsAddOpen(true);
   };
 
-  const requestViewChange = (newView: ViewState) => {
+  const requestViewChange = (newView: ViewState, subTab?: string) => {
       if (isDirty) {
           setPendingView(newView);
           setIsUnsavedModalOpen(true);
       } else {
           setView(newView);
-          window.location.hash = newView;
+          if (subTab) setActiveSubTab(subTab);
+          navigateTo(newView, subTab);
       }
   };
 
@@ -917,14 +861,14 @@ export default function App() {
         {!isDesktop && (
           <div className="flex-none pt-[calc(env(safe-area-inset-top,0px)+8px)] pb-2.5 px-4 bg-[var(--bg-surface)]/90 backdrop-blur-md border-b border-[var(--border-default)] z-40">
             <div className="flex items-center justify-between gap-2 max-w-md mx-auto">
-              {['analytics', 'provisions', 'subscriptions', 'control', 'identity'].includes(view) ? (
+              {['rabbai', 'analytics', 'provisions', 'subscriptions', 'control', 'identity'].includes(view) ? (
                 <>
                   <button 
                     onClick={() => {
                       Haptics.light();
-                      requestViewChange('menu');
+                      requestViewChange('dashboard');
                     }}
-                    className="flex items-center gap-1 text-[13px] font-medium text-[var(--accent-solid)] hover:opacity-80 active:scale-95 transition-all shrink-0"
+                    className="flex items-center gap-1 text-[13px] font-medium text-[var(--accent-solid)] hover:opacity-80 active:scale-95 transition-all shrink-0 cursor-pointer"
                   >
                     <ChevronLeft size={16} strokeWidth={1.5} />
                     <span>Back</span>
@@ -974,6 +918,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               {(() => {
                 const pageConfig: Record<string, { title: string; icon: React.ElementType }> = {
+                  rabbai: { title: 'RabbAi', icon: Sparkle },
                   dashboard: { title: 'Dashboard', icon: LayoutGrid },
                   history: { title: 'Transactions', icon: Activity },
                   analytics: { title: 'Analytics', icon: TrendingUp },
@@ -1004,7 +949,7 @@ export default function App() {
                   setWalletSearchQuery('');
                   setIsWalletModalOpen(true);
                 }} 
-                className="flex items-center gap-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] active:scale-95 transition-all h-[32px] px-3 rounded-[6px] border border-[var(--border-default)] hover:border-[var(--border-active)] group"
+                className="flex items-center gap-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] active:scale-95 transition-all h-[32px] px-3 rounded-[6px] border border-[var(--border-default)] hover:border-[var(--border-active)] group cursor-pointer"
               >
                 <span className="text-[10px] text-[var(--text-muted)] uppercase font-medium">Wallet:</span>
                 <span className="text-xs font-medium text-[var(--text-primary)]">
@@ -1036,7 +981,7 @@ export default function App() {
 
               <button 
                 onClick={() => openAddModal(undefined, TransactionType.EXPENSE)} 
-                className="btn btn--primary text-[12px] h-[32px] px-3.5 font-medium rounded-[6px] flex items-center gap-1.5"
+                className="btn btn--primary text-[12px] h-[32px] px-3.5 font-medium rounded-[6px] flex items-center gap-1.5 cursor-pointer"
               >
                 <PlusCircle size={15} className="btn__icon" /> Add Transaction
               </button>
@@ -1047,10 +992,14 @@ export default function App() {
         {/* Main Content */}
         <main 
           ref={mainRef}
-          className={`flex-1 min-w-0 min-h-0 w-full ${isDesktop ? 'max-w-none px-8 overflow-y-auto' : 'max-w-md mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-3.5'} relative ${!isDesktop ? 'pb-[calc(76px+env(safe-area-inset-bottom,0px))]' : 'pb-4'}`}
+          className={`flex-1 min-w-0 min-h-0 w-full ${
+            isDesktop 
+              ? 'max-w-none px-8 overflow-y-auto pb-4' 
+              : 'max-w-md mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-3.5 pb-[calc(76px+env(safe-area-inset-bottom,0px))]'
+          } relative`}
         >
           {isDesktop ? (
-            <div className="w-full max-w-6xl mx-auto py-4 view-transition">
+            <div className="w-full max-w-5xl mx-auto py-4 view-transition">
                {view === 'dashboard' && (
                   <DesktopDashboard 
                       data={data} 
@@ -1060,6 +1009,7 @@ export default function App() {
                       onAddTransactionRequest={(t, q) => openAddModal(undefined, t, q)} 
                       onEditTransaction={openEditModal}
                       onDeleteTemplate={handleDeleteTemplate}
+                      onAddTransaction={handleAddTransaction}
                   />
                )}
                {view === 'history' && (
@@ -1084,7 +1034,18 @@ export default function App() {
                   <DesktopAnalytics data={data} updateData={updateData} formatMoney={formatMoney} />
                )}
                {view === 'identity' && (
-                  <DesktopIdentity data={data} updateData={updateData} formatMoney={formatMoney} onDirtyChange={setIsDirty} onLogout={signOut} />
+                  <DesktopIdentity 
+                    data={data} 
+                    updateData={updateData} 
+                    formatMoney={formatMoney} 
+                    onDirtyChange={setIsDirty} 
+                    onLogout={signOut} 
+                    initialTab={activeSubTab as any}
+                    onTabChange={(tab) => {
+                      setActiveSubTab(tab);
+                      navigateTo('identity', tab);
+                    }}
+                  />
                )}
                {view === 'control' && (
                   <DesktopControl data={data} updateData={updateData} formatMoney={formatMoney} />
@@ -1109,6 +1070,7 @@ export default function App() {
                           onAddTransactionRequest={(t, q) => openAddModal(undefined, t, q)} 
                           onEditTransaction={openEditModal}
                           onDeleteTemplate={handleDeleteTemplate}
+                          onAddTransaction={handleAddTransaction}
                       />
                   </div>
                 </div>
@@ -1169,7 +1131,18 @@ export default function App() {
               {view === 'identity' && (
                 <div className="w-full view-transition">
                   <div className="h-auto p-0 lg:p-4">
-                      <DesktopIdentity data={data} updateData={updateData} formatMoney={formatMoney} onDirtyChange={setIsDirty} onLogout={signOut} />
+                      <DesktopIdentity 
+                        data={data} 
+                        updateData={updateData} 
+                        formatMoney={formatMoney} 
+                        onDirtyChange={setIsDirty} 
+                        onLogout={signOut} 
+                        initialTab={activeSubTab as any}
+                        onTabChange={(tab) => {
+                          setActiveSubTab(tab);
+                          navigateTo('identity', tab);
+                        }}
+                      />
                   </div>
                 </div>
               )}
@@ -1208,16 +1181,7 @@ export default function App() {
         onQuickAdd={handleAddTransaction}
       />
 
-      <RabbAiChatWidget 
-        data={data} 
-        onAddTransaction={handleAddTransaction}
-        onDeleteTransaction={(id) => updateData({ transactions: data.transactions.filter(t => t.id !== id) })}
-        onAddWallet={(name, type, target, currency) => handleAddWallet(name, type, target, currency)}
-        onDeleteWallet={handleDeleteWallet}
-        onAddCategory={handleAiAddCategory}
-        onDeleteCategory={handleAiDeleteCategory}
-        onMergeCategory={handleAiMergeCategory}
-      />
+
       
       {/* Modals */}
       <AddTransactionModal 
@@ -1256,15 +1220,15 @@ export default function App() {
             {/* Popover anchored directly below wallet trigger: left on mobile, right on desktop */}
             <div className="absolute left-3 top-[calc(50px+env(safe-area-inset-top,0px))] md:left-auto md:right-8 lg:right-[260px] md:top-[52px] w-[calc(100vw-24px)] max-w-[270px] md:w-[260px] bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] shadow-[0_16px_40px_rgba(0,0,0,0.65),0_2px_8px_rgba(0,0,0,0.4)] z-10 text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150 p-1.5 space-y-1">
 
-              {/* Top Search Input */}
-              <div className="px-2.5 py-1.5 flex items-center gap-2 bg-[var(--bg-subtle)] rounded-[6px]">
-                <Search size={13} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+              {/* Top Search Input (single field, no nested inner box) */}
+              <div className="relative">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none stroke-[1.5px]" />
                 <input 
                   type="text" 
                   placeholder="Search wallets..." 
                   value={walletSearchQuery}
                   onChange={(e) => setWalletSearchQuery(e.target.value)}
-                  className="w-full bg-transparent border-none outline-none text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] font-normal"
+                  className="w-full h-[32px] bg-[var(--field-bg)] border border-[var(--field-border)] focus:border-[var(--field-border-focus)] rounded-[6px] pl-8 pr-2.5 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all font-normal"
                   autoFocus
                 />
               </div>
@@ -1357,7 +1321,7 @@ export default function App() {
                       value={newWalletName}
                       onChange={(e) => setNewWalletName(e.target.value)}
                       placeholder="My Wallet" 
-                      className="w-full h-[40px] px-3.5 rounded-[8px] bg-[var(--bg-subtle)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 transition-colors"
+                      className="w-full h-[40px] px-3.5 rounded-[6px] bg-[var(--field-bg)] border border-[var(--field-border)] outline-none text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 transition-colors"
                       autoFocus
                     />
                   </div>
@@ -1500,8 +1464,18 @@ export default function App() {
       {isStealthActive && <StealthOverlay />}
       {isLocked && data?.settings.vaultPasscode && (
         <VaultLock 
-            correctPasscode={data.settings.vaultPasscode} 
+            storedHash={data.settings.vaultPasscode} 
+            storedSalt={data.settings.vaultSalt}
             onUnlock={() => { setIsLocked(false); Haptics.success(); }} 
+            onMigratePasscode={(newHash, newSalt) => {
+              updateData({
+                settings: {
+                  ...data.settings,
+                  vaultPasscode: newHash,
+                  vaultSalt: newSalt
+                }
+              });
+            }}
         />
       )}
       {data && (

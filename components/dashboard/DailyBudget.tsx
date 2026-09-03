@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Check, X } from 'lucide-react';
+import {
+  Check,
+  X
+} from '@phosphor-icons/react';
 import { AppData } from '../../types';
 
 interface DailyBudgetProps {

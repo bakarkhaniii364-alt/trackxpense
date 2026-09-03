@@ -1,24 +1,25 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  Download, 
-  Search, 
-  X, 
-  Trash2, 
-  ArrowUp, 
-  ArrowDown, 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronsLeft, 
-  ChevronsRight, 
-  ListFilter, 
+import {
+  Download,
+  MagnifyingGlass as Search,
+  X,
+  Trash as Trash2,
+  ArrowUp,
+  ArrowDown,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
+  CaretDoubleLeft as ChevronsLeft,
+  CaretDoubleRight as ChevronsRight,
+  Funnel as ListFilter,
   Receipt,
   Plus
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { Transaction, TransactionType, AppData } from '../../types';
 import { CategoryIcon } from '../shared/CategoryIcon';
 import { GlassCheckbox } from '../shared/CommonUI';
 import { EmptyStateSeeder } from '../shared/EmptyStateSeeder';
 import { TablePaginationFooter } from '../shared/TablePaginationFooter';
+import { CustomSelect } from '../shared/CustomSelect';
 
 interface DesktopHistoryProps {
     data: AppData;
@@ -136,8 +137,8 @@ export const DesktopHistory: React.FC<DesktopHistoryProps> = ({
 
             {hasTransactions ? (
                 <div className="space-y-4">
-                    {/* Control Bar: Search & Filters */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--bg-surface)] border border-[var(--border-default)] p-3 rounded-[10px]">
+                    {/* Control Bar: Search & Filters (Free-standing toolbar without outer card container) */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                         
                         {/* Search Bar */}
                         <div className="flex-1 min-w-[240px] relative group">
@@ -147,23 +148,19 @@ export const DesktopHistory: React.FC<DesktopHistoryProps> = ({
                                 placeholder="Search transactions, notes, or categories..." 
                                 value={searchTerm}
                                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                                className="w-full h-[36px] bg-[var(--bg-subtle)] border border-[var(--border-default)] focus:border-[var(--border-active)] rounded-[6px] pl-9 pr-3 text-[13px] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] font-normal"
+                                className="w-full h-[36px] bg-[var(--field-bg)] border border-[var(--field-border)] rounded-[6px] pl-9 pr-3 text-[13px] text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-muted)] font-normal"
                             />
                         </div>
 
                         {/* Type & Category Filters */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
                             {/* Type Filter Pills */}
-                            <div className="inline-flex bg-[var(--bg-subtle)] p-0.5 rounded-[6px] border border-[var(--border-default)]">
+                            <div className="tabs shrink-0">
                                 {(['ALL', 'EXPENSE', 'INCOME'] as const).map(type => (
                                     <button
                                         key={type}
                                         onClick={() => { setTypeFilter(type); setCurrentPage(1); }}
-                                        className={`px-3 py-1 rounded-[5px] text-[12px] font-medium transition-all ${
-                                            typeFilter === type
-                                                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-xs'
-                                                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                                        }`}
+                                        className={`tab ${typeFilter === type ? 'is-active' : ''}`}
                                     >
                                         {type === 'ALL' ? 'All' : type === 'EXPENSE' ? 'Expense' : 'Income'}
                                     </button>
@@ -171,16 +168,16 @@ export const DesktopHistory: React.FC<DesktopHistoryProps> = ({
                             </div>
 
                             {/* Category Dropdown */}
-                            <select
+                            <CustomSelect
                                 value={categoryFilter}
-                                onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
-                                className="h-[36px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-3 text-[12px] font-medium text-[var(--text-primary)] outline-none cursor-pointer"
-                            >
-                                <option value="ALL">All Categories</option>
-                                {data.categories?.map(c => (
-                                    <option key={c.id} value={c.name}>{c.name}</option>
-                                ))}
-                            </select>
+                                onChange={(val) => { setCategoryFilter(val); setCurrentPage(1); }}
+                                options={[
+                                    { value: 'ALL', label: 'All Categories' },
+                                    ...(data.categories || []).map(c => ({ value: c.name, label: c.name }))
+                                ]}
+                                size="md"
+                                className="min-w-[160px]"
+                            />
                         </div>
                     </div>
 

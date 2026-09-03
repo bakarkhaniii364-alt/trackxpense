@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import { AppData, TransactionType } from '../types';
 import { PredictiveEngine } from '../services/PredictiveEngine';
-import { TrendingUp } from 'lucide-react';
+import {
+  TrendUp as TrendingUp
+} from '@phosphor-icons/react';
 
 interface AdvancedAnalyticsProps {
     data: AppData;

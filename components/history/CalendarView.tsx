@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight
+} from '@phosphor-icons/react';
 import { Transaction, TransactionType } from '../../types';
 
 interface CalendarViewProps {

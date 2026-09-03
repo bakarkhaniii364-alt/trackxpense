@@ -1,10 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  Plus, Check, Trash2, Calendar as CalendarIcon, Clock, User, 
-  ArrowUpRight, ArrowDownRight, X, Search, MoreVertical, PlusCircle,
-  ArrowUp, ArrowDown, CheckCircle, RotateCcw
-} from 'lucide-react';
+import {
+  Plus,
+  Check,
+  Trash as Trash2,
+  Calendar as CalendarIcon,
+  Clock,
+  User,
+  ArrowUpRight,
+  ArrowDownRight,
+  X,
+  MagnifyingGlass as Search,
+  DotsThreeVertical as MoreVertical,
+  PlusCircle,
+  ArrowUp,
+  ArrowDown,
+  CheckCircle,
+  ArrowCounterClockwise as RotateCcw
+} from '@phosphor-icons/react';
 import { Debt, AppData, Transaction, TransactionType, Category } from '../../types';
 import { GlassCheckbox, Pagination } from '../shared/CommonUI';
 import { EmptyStateSeeder } from '../shared/EmptyStateSeeder';
@@ -573,7 +586,7 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
                   placeholder="Full name..."
                   value={person}
                   onChange={(e) => setPerson(e.target.value)}
-                  className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                  className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all"
                 />
               </div>
 
@@ -584,7 +597,7 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                  className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all font-mono"
                 />
               </div>
 
@@ -659,7 +672,7 @@ export const DesktopDebt: React.FC<DesktopDebtProps> = ({
                   placeholder="0.00"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                  className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all font-mono"
                   autoFocus
                 />
               </div>

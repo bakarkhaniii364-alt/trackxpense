@@ -1,7 +1,15 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, ChevronLeft, ChevronRight, Check, ChevronDown, Calendar } from 'lucide-react';
+import {
+  Warning as AlertTriangle,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
+  Check,
+  Calendar
+} from '@phosphor-icons/react';
 import { Haptics } from '../../services/haptics';
+import { CustomSelect } from './CustomSelect';
+export { CustomSelect };
 
 export const COLOR_PRESETS = [
   '#5e5ce6', // Indigo
@@ -171,120 +179,55 @@ export const CustomConfirmModal: React.FC<CustomConfirmModalProps> = ({
 };
 
 export interface GlassSelectProps {
-    value: string;
-    onChange: (val: string) => void;
-    options: { label: string; value: string }[] | string[];
-    placeholder?: string;
-    className?: string;
-    disabled?: boolean;
+  value: string;
+  onChange: (val: string) => void;
+  options: { label: string; value: string }[] | string[];
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
 }
 
-export const GlassSelect: React.FC<GlassSelectProps> = ({ value, onChange, options, placeholder, className = "" }) => {
-    const [isOpen, setIsOpen] = React.useState(false);
-    const containerRef = React.useRef<HTMLDivElement>(null);
-    const [coords, setCoords] = React.useState({ top: 0, left: 0, width: 0 });
-
-    React.useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const updateCoords = () => {
-        if (containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
-            setCoords({
-                top: rect.bottom,
-                left: rect.left,
-                width: rect.width
-            });
-        }
-    };
-
-    React.useEffect(() => {
-        if (isOpen) {
-            updateCoords();
-            window.addEventListener('resize', updateCoords);
-            window.addEventListener('scroll', updateCoords, true);
-        }
-        return () => {
-            window.removeEventListener('resize', updateCoords);
-            window.removeEventListener('scroll', updateCoords, true);
-        };
-    }, [isOpen]);
-
-    const formattedOptions = options.map(opt => typeof opt === 'string' ? { label: opt, value: opt } : opt);
-    const selectedOption = formattedOptions.find(o => o.value === value);
-
-    return (
-        <div className={`relative ${className}`} ref={containerRef}>
-            <button
-                type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full bg-black/20 rounded-md px-4 py-3 text-xs text-main border border-white/5 outline-none flex items-center justify-between hover:bg-black/30 transition-all focus:border-primary/40"
-            >
-                <span className={!selectedOption ? "text-muted/40" : "text-main font-bold"}>
-                    {selectedOption ? selectedOption.label : placeholder || "Select..."}
-                </span>
-                <ChevronDown size={14} className={`text-muted transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {isOpen && createPortal(
-                <div 
-                    className="fixed z-[9999] liquid-glass border border-white/10 rounded-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 animate-in fade-in zoom-in-95 slide-in-from-top-2 overflow-hidden max-h-[250px] overflow-y-auto no-scrollbar"
-                    style={{ 
-                        top: coords.top + 8, 
-                        left: coords.left, 
-                        width: coords.width 
-                    }}
-                >
-                    {formattedOptions.map((opt) => (
-                        <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => {
-                                onChange(opt.value);
-                                setIsOpen(false);
-                            }}
-                            className={`w-full px-4 py-2.5 text-left text-xs transition-colors hover:bg-primary/20 ${value === opt.value ? 'bg-primary/10 text-primary font-black' : 'text-muted'}`}
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
-                    {formattedOptions.length === 0 && (
-                        <div className="px-4 py-3 text-[10px] text-muted italic opacity-50 text-center">No options available</div>
-                    )}
-                </div>,
-                document.body
-            )}
-        </div>
-    );
+export const GlassSelect: React.FC<GlassSelectProps> = ({ 
+  value, 
+  onChange, 
+  options, 
+  placeholder, 
+  className = "", 
+  disabled = false 
+}) => {
+  return (
+    <CustomSelect
+      value={value}
+      onChange={onChange}
+      options={options}
+      placeholder={placeholder}
+      className={className}
+      disabled={disabled}
+      size="md"
+    />
+  );
 };
 
 // --- Glass Date Input ---
 interface GlassDateInputProps {
-    value: string;
-    onChange: (val: string) => void;
-    className?: string;
+  value: string;
+  onChange: (val: string) => void;
+  className?: string;
 }
 
-    export const GlassDateInput: React.FC<GlassDateInputProps> = ({ value, onChange, className = "" }) => {
-        return (
-            <div className={`relative bg-black/20 rounded-md px-4 py-3 border border-white/5 focus-within:border-primary/40 transition-colors flex items-center gap-3 ${className}`}>
-                <Calendar size={14} className="text-muted/50" />
-                <input 
-                    type="date" 
-                    value={value} 
-                    onChange={e => onChange(e.target.value)} 
-                    className="bg-transparent text-[10px] font-bold text-main w-full outline-none uppercase cursor-pointer" 
-                />
-            </div>
-        );
-    };
+export const GlassDateInput: React.FC<GlassDateInputProps> = ({ value, onChange, className = "" }) => {
+  return (
+    <div className={`relative bg-[var(--field-bg)] rounded-[6px] px-3.5 py-2.5 border border-[var(--field-border)] focus-within:border-[var(--field-border-focus)] transition-colors flex items-center gap-3 ${className}`}>
+      <Calendar size={14} className="text-[var(--text-muted)]" />
+      <input 
+        type="date" 
+        value={value} 
+        onChange={e => onChange(e.target.value)} 
+        className="bg-transparent text-[12px] font-medium text-[var(--text-primary)] w-full outline-none cursor-pointer" 
+      />
+    </div>
+  );
+};
 
 interface PaginationProps {
   currentPage: number;
@@ -356,25 +299,25 @@ export const Pagination: React.FC<PaginationProps> = ({
   };
 
   return (
-    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2 border-t border-white/5 mt-4 ${className}`}>
-      <span className="text-[10px] text-muted/40 font-bold uppercase tracking-wider">
+    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2 border-t border-[var(--border-default)] mt-4 ${className}`}>
+      <span className="text-[11px] text-[var(--text-muted)] font-medium uppercase tracking-wider">
         Showing {startItem}–{endItem} of {totalItems} records
       </span>
       <div className="flex items-center gap-1.5">
         <button
           onClick={handlePrev}
           disabled={currentPage === 1}
-          className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 text-muted hover:text-main flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-90"
+          className="w-8 h-8 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-90"
           aria-label="Previous page"
         >
           <ChevronLeft size={14} />
         </button>
 
-        <div className="flex items-center gap-1 bg-white/5 p-0.5 rounded-lg border border-white/5">
+        <div className="flex items-center gap-1 bg-[var(--bg-surface)] p-0.5 rounded-[6px] border border-[var(--border-default)]">
           {getPagesRange().map((page, idx) => {
             if (page === '...') {
               return (
-                <span key={`dots-${idx}`} className="w-8 h-8 flex items-center justify-center text-xs text-muted/40 font-bold">
+                <span key={`dots-${idx}`} className="w-8 h-8 flex items-center justify-center text-xs text-[var(--text-muted)] font-medium">
                   ...
                 </span>
               );
@@ -384,10 +327,10 @@ export const Pagination: React.FC<PaginationProps> = ({
               <button
                 key={`page-${page}`}
                 onClick={() => handlePageClick(page as number)}
-                className={`w-8 h-8 rounded-md text-[10px] font-black transition-all flex items-center justify-center ${
+                className={`w-8 h-8 rounded-[5px] text-[11px] font-medium transition-all flex items-center justify-center ${
                   isSelected
-                    ? 'bg-primary text-white shadow-lg shadow-primary/25 scale-105 border border-white/10'
-                    : 'text-muted/60 hover:text-main hover:bg-white/5'
+                    ? 'bg-[var(--accent)] text-[var(--accent-text)] font-semibold'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
                 }`}
               >
                 {page}
@@ -399,7 +342,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={handleNext}
           disabled={currentPage === totalPages}
-          className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 text-muted hover:text-main flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-90"
+          className="w-8 h-8 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-90"
           aria-label="Next page"
         >
           <ChevronRight size={14} />
@@ -428,7 +371,7 @@ export const GlassCheckbox: React.FC<GlassCheckboxProps> = ({ checked, onChange,
       }}
       className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition-all shrink-0 cursor-pointer ${
         checked
-          ? 'bg-[#2563EB] border-[#2563EB] text-white shadow-xs'
+          ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-text)] shadow-xs'
           : 'bg-[var(--bg-surface)] border-[var(--border-strong)] hover:border-[var(--text-secondary)] text-transparent'
       } ${className}`}
     >
@@ -436,4 +379,3 @@ export const GlassCheckbox: React.FC<GlassCheckboxProps> = ({ checked, onChange,
     </button>
   );
 };
-

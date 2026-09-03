@@ -1,8 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { AppData, Transaction, TransactionType, RecurringRule } from '../types';
-import { Calendar, CheckCircle2, Ghost, Plus, AlertCircle, TrendingUp, X, Trash2 } from 'lucide-react';
+import {
+  Calendar,
+  CheckCircle as CheckCircle2,
+  Ghost,
+  Plus,
+  WarningCircle as AlertCircle,
+  TrendUp as TrendingUp,
+  X,
+  Trash as Trash2
+} from '@phosphor-icons/react';
 import { Haptics } from '../services/haptics';
 import { Modal } from './shared/Modal';
+import { CustomSelect } from './shared/CustomSelect';
 
 interface SubscriptionManagerProps {
     data: AppData;
@@ -256,7 +266,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                             placeholder="e.g. Netflix, Spotify, AWS, Gym..." 
                             value={subName}
                             onChange={e => setSubName(e.target.value)}
-                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all"
                             required
                         />
                     </div>
@@ -268,20 +278,22 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                             placeholder="0.00" 
                             value={subAmount}
                             onChange={e => setSubAmount(e.target.value)}
-                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all font-mono"
                             required
                         />
                     </div>
 
                     <div className="space-y-1.5">
                         <label className="text-[13px] font-medium text-[var(--text-primary)]">Billing Cycle</label>
-                        <select 
-                            value={subFreq} 
-                            onChange={e => setSubFreq(e.target.value as any)}
-                            className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
-                        >
-                            {FREQUENCIES.map(f => <option key={f} value={f}>{f.charAt(0) + f.slice(1).toLowerCase()}</option>)}
-                        </select>
+                        <CustomSelect
+                            value={subFreq}
+                            onChange={val => setSubFreq(val as any)}
+                            options={FREQUENCIES.map(f => ({
+                                value: f,
+                                label: f.charAt(0) + f.slice(1).toLowerCase()
+                            }))}
+                            size="md"
+                        />
                     </div>
 
                     <div className="flex justify-end gap-2.5 pt-3">

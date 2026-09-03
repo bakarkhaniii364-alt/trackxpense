@@ -1,6 +1,10 @@
 import React from 'react';
 import { useSyncStatus } from '../hooks/useSyncStatus';
-import { Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import {
+  Cloud,
+  CloudSlash as CloudOff,
+  ArrowsClockwise as RefreshCw
+} from '@phosphor-icons/react';
 
 export const SyncIndicator: React.FC = () => {
   const { isSyncing, lastSyncedAt, pendingCount, isOnline } = useSyncStatus();

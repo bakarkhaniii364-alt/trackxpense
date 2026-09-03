@@ -9,12 +9,12 @@
     <meta name="description" content="TrackXpense is a local-first, zero-tracker personal finance manager. Complete control over your expenses and assets with secure sync protocols." />
     <meta name="keywords" content="finance manager, expense tracker, local first, privacy first, asset suite, zero trackers, encrypted sync" />
     <title>TrackXpense | Expense Tracker</title>
-    <link rel="manifest" href="manifest.json?v=3">
-    <link rel="icon" href="icon.png?v=3" type="image/png">
-    <link rel="apple-touch-icon" href="icon.png?v=3">
+    <link rel="manifest" href="/manifest.json?v=3">
+    <link rel="icon" href="/icon.png?v=3" type="image/png">
+    <link rel="apple-touch-icon" href="/icon.png?v=3">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&family=Hind+Siliguri:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       // Immediate theme application
@@ -46,6 +46,7 @@
             },
             fontFamily: {
               sans: [
+                'Geist',
                 '-apple-system', 
                 'BlinkMacSystemFont', 
                 '"Hind Siliguri"', 
@@ -55,9 +56,17 @@
                 'Arial', 
                 'sans-serif'
               ],
+              mono: [
+                '"Geist Mono"',
+                'ui-monospace',
+                'SFMono-Regular',
+                'Menlo',
+                'Consolas',
+                'monospace'
+              ]
             },
             boxShadow: {
-              'glow': '0 0 20px rgba(88, 196, 224, 0.4)',
+              'glow': '0 0 20px rgba(224, 137, 88, 0.4)',
               'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
             },
             padding: {

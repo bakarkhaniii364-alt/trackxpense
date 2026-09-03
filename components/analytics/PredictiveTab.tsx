@@ -1,6 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { AlertCircle, TrendingUp, Calendar, Repeat, Sliders, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
+import {
+  WarningCircle as AlertCircle,
+  TrendUp as TrendingUp,
+  Calendar,
+  Repeat,
+  Sliders,
+  ShieldWarning as ShieldAlert,
+  Sparkle as Sparkles,
+  CheckCircle as CheckCircle2
+} from '@phosphor-icons/react';
 import { AppData, Transaction, TransactionType } from '../../types';
 import { PredictiveEngine } from '../../services/PredictiveEngine';
 

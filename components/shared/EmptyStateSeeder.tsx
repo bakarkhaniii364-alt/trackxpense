@@ -1,5 +1,9 @@
 import React from 'react';
-import { Sparkles, Plus, Database } from 'lucide-react';
+import {
+  Sparkle as Sparkles,
+  Plus,
+  Database
+} from '@phosphor-icons/react';
 import { AppData } from '../../types';
 import { seedSampleData } from '../../utils/sampleDataSeeder';
 import { Haptics } from '../../services/haptics';

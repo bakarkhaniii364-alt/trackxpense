@@ -1,7 +1,17 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AppData, TransactionType } from '../../types';
-import { Download, Upload, Trash2, ShieldCheck, Database, FileText, Code, AlertTriangle, X } from 'lucide-react';
+import {
+  Download,
+  Upload,
+  Trash as Trash2,
+  ShieldCheck,
+  Database,
+  FileText,
+  Code,
+  Warning as AlertTriangle,
+  X
+} from '@phosphor-icons/react';
 import { generateCSV, downloadFile } from '../../utils/dataExport';
 import { wipeAllSiteData } from '../../services/storage';
 

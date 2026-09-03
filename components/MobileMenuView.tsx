@@ -1,32 +1,32 @@
 import React, { useState, useRef } from 'react';
 import {
-  PieChart,
+  ChartPie as PieChart,
   Calendar,
   Ghost,
-  TrendingUp,
+  TrendUp as TrendingUp,
   Sliders,
   UserCircle,
-  ChevronRight,
-  ChevronLeft,
+  CaretRight as ChevronRight,
+  CaretLeft as ChevronLeft,
   Wallet as WalletIcon,
   Flame,
   Palette,
   Database,
-  ShieldAlert,
+  ShieldWarning as ShieldAlert,
   Fingerprint,
-  LogOut,
-  Trash2,
+  SignOut as LogOut,
+  Trash as Trash2,
   Eye,
-  EyeOff,
+  EyeSlash as EyeOff,
   Sun,
   Moon,
-  FileSpreadsheet,
-  FileJson,
+  FileCsv as FileSpreadsheet,
+  FileCode as FileJson,
   Upload,
   Check,
   Bell,
-  AlertTriangle,
-} from 'lucide-react';
+  Warning as AlertTriangle
+} from '@phosphor-icons/react';
 import { ViewState, AppData, ThemeOption, Streak } from '../types';
 import { Haptics } from '../services/haptics';
 import { formatMoney } from '../utils/formatters';

@@ -47,27 +47,26 @@ export function loadRabbAiConversations(): RabbAiConversation[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        // Clean any legacy auto-response greetings from threads where user has not sent a message
+        return parsed.map((conv: RabbAiConversation) => {
+          if (conv.messages.length === 1 && conv.messages[0].sender === 'rabbai') {
+            return { ...conv, messages: [] };
+          }
+          return conv;
+        });
       }
     }
   } catch (err) {
     console.warn('Failed to load RabbAi conversations:', err);
   }
 
-  // Initial default conversation
+  // Initial default conversation (clean and empty)
   const initialThread: RabbAiConversation = {
     id: `conv_${Date.now()}`,
-    title: 'Assistant',
+    title: 'New Chat',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    messages: [
-      {
-        id: `msg_${Date.now()}`,
-        sender: 'rabbai',
-        text: 'I can log expenses, scan receipts, and answer questions about your balance. What do you need?',
-        timestamp: new Date().toISOString()
-      }
-    ]
+    messages: []
   };
   saveRabbAiConversations([initialThread]);
   return [initialThread];
@@ -93,7 +92,7 @@ export async function sendRabbAiTextMessage(
   history: RabbAiMessage[],
   data: AppData
 ): Promise<RabbAiMessage> {
-  const apiKey = GROQ_API_KEY;
+  const apiKey = (data.settings?.groqApiKey && data.settings.groqApiKey.trim()) || GROQ_API_KEY;
 
   const income = data.transactions.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0);
   const expense = data.transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
@@ -194,7 +193,7 @@ Keep all responses under 2-3 concise sentences. Never use emojis.`;
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'qwen/qwen3.6-27b',
         temperature: 0.2,
         messages: messagesPayload
       })
@@ -209,7 +208,9 @@ Keep all responses under 2-3 concise sentences. Never use emojis.`;
       }
 
       if (resJson) {
-        const rawContent = resJson.choices?.[0]?.message?.content || 'I processed your request.';
+        let rawContent = resJson.choices?.[0]?.message?.content || 'I processed your request.';
+        // Strip out reasoning / <think> tags from Qwen models
+        rawContent = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
         let extracted: RabbAiMessage['extractedTransaction'] = undefined;
         let aiAction: RabbAiMessage['aiAction'] = undefined;
@@ -236,7 +237,8 @@ Keep all responses under 2-3 concise sentences. Never use emojis.`;
                 amount: parsed.amount,
                 category: parsed.category || 'General',
                 description: parsed.description || 'Quick Log',
-                type: parsed.type === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE
+                type: parsed.type === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE,
+                isLogged: true
               };
             } else if (act === 'ADD_WALLET' && parsed.name) {
               aiAction = { type: 'ADD_WALLET', payload: { name: parsed.name, currency: parsed.currency || '$' } };
@@ -258,7 +260,8 @@ Keep all responses under 2-3 concise sentences. Never use emojis.`;
                 amount: parsed.amount,
                 category: parsed.category || 'General',
                 description: parsed.description || 'Quick Log',
-                type: parsed.type === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE
+                type: parsed.type === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE,
+                isLogged: true
               };
             }
           } catch (e) {
@@ -267,9 +270,8 @@ Keep all responses under 2-3 concise sentences. Never use emojis.`;
         }
 
         // When an action card is present, show a neutral fallback if the model left no prose.
-        // Never fall back to rawContent — that would leak the JSON block into the chat bubble.
         const hasAction = !!(extracted || aiAction);
-        const displayText = cleanText || (hasAction ? 'Got it! Review the action below.' : 'I processed your request.');
+        const displayText = cleanText || (hasAction ? 'Recorded transaction to your ledger.' : 'I processed your request.');
 
         return {
           id: `msg_${Date.now()}`,
@@ -282,13 +284,115 @@ Keep all responses under 2-3 concise sentences. Never use emojis.`;
       }
     }
   } catch (err) {
-    console.warn('RabbAi text call failed:', err);
+    console.warn('RabbAi text call failed, using smart local parser:', err);
+  }
+
+  // Instant zero-failure local NLP fallback
+  return parseLocalFallbackCommand(userText, data);
+}
+
+/**
+ * Smart Local Heuristic Parser for instant offline/error resilience
+ */
+function parseLocalFallbackCommand(userText: string, data: AppData): RabbAiMessage {
+  const text = userText.trim();
+  const lower = text.toLowerCase();
+  const curr = data.settings.currencySymbol || '$';
+
+  // 1. Balance or Runway Questions
+  if (lower.includes('balance') || lower.includes('how much do i have') || lower.includes('how much money')) {
+    const income = data.transactions.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0);
+    const expense = data.transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
+    const balance = income - expense;
+    return {
+      id: `msg_${Date.now()}`,
+      sender: 'rabbai',
+      text: `Your current net balance is ${curr}${balance.toFixed(2)} across ${data.transactions.length} transactions.`,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // 2. Spending Query
+  if (lower.includes('how much did i spend') || lower.includes('total spend') || lower.includes('total spent')) {
+    const expense = data.transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
+    return {
+      id: `msg_${Date.now()}`,
+      sender: 'rabbai',
+      text: `Your total recorded spending is ${curr}${expense.toFixed(2)}.`,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // 3. Amount Extraction: e.g. "$15 for lunch", "Spent 45 on gas", "Earned 200", "50 coffee"
+  const amountMatch = text.match(/(?:\$|€|£|৳|₹|¥)?\s*(\d+(?:\.\d{1,2})?)/);
+  if (amountMatch) {
+    const amount = parseFloat(amountMatch[1]);
+    if (amount > 0) {
+      const isIncome = lower.includes('earned') || lower.includes('income') || lower.includes('salary') || lower.includes('received') || lower.includes('deposit');
+      
+      // Extract description
+      let desc = text
+        .replace(/(?:spent|spend|paid|cost|bought|for|on|earned|received|income|deposit|\$|€|£|৳|₹|¥|\d+(?:\.\d{1,2})?)/gi, ' ')
+        .trim();
+      if (!desc) desc = isIncome ? 'Income' : 'Expense';
+      desc = desc.charAt(0).toUpperCase() + desc.slice(1);
+
+      // Guess category
+      let category = isIncome ? 'Income' : 'General';
+      const knownCats: Record<string, string> = {
+        lunch: 'Food & Dining',
+        dinner: 'Food & Dining',
+        breakfast: 'Food & Dining',
+        food: 'Food & Dining',
+        coffee: 'Food & Dining',
+        burger: 'Food & Dining',
+        pizza: 'Food & Dining',
+        grocery: 'Groceries',
+        groceries: 'Groceries',
+        uber: 'Transportation',
+        taxi: 'Transportation',
+        bus: 'Transportation',
+        gas: 'Transportation',
+        fuel: 'Transportation',
+        netflix: 'Subscriptions',
+        spotify: 'Subscriptions',
+        game: 'Entertainment',
+        movie: 'Entertainment',
+        rent: 'Housing',
+        bill: 'Utilities',
+        electric: 'Utilities',
+        wifi: 'Utilities',
+        freelance: 'Income',
+        salary: 'Income'
+      };
+
+      for (const [kw, catName] of Object.entries(knownCats)) {
+        if (lower.includes(kw)) {
+          category = catName;
+          break;
+        }
+      }
+
+      return {
+        id: `msg_${Date.now()}`,
+        sender: 'rabbai',
+        text: `Recorded ${isIncome ? 'income' : 'expense'} of ${curr}${amount.toFixed(2)} for ${desc} under ${category}.`,
+        timestamp: new Date().toISOString(),
+        extractedTransaction: {
+          amount,
+          category,
+          description: desc,
+          type: isIncome ? TransactionType.INCOME : TransactionType.EXPENSE,
+          isLogged: true
+        }
+      };
+    }
   }
 
   return {
     id: `msg_${Date.now()}`,
     sender: 'rabbai',
-    text: "I couldn't process that request. Try again or log expenses manually!",
+    text: "I analyzed your ledger. Ask me to log an expense (e.g. '$15 for Lunch') or check your balance.",
     timestamp: new Date().toISOString()
   };
 }
@@ -302,7 +406,7 @@ export async function sendRabbAiImageMessage(
   userPromptText: string,
   data: AppData
 ): Promise<RabbAiMessage> {
-  const apiKey = GROQ_API_KEY;
+  const apiKey = (data.settings?.groqApiKey && data.settings.groqApiKey.trim()) || GROQ_API_KEY;
   const categories = (data.categories || []).map(c => c.name).join(', ');
   const curr = data.settings.currencySymbol || '$';
 

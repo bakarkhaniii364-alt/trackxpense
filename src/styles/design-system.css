@@ -6,20 +6,22 @@
 */
 
 :root {
-  --ds-bg: #0D0D0E;
-  --ds-panel: #0D0D0E;
-  --ds-panel-alt: #141417;
-  --ds-border: #35363C;
-  --ds-text: #F4F4F5;
-  --ds-text-dim: #A1A1AA;
-  --ds-text-faint: #71717A;
-  --ds-accent: #2563eb;
-  --ds-accent-strong: #3b82f6;
+  /* Neutral Dark Palette (Sleek Technical Neutral with Minimal Warmth) */
+  --ds-bg: #0E0E0F;             /* Deep neutral dark canvas (subtle zinc neutral, no brown) */
+  --ds-panel: #141416;          /* Structural card surface (subtle 1-step lift) */
+  --ds-panel-alt: #1A1A1D;      /* Surface hover / row hover */
+  --ds-border: #232326;         /* Crisp 1px hairline border */
+  --ds-border-strong: #36363A;  /* Active/input border */
+  --ds-text: #F4F4F5;           /* Primary text - crisp high-contrast white */
+  --ds-text-dim: #A1A1AA;       /* Secondary body/label text */
+  --ds-text-faint: #71717A;     /* Tertiary / micro kicker / metadata */
+  --ds-accent: #E3993D;
+  --ds-accent-strong: #F59E0B;
   --ds-ok: #22c55e;
   --ds-warn: #ef4444;
-  --ds-radius: 8px;
-  --ds-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --ds-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ds-radius: 10px;
+  --ds-font: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --ds-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* App Theme Variables & Tailwind Channels */
   --safe-top: env(safe-area-inset-top, 0px);
@@ -27,30 +29,30 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 
-  --color-primary: 37 99 235;
-  --color-primary-hex: #2563eb;
+  --color-primary: 227 153 61;
+  --color-primary-hex: #E3993D;
 
   --bg-page: var(--ds-bg);
   --bg-sidebar: var(--ds-bg);
   --bg-surface: var(--ds-panel);
   --bg-surface-hover: var(--ds-panel-alt);
-  --bg-subtle: #141417;
+  --bg-subtle: #1C1C1F;
   --bg-active-pill: var(--ds-panel-alt);
 
   --border-default: var(--ds-border);
   --border-subtle: var(--ds-border);
-  --border-strong: #4F5056;
-  --border-active: #4F5056;
+  --border-strong: var(--ds-border-strong);
+  --border-active: var(--ds-border-strong);
 
   --text-primary: var(--ds-text);
   --text-secondary: var(--ds-text-dim);
   --text-tertiary: var(--ds-text-faint);
   --text-muted: var(--ds-text-faint);
 
-  --accent-solid: #2563eb;
-  --accent-text: #ffffff;
-  --accent: #2563eb;
-  --accent-bg-soft: rgba(37, 99, 235, 0.12);
+  --accent-solid: #E3993D;
+  --accent-text: #0E0E0F;
+  --accent: #E3993D;
+  --accent-bg-soft: rgba(227, 153, 61, 0.12);
 
   --status-success-bg: rgba(34, 197, 94, 0.12);
   --status-success-fg: #22c55e;
@@ -59,17 +61,85 @@
   --status-warning-bg: rgba(245, 158, 11, 0.12);
   --status-warning-fg: #f59e0b;
 
-  --bg-core: 11 11 13;
-  --bg-card: 24 25 29;
-  --text-main: 245 245 246;
+  --bg-core: 14 14 15;
+  --bg-card: 20 20 22;
+  --text-main: 244 244 245;
 
-  --bento-gap: 1.25rem;
-  --bento-radius: 18px;
-  --sidebar-radius: 8px;
+  --bento-gap: 1rem;
+  --bento-radius: 10px;
+  --sidebar-radius: 6px;
   --bento-padding: 20px;
 
   --global-bg-noise: none;
   --global-bg-gradient: none;
+
+  /* Form & Field Module — Warm Technical Surface & Amber Focus Ring */
+  --field-bg: #141416;
+  --field-bg-hover: #18181B;
+  --field-border: #28282D;
+  --field-border-hover: #3C3C44;
+  --field-border-focus: var(--accent);
+  --field-focus-glow: rgba(227, 153, 61, 0.25);
+
+  /* Button Module — Hue Architecture (Orange Hue: 28deg)
+     Parametrically defines the color wheel angle for the entire button system.
+     All metallic bevels, gradients, lips, and glow borders derive from this hue.
+  */
+  --btn-hue: 28;
+  --btn-accent: hsl(var(--btn-hue), 71%, 61%);
+  --btn-accent-dim: hsl(var(--btn-hue), 55%, 52%);
+  --btn-accent-border: hsla(var(--btn-hue), 55%, 52%, 0.35);
+  --btn-accent-hover-border: hsl(var(--btn-hue), 71%, 61%);
+  --btn-accent-ring: hsla(var(--btn-hue), 55%, 52%, 0.3);
+  --btn-accent-glow: hsla(var(--btn-hue), 71%, 61%, 0.4);
+
+  /* Primary Button Metallic Gradients */
+  --btn-primary-bg: linear-gradient(
+    180deg,
+    hsl(var(--btn-hue), 29%, 18%) 0%,
+    hsl(var(--btn-hue), 31%, 11%) 42%,
+    hsl(var(--btn-hue), 37%, 8%) 58%,
+    hsl(var(--btn-hue), 25%, 14%) 100%
+  );
+  --btn-primary-bg-hover: linear-gradient(
+    180deg,
+    hsl(var(--btn-hue), 29%, 22%) 0%,
+    hsl(var(--btn-hue), 32%, 15%) 38%,
+    hsl(var(--btn-hue), 36%, 9%) 62%,
+    hsl(var(--btn-hue), 33%, 14%) 100%
+  );
+
+  /* Secondary Button Metallic Gradients */
+  --btn-secondary-bg: linear-gradient(
+    180deg,
+    hsl(var(--btn-hue), 24%, 18%) 0%,
+    hsl(var(--btn-hue), 28%, 13%) 45%,
+    hsl(var(--btn-hue), 29%, 9%) 60%,
+    hsl(var(--btn-hue), 25%, 14%) 100%
+  );
+  --btn-secondary-bg-hover: linear-gradient(
+    180deg,
+    hsl(var(--btn-hue), 24%, 22%) 0%,
+    hsl(var(--btn-hue), 28%, 16%) 42%,
+    hsl(var(--btn-hue), 30%, 10%) 62%,
+    hsl(var(--btn-hue), 26%, 15%) 100%
+  );
+
+  /* Tabs Module — Hue Architecture (Orange Hue: 28deg)
+     Synchronizes segmented tab tracks and active pills with the orange hue.
+  */
+  --tab-track-bg: linear-gradient(
+    180deg,
+    hsl(var(--btn-hue), 22%, 10%) 0%,
+    hsl(var(--btn-hue), 25%, 7%) 100%
+  );
+  --tab-track-border: hsla(var(--btn-hue), 12%, 22%, 0.8);
+  --tab-active-bg: var(--btn-secondary-bg);
+  --tab-active-bg-hover: var(--btn-secondary-bg-hover);
+  --tab-active-border: var(--btn-accent-border);
+  --tab-active-lip: var(--btn-accent-dim);
+  --tab-active-glow: var(--btn-accent-glow);
+  --tab-active-text-glow: hsla(var(--btn-hue), 71%, 61%, 0.3);
 }
 
 /* Base resets & layout */
@@ -205,14 +275,14 @@ body.desktop-ui {
 .btn--icon, .btn-icon { padding: 0 !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; }
 .btn--icon-sm, .btn-icon-sm { padding: 0 !important; width: 24px !important; height: 24px !important; border-radius: 5px !important; }
 
-/* Tier 1: Primary (Metallic Dark Navy / Cyan Accent Border) */
+/* Tier 1: Primary (Metallic Warm Metal / Orange Accent Border) */
 .btn--primary, .btn-primary {
   color: var(--ds-text) !important;
-  background: linear-gradient(180deg, #202b3a 0%, #141b26 42%, #0d131c 58%, #1a212b 100%) !important;
-  border: 1px solid rgba(63, 169, 201, 0.35) !important;
+  background: var(--btn-primary-bg) !important;
+  border: 1px solid var(--btn-accent-border) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.35),
-    inset 0 -1.5px 0 #3fa9c9,
+    inset 0 -1.5px 0 var(--btn-accent-dim),
     0 1px 2px rgba(0, 0, 0, 0.25) !important;
 }
 
@@ -221,19 +291,19 @@ body.desktop-ui {
 .btn--primary.is-active,
 .btn-primary:hover,
 .btn-primary:focus-visible {
-  background: linear-gradient(180deg, #283748 0%, #1a2533 38%, #0f1620 62%, #182330 100%) !important;
-  border-color: #58c4e0 !important;
+  background: var(--btn-primary-bg-hover) !important;
+  border-color: var(--btn-accent-hover-border) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -1.5px 0 #58c4e0,
-    0 0 0 1px rgba(63, 169, 201, 0.3),
+    inset 0 -1.5px 0 var(--btn-accent-hover-border),
+    0 0 0 1px var(--btn-accent-ring),
     0 2px 4px rgba(0, 0, 0, 0.35) !important;
 }
 
 /* Tier 2: Secondary (Lifted Dark Metal Bevel) */
 .btn--secondary, .btn-secondary {
-  color: #d7e2ea !important;
-  background: linear-gradient(180deg, #232d3a 0%, #171f29 45%, #10151d 60%, #1a212b 100%) !important;
+  color: hsl(var(--btn-hue), 32%, 88%) !important;
+  background: var(--btn-secondary-bg) !important;
   box-shadow:
     inset 0 1.5px 0 rgba(255, 255, 255, 0.16),
     inset 0 -1.5px 3px rgba(0, 0, 0, 0.6),
@@ -242,26 +312,26 @@ body.desktop-ui {
 .btn--secondary:hover,
 .btn--secondary.is-active,
 .btn-secondary:hover {
-  background: linear-gradient(180deg, #2a3644 0%, #1c2632 42%, #0d131a 62%, #1e2733 100%) !important;
+  background: var(--btn-secondary-bg-hover) !important;
   color: var(--ds-text) !important;
   box-shadow:
     inset 0 1.5px 0 rgba(255, 255, 255, 0.2),
     inset 0 -1.5px 3px rgba(0, 0, 0, 0.65),
-    inset 0 0 0 1px rgba(88, 196, 224, 0.4) !important;
+    inset 0 0 0 1px var(--btn-accent-glow) !important;
 }
 
 /* Tier 3: Outline / Cancel */
 .btn--outline, .btn-outline {
-  color: #b9c6d1 !important;
+  color: hsl(var(--btn-hue), 22%, 77%) !important;
   background: transparent !important;
-  box-shadow: inset 0 0 0 1px #2a3542 !important;
+  box-shadow: inset 0 0 0 1px hsl(var(--btn-hue), 22%, 21%) !important;
 }
 .btn--outline:hover,
 .btn--outline.is-active,
 .btn-outline:hover {
   color: var(--ds-text) !important;
   background: rgba(255, 255, 255, 0.03) !important;
-  box-shadow: inset 0 0 0 1px var(--ds-accent) !important;
+  box-shadow: inset 0 0 0 1px var(--btn-accent-dim) !important;
 }
 
 /* Tier 4: Ghost / Close / Low Emphasis */
@@ -316,12 +386,12 @@ body.desktop-ui {
   align-items: center;
   gap: 2px;
   padding: 2px;
-  background: linear-gradient(180deg, #12161f 0%, #0d1017 100%);
+  background: var(--tab-track-bg);
   border-radius: 6px;
-  border: 1px solid var(--ds-border);
+  border: 1px solid var(--tab-track-border);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    inset 0 2px 5px rgba(0, 0, 0, 0.4);
+    inset 0 2px 5px rgba(0, 0, 0, 0.45);
 }
 
 .tab {
@@ -348,14 +418,24 @@ body.desktop-ui {
   color: var(--ds-text);
 }
 .tab.is-active, .tab--active {
-  color: #f4f4f5 !important;
-  background: linear-gradient(180deg, #232d3a 0%, #171f29 45%, #10151d 60%, #1a212b 100%) !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  background: var(--tab-active-bg) !important;
+  border: 1px solid var(--tab-active-border) !important;
+  text-shadow: 0 0 10px var(--tab-active-text-glow);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.6),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-    0 1px 3px rgba(0, 0, 0, 0.35) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1.5px 0 var(--tab-active-lip),
+    0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+
+.tab.is-active:hover, .tab--active:hover {
+  background: var(--tab-active-bg-hover) !important;
+  border-color: var(--btn-accent-hover-border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1.5px 0 var(--btn-accent-hover-border),
+    0 0 8px var(--tab-active-glow),
+    0 1px 3px rgba(0, 0, 0, 0.45) !important;
 }
 
 /* Underline Tabs System */
@@ -396,8 +476,8 @@ body.desktop-ui {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--ds-accent-strong);
-  box-shadow: 0 0 8px var(--ds-accent);
+  background: var(--btn-accent);
+  box-shadow: 0 0 8px var(--btn-accent-glow);
 }
 
 /* ================== Unified Toggle Switches ================== */
@@ -417,9 +497,9 @@ body.desktop-ui {
   flex-shrink: 0;
 }
 .toggle-switch.is-active, .toggle-switch[data-state="checked"], .toggle-switch.bg-active {
-  background: linear-gradient(180deg, #202b3a 0%, #152233 100%);
-  border-color: #3fa9c9;
-  box-shadow: 0 0 10px rgba(88, 196, 224, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  background: linear-gradient(180deg, hsl(var(--btn-hue), 29%, 18%) 0%, hsl(var(--btn-hue), 35%, 15%) 100%);
+  border-color: var(--btn-accent-dim);
+  box-shadow: 0 0 10px var(--btn-accent-glow), inset 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 .toggle-switch-thumb {
   width: 16px;
@@ -435,14 +515,14 @@ body.desktop-ui {
 .toggle-switch.bg-active .toggle-switch-thumb {
   transform: translateX(18px);
   background: #ffffff;
-  box-shadow: 0 0 6px rgba(88, 196, 224, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 6px var(--btn-accent-glow), 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* ================== Panel & table ================== */
 .panel, .glass, .liquid-glass, .glass-card, .bento-card, body.desktop-ui .liquid-glass-card {
   background: var(--ds-panel) !important;
   border: 1px solid var(--ds-border) !important;
-  border-radius: 18px !important;
+  border-radius: 10px !important;
   overflow: hidden;
   box-shadow: none !important;
   font-family: var(--ds-font);
@@ -523,7 +603,7 @@ body.desktop-ui {
   background: linear-gradient(180deg, #1b232f 0%, #171f29 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 0 0 1px rgba(88, 196, 224, 0.35);
+    inset 0 0 0 1px var(--btn-accent-glow);
 }
 .pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .pager-page {
@@ -534,9 +614,183 @@ body.desktop-ui {
   height: 26px;
   border-radius: 6px;
   background: var(--ds-panel);
-  box-shadow: inset 0 0 0 1px rgba(88, 196, 224, 0.3);
+  box-shadow: inset 0 0 0 1px var(--btn-accent-border);
   color: var(--ds-text);
   font-size: 12.5px;
   font-weight: 500;
 }
+
+/* ================== Unified Warm Form Fields & Inputs ================== */
+.field,
+.field-input,
+input[type="text"]:not([class*="bg-transparent"]):not([class*="border-none"]),
+input[type="number"]:not([class*="bg-transparent"]):not([class*="border-none"]),
+input[type="email"]:not([class*="bg-transparent"]):not([class*="border-none"]),
+input[type="password"]:not([class*="bg-transparent"]):not([class*="border-none"]),
+input[type="date"]:not([class*="bg-transparent"]):not([class*="border-none"]),
+input[type="search"]:not([class*="bg-transparent"]):not([class*="border-none"]),
+textarea:not([class*="bg-transparent"]):not([class*="border-none"]) {
+  font-family: var(--ds-font);
+  color: var(--ds-text);
+  background-color: var(--field-bg);
+  border: 1px solid var(--field-border);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.field:hover,
+.field-input:hover,
+input[type="text"]:not([class*="bg-transparent"]):not([class*="border-none"]):hover,
+input[type="number"]:not([class*="bg-transparent"]):not([class*="border-none"]):hover,
+input[type="email"]:not([class*="bg-transparent"]):not([class*="border-none"]):hover,
+input[type="password"]:not([class*="bg-transparent"]):not([class*="border-none"]):hover,
+input[type="date"]:not([class*="bg-transparent"]):not([class*="border-none"]):hover,
+input[type="search"]:not([class*="bg-transparent"]):not([class*="border-none"]):hover,
+textarea:not([class*="bg-transparent"]):not([class*="border-none"]):hover {
+  border-color: var(--field-border-hover);
+}
+
+.field:focus,
+.field-input:focus,
+input[type="text"]:not([class*="bg-transparent"]):not([class*="border-none"]):focus,
+input[type="number"]:not([class*="bg-transparent"]):not([class*="border-none"]):focus,
+input[type="email"]:not([class*="bg-transparent"]):not([class*="border-none"]):focus,
+input[type="password"]:not([class*="bg-transparent"]):not([class*="border-none"]):focus,
+input[type="date"]:not([class*="bg-transparent"]):not([class*="border-none"]):focus,
+input[type="search"]:not([class*="bg-transparent"]):not([class*="border-none"]):focus,
+textarea:not([class*="bg-transparent"]):not([class*="border-none"]):focus {
+  border-color: var(--field-border-focus) !important;
+  box-shadow: 0 0 0 1px var(--field-border-focus), 0 0 8px var(--field-focus-glow) !important;
+}
+
+/* Explicit reset for transparent / borderless inputs inside composite components */
+input[class*="bg-transparent"],
+input[class*="border-none"],
+textarea[class*="bg-transparent"],
+textarea[class*="border-none"],
+.input-reset {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+input[class*="bg-transparent"]:focus,
+input[class*="border-none"]:focus,
+textarea[class*="bg-transparent"]:focus,
+textarea[class*="border-none"]:focus,
+.input-reset:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Shining Light Trail Beam for Compose Box */
+@keyframes border-beam-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.shining-beam-wrapper {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 1px;
+  background: var(--border-default);
+  transition: all 0.3s ease;
+}
+
+.shining-beam-wrapper::before {
+  content: '';
+  position: absolute;
+  top: -150%;
+  left: -150%;
+  width: 400%;
+  height: 400%;
+  background: conic-gradient(
+    transparent 0deg,
+    transparent 280deg,
+    rgba(227, 153, 61, 0.25) 315deg,
+    rgba(255, 255, 255, 0.95) 345deg,
+    rgba(227, 153, 61, 0.9) 356deg,
+    transparent 360deg
+  );
+  animation: border-beam-rotate 5s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.shining-beam-wrapper:hover::before,
+.shining-beam-wrapper:focus-within::before {
+  animation-duration: 3.5s;
+  background: conic-gradient(
+    transparent 0deg,
+    transparent 270deg,
+    rgba(227, 153, 61, 0.4) 305deg,
+    rgba(255, 255, 255, 1) 340deg,
+    rgba(227, 153, 61, 1) 356deg,
+    transparent 360deg
+  );
+}
+
+.shining-beam-inner {
+  position: relative;
+  z-index: 1;
+  background: var(--field-bg);
+  border-radius: 9px;
+  width: 100%;
+}
+
+/* Orchestrated Page Reload Entrance Animations */
+@keyframes heroTextSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroComposePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes heroBottomSlideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-text-up {
+  animation: heroTextSlideUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+}
+
+.animate-hero-compose {
+  animation: heroComposePop 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0s both;
+}
+
+.animate-hero-bottom-down {
+  animation: heroBottomSlideDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
+}
+
+
+
 

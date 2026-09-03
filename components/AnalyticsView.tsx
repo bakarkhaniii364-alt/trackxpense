@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { AppData, Transaction, TransactionType } from '../types';
 import { PredictiveEngine } from '../services/PredictiveEngine';
 import { EmptyStateSeeder } from './shared/EmptyStateSeeder';
-import { AnalyticsHeader, AnalyticsTimeframe } from './analytics/AnalyticsHeader';
+import { AnalyticsHeader } from './analytics/AnalyticsHeader';
 import { BentoCashFlow } from './analytics/BentoCashFlow';
 import { BentoMetrics } from './analytics/BentoMetrics';
 import { BentoCategories } from './analytics/BentoCategories';
@@ -10,6 +10,8 @@ import { BentoRunwayTrajectory } from './analytics/BentoRunwayTrajectory';
 import { BentoHeatmap } from './analytics/BentoHeatmap';
 import { BentoCategoryTable } from './analytics/BentoCategoryTable';
 import { BentoHealthAudit } from './analytics/BentoHealthAudit';
+import { SimulationModule } from './dashboard/SimulationModule';
+import { DateRange } from './shared/CloudflareDateRangePicker';
 import { Haptics } from '../services/haptics';
 
 interface AnalyticsProps {
@@ -19,8 +21,19 @@ interface AnalyticsProps {
 }
 
 export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, formatMoney }) => {
-  const [timeframe, setTimeframe] = useState<AnalyticsTimeframe>('30D');
+  const [dateRange, setDateRange] = useState<DateRange>(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 30);
+    return {
+      startDate: start,
+      endDate: end,
+      label: 'Last 30 days',
+      presetKey: '30d'
+    };
+  });
   const [walletScope, setWalletScope] = useState<string>(data.currentWalletId || 'ALL');
+  const [isSimOpen, setIsSimOpen] = useState(false);
 
   const currencySymbol = data.settings.currencySymbol || '$';
   const privacyMode = Boolean(data.settings.privacyMode);
@@ -39,32 +52,10 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
     });
   }, [data.transactions, walletScope, privacyMode]);
 
-  // 2. Filter transactions by Timeframe
+  // 2. Filter transactions by DateRange
   const { filteredTransactions, dateRangeText } = useMemo(() => {
-    const now = new Date();
-    let startDate: Date | null = null;
-    const endDate = now;
-
-    if (timeframe === '7D') {
-      startDate = new Date();
-      startDate.setDate(now.getDate() - 7);
-      startDate.setHours(0, 0, 0, 0);
-    } else if (timeframe === '30D') {
-      startDate = new Date();
-      startDate.setDate(now.getDate() - 30);
-      startDate.setHours(0, 0, 0, 0);
-    } else if (timeframe === 'MTD') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    } else if (timeframe === '90D') {
-      startDate = new Date();
-      startDate.setDate(now.getDate() - 90);
-      startDate.setHours(0, 0, 0, 0);
-    } else if (timeframe === 'YTD') {
-      startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-    } else {
-      // ALL
-      startDate = null;
-    }
+    const startDate = dateRange.startDate;
+    const endDate = dateRange.endDate ? new Date(new Date(dateRange.endDate).setHours(23, 59, 59, 999)) : new Date();
 
     const filtered = scopedTransactions.filter((t) => {
       if (!startDate) return true;
@@ -72,18 +63,11 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
       return tDate >= startDate && tDate <= endDate;
     });
 
-    let rangeString = 'All History';
-    if (startDate) {
-      const sStr = startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      const eStr = endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      rangeString = `${sStr} – ${eStr}`;
-    }
-
     return {
       filteredTransactions: filtered,
-      dateRangeText: rangeString,
+      dateRangeText: dateRange.label,
     };
-  }, [scopedTransactions, timeframe]);
+  }, [scopedTransactions, dateRange]);
 
   // 3. Compute Summary KPI Values
   const kpiData = useMemo(() => {
@@ -96,7 +80,7 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
     const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
 
     const uniqueDays = new Set(expenseTxs.map((t) => t.date.split('T')[0]));
-    const dayCount = Math.max(uniqueDays.size, timeframe === '7D' ? 7 : timeframe === '30D' ? 30 : 1);
+    const dayCount = Math.max(uniqueDays.size, 1);
     const avgDailySpend = totalExpense / dayCount;
 
     const totalIOwe = data.debts
@@ -120,7 +104,7 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
       totalOwesMe,
       currentBalance,
     };
-  }, [filteredTransactions, data, timeframe]);
+  }, [filteredTransactions, data]);
 
   // 4. Export CSV Handler
   const handleExportCSV = useCallback(() => {
@@ -140,24 +124,24 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `trackxpense_analytics_${timeframe}_${Date.now()}.csv`);
+    link.setAttribute('download', `trackxpense_analytics_${dateRange.presetKey || 'range'}_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [filteredTransactions, timeframe]);
+  }, [filteredTransactions, dateRange]);
 
   return (
     <div className="space-y-3.5 max-w-6xl mx-auto animate-in pb-16">
       {/* Header Toolbar */}
       <AnalyticsHeader
-        timeframe={timeframe}
-        setTimeframe={(tf) => { Haptics.light(); setTimeframe(tf); }}
+        dateRange={dateRange}
+        setDateRange={(r) => { Haptics.light(); setDateRange(r); }}
         walletScope={walletScope}
         setWalletScope={(s) => { Haptics.light(); setWalletScope(s); }}
         wallets={data.wallets}
-        dateRangeText={dateRangeText}
         totalFilteredCount={filteredTransactions.length}
         onExportReport={handleExportCSV}
+        onOpenSimulator={() => setIsSimOpen(true)}
       />
 
       {/* Empty State Check */}
@@ -240,6 +224,9 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
           </div>
         </div>
       )}
+
+      {/* What-If Scenario Simulator Modal */}
+      <SimulationModule isOpen={isSimOpen} onClose={() => setIsSimOpen(false)} data={data} />
     </div>
   );
 };

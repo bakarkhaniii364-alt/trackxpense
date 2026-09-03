@@ -1,5 +1,13 @@
 import React from 'react';
-import { Check, Shield, Zap, Cloud, Smartphone, Sparkles, X } from 'lucide-react';
+import {
+  Check,
+  Shield,
+  Lightning as Zap,
+  Cloud,
+  DeviceMobile as Smartphone,
+  Sparkle as Sparkles,
+  X
+} from '@phosphor-icons/react';
 import { Haptics } from '../services/haptics';
 
 interface PremiumUpgradeProps {

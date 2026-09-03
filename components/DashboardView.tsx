@@ -1,18 +1,26 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { RotateCw, Plus } from 'lucide-react';
+import {
+  ArrowClockwise as RotateCw,
+  Plus,
+  Microphone,
+  ArrowUp,
+  Paperclip,
+  X,
+  Sparkle,
+  Check
+} from '@phosphor-icons/react';
 import { Transaction, TransactionType, AppData, Wallet, Category } from '../types';
 import { PredictiveEngine } from '../services/PredictiveEngine';
 import { BalanceHero } from './dashboard/BalanceHero';
 import { DailyBudget } from './dashboard/DailyBudget';
-import { DashboardAnalytics } from './dashboard/DashboardAnalytics';
 import { FinancialHealthScore } from './dashboard/WorkstationWidgets';
 import { StreakDisplay } from './dashboard/StreakDisplay';
 import { LocalAdvisor } from './dashboard/LocalAdvisor';
 import { BudgetAlerts } from './dashboard/BudgetAlerts';
 import { GoalSummary } from './dashboard/GoalSummary';
 import { QuickActions } from './dashboard/QuickActions';
-import { TemplatePresets } from './dashboard/TemplatePresets';
 import { RecentLedger } from './dashboard/RecentLedger';
+import { sendRabbAiTextMessage, sendRabbAiImageMessage, RabbAiMessage } from '../services/rabbAiService';
 import { Haptics } from '../services/haptics';
 
 interface DashboardProps {
@@ -23,17 +31,42 @@ interface DashboardProps {
     onAddTransactionRequest: (type: TransactionType, quickData?: any) => void;
     onEditTransaction: (t: Transaction) => void;
     onDeleteTemplate: (id: string) => void;
+    onAddTransaction?: (t: any) => void;
 }
 
 export const DashboardView: React.FC<DashboardProps> = ({ 
-    data, setView, updateData, formatMoney, onAddTransactionRequest, onEditTransaction, onDeleteTemplate
+    data, 
+    setView, 
+    updateData, 
+    formatMoney, 
+    onAddTransactionRequest, 
+    onEditTransaction, 
+    onDeleteTemplate,
+    onAddTransaction
 }) => {
     const [refreshing, setRefreshing] = useState(false);
     const pullStart = useRef<number>(0);
     const pullRef = useRef<HTMLDivElement>(null);
     const thresholdTriggered = useRef<boolean>(false);
 
+    // RabbAi Hero Command State
+    const [commandText, setCommandText] = useState('');
+    const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
+    const [isAiLoading, setIsAiLoading] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const [aiFeedback, setAiFeedback] = useState<{
+        text: string;
+        extractedTx?: any;
+        isLogged?: boolean;
+        loggedId?: string;
+    } | null>(null);
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const recognitionRef = useRef<any>(null);
+
     const currency = data.settings.currencySymbol;
+    const userName = data.profile?.name ? data.profile.name.split(' ')[0] : 'Alif';
 
     const walletTransactions = useMemo(() => 
         data.transactions.filter((t: Transaction) => {
@@ -50,19 +83,6 @@ export const DashboardView: React.FC<DashboardProps> = ({
     const adjustedBalance = PredictiveEngine.getAdjustedBalance(data, balance);
     const runwayDays = PredictiveEngine.getRunwayDays(data, balance);
     const futureLiability = PredictiveEngine.getFutureLiabilities(data, 30);
-
-    const chartData = useMemo(() => {
-        return [...Array(7)].map((_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() - (6 - i));
-            const dateStr = d.toISOString().split('T')[0];
-            const label = d.toLocaleDateString('en-US', { weekday: 'short' });
-            const spent = walletTransactions
-                .filter(t => t.type === TransactionType.EXPENSE && t.date.startsWith(dateStr))
-                .reduce((s, t) => s + t.amount, 0);
-            return { name: label, spent };
-        });
-    }, [walletTransactions]);
 
     const today = new Date().toISOString().split('T')[0];
     const dailySpent = data.transactions
@@ -164,12 +184,163 @@ export const DashboardView: React.FC<DashboardProps> = ({
         thresholdTriggered.current = false;
     };
 
+    // Handle Mobile Command Send
+    const handleSendCommand = async () => {
+        if (isListening) {
+            recognitionRef.current?.stop();
+            setIsListening(false);
+        }
+
+        const text = commandText.trim();
+        const receipt = selectedReceipt;
+        if (!text && !receipt) return;
+
+        Haptics.light();
+        setCommandText('');
+        setSelectedReceipt(null);
+        if (textareaRef.current) textareaRef.current.style.height = 'auto';
+        setIsAiLoading(true);
+
+        try {
+            let aiMsg: RabbAiMessage;
+            if (receipt) {
+                aiMsg = await sendRabbAiImageMessage(receipt, text, data);
+            } else {
+                aiMsg = await sendRabbAiTextMessage(text, [], data);
+            }
+
+            let newTxId: string | undefined;
+            if (aiMsg.extractedTransaction && aiMsg.extractedTransaction.isLogged) {
+                const ext = aiMsg.extractedTransaction;
+                newTxId = `tx_${Date.now()}`;
+                const newTx: Transaction = {
+                    id: newTxId,
+                    amount: ext.amount,
+                    type: ext.type,
+                    category: ext.category,
+                    date: new Date().toISOString().split('T')[0],
+                    note: ext.description,
+                    walletId: data.currentWalletId || data.wallets?.[0]?.id || 'default'
+                };
+                if (onAddTransaction) {
+                    onAddTransaction(newTx);
+                } else {
+                    updateData({ transactions: [newTx, ...data.transactions] });
+                }
+            }
+
+            setAiFeedback({
+                text: aiMsg.text,
+                extractedTx: aiMsg.extractedTransaction,
+                isLogged: aiMsg.extractedTransaction?.isLogged,
+                loggedId: newTxId
+            });
+        } catch {
+            setAiFeedback({
+                text: 'Could not process command. Please try again.'
+            });
+        } finally {
+            setIsAiLoading(false);
+        }
+    };
+
     return (
         <div className="flex flex-col gap-4 lg:gap-5 mt-0 relative min-h-full pb-8" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
             <div ref={pullRef} className="absolute top-0 left-0 w-full flex justify-center -mt-10 pointer-events-none z-0 opacity-0">
                 <div className={`p-2.5 rounded-full bg-[var(--bg-surface)] shadow-xl border border-[var(--border-default)] ${refreshing ? 'animate-spin' : ''}`}>
                     <RotateCw size={16} className="text-[var(--text-primary)]" />
                 </div>
+            </div>
+
+            {/* Hidden File Input for Receipt Attachment */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    Haptics.light();
+                    const reader = new FileReader();
+                    reader.onload = () => setSelectedReceipt(reader.result as string);
+                    reader.readAsDataURL(file);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                className="hidden"
+            />
+
+            {/* Cloudflare Hero Command Bar (Mobile) */}
+            <div className="w-full space-y-2 pt-1">
+                <h1 className="text-[20px] font-medium text-[var(--text-primary)] tracking-tight text-center">
+                    Spent anything today, {userName}?
+                </h1>
+
+                {selectedReceipt && (
+                    <div className="relative inline-block">
+                        <img src={selectedReceipt} alt="Receipt preview" className="w-12 h-12 object-cover rounded-[6px] border border-[var(--border-default)] shadow-xs" />
+                        <button
+                            onClick={() => setSelectedReceipt(null)}
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-black/80 rounded-full text-white flex items-center justify-center hover:bg-red-500 transition-colors"
+                        >
+                            <X size={10} />
+                        </button>
+                    </div>
+                )}
+
+                <div className="shining-beam-wrapper">
+                    <div className="shining-beam-inner p-2.5 transition-colors">
+                        <textarea
+                            ref={textareaRef}
+                            rows={1}
+                            value={commandText}
+                            onChange={(e) => setCommandText(e.target.value)}
+                            placeholder="Ask RabbAi, log an expense, or search..."
+                            className="input-reset w-full bg-transparent border-0 outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none leading-relaxed"
+                            style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
+                        />
+                    <div className="flex items-center justify-between pt-1.5">
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="h-[26px] px-2 rounded-[6px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1 text-[11.5px]"
+                        >
+                            <Paperclip size={13} strokeWidth={1.5} />
+                            <span>Attach</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSendCommand}
+                            disabled={(!commandText.trim() && !selectedReceipt) || isAiLoading}
+                            className="btn btn--primary h-[26px] px-2.5 text-[11.5px] rounded-[6px] flex items-center gap-1 disabled:opacity-40"
+                        >
+                            <span>Log</span>
+                            <ArrowUp size={12} weight="bold" />
+                        </button>
+                    </div>
+                  </div>
+                </div>
+
+                {isAiLoading && (
+                    <div className="p-2.5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center gap-2 text-[11.5px] text-[var(--text-secondary)]">
+                        <Sparkle size={13} className="text-[var(--accent)] animate-spin" />
+                        <span>RabbAi is analyzing...</span>
+                    </div>
+                )}
+
+                {aiFeedback && !isAiLoading && (
+                    <div className="p-2.5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[12px] space-y-1.5">
+                        <div className="flex justify-between items-start">
+                            <span>{aiFeedback.text}</span>
+                            <button onClick={() => setAiFeedback(null)} className="p-0.5"><X size={11} /></button>
+                        </div>
+                        {aiFeedback.extractedTx && (
+                            <div className="flex justify-between items-center text-[11px] pt-1 border-t border-[var(--border-default)]">
+                                <span className="font-mono font-medium">{formatMoney(aiFeedback.extractedTx.amount, currency)} • {aiFeedback.extractedTx.category}</span>
+                                {aiFeedback.isLogged && <span className="text-emerald-400 font-medium">✓ Logged</span>}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Level 1: Primary Balance Hero */}
@@ -209,7 +380,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
                 <FinancialHealthScore data={data} />
 
                 {/* 3. 30-Day Outlook */}
-                <div className="rounded-[12px] sm:rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-3.5 sm:p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
+                <div className="rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-3.5 sm:p-5 flex flex-col justify-between transition-colors h-full">
                     <div>
                         <div className="flex items-center justify-between mb-2">
                             <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] truncate">
@@ -221,7 +392,7 @@ export const DashboardView: React.FC<DashboardProps> = ({
                         </div>
 
                         <div className="mb-2">
-                            <div className="text-base sm:text-xl lg:text-2xl font-semibold text-[var(--text-primary)] tracking-tight font-mono">
+                            <div className="text-base sm:text-xl font-semibold text-[var(--text-primary)] tracking-tight font-mono">
                                 {formatMoney(futureLiability, currency)}
                             </div>
                             <div className="text-[11px] text-[var(--text-secondary)] mt-0.5 truncate">

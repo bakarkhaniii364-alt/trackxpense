@@ -1,5 +1,17 @@
 import React, { useMemo } from 'react';
-import { Activity, ShieldCheck, Target, Award, AlertTriangle, ArrowRight, CheckCircle2, TrendingUp, Download, Copy, Check } from 'lucide-react';
+import {
+  Pulse as Activity,
+  ShieldCheck,
+  Target,
+  Medal as Award,
+  Warning as AlertTriangle,
+  ArrowRight,
+  CheckCircle as CheckCircle2,
+  TrendUp as TrendingUp,
+  Download,
+  Copy,
+  Check
+} from '@phosphor-icons/react';
 import { AppData, Transaction, TransactionType, Debt } from '../../types';
 import { PredictiveEngine } from '../../services/PredictiveEngine';
 

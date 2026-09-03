@@ -1,6 +1,18 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Download, Search, X, FileText, Calendar as CalendarIcon, PieChart, Shuffle, Trash2, ArrowUp, ArrowDown, SlidersHorizontal } from 'lucide-react';
+import {
+  Download,
+  MagnifyingGlass as Search,
+  X,
+  FileText,
+  Calendar as CalendarIcon,
+  ChartPie as PieChart,
+  Shuffle,
+  Trash as Trash2,
+  ArrowUp,
+  ArrowDown,
+  SlidersHorizontal
+} from '@phosphor-icons/react';
 import { Transaction, TransactionType, AppData, CategoryItem } from '../types';
 import { CategoryIcon } from './shared/CategoryIcon';
 import { CalendarView } from './history/CalendarView';
@@ -182,8 +194,8 @@ export const HistoryView: React.FC<HistoryProps> = ({ data, updateData, onReques
                           </div>
                       ) : (
                           <div className="flex gap-2">
-                              <div className="relative flex-1 md:w-36"><CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"/><input type="date" value={dateRange.start} className="bg-[var(--bg-subtle)] text-[var(--text-primary)] text-[12px] rounded-[8px] pl-8 pr-2.5 py-2 w-full outline-none border border-[var(--border-default)] focus:border-[#2563EB]" onChange={e => setDateRange(prev => ({...prev, start: e.target.value}))}/></div>
-                              <div className="relative flex-1 md:w-36"><CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"/><input type="date" value={dateRange.end} className="bg-[var(--bg-subtle)] text-[var(--text-primary)] text-[12px] rounded-[8px] pl-8 pr-2.5 py-2 w-full outline-none border border-[var(--border-default)] focus:border-[#2563EB]" onChange={e => setDateRange(prev => ({...prev, end: e.target.value}))}/></div>
+                              <div className="relative flex-1 md:w-36"><CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"/><input type="date" value={dateRange.start} className="bg-[var(--field-bg)] text-[var(--text-primary)] text-[12px] rounded-[6px] pl-8 pr-2.5 py-2 w-full outline-none border border-[var(--field-border)]" onChange={e => setDateRange(prev => ({...prev, start: e.target.value}))}/></div>
+                              <div className="relative flex-1 md:w-36"><CalendarIcon size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none"/><input type="date" value={dateRange.end} className="bg-[var(--field-bg)] text-[var(--text-primary)] text-[12px] rounded-[6px] pl-8 pr-2.5 py-2 w-full outline-none border border-[var(--field-border)]" onChange={e => setDateRange(prev => ({...prev, end: e.target.value}))}/></div>
                           </div>
                       )}
                   </div>

@@ -1,5 +1,9 @@
 import React from 'react';
-import { ArrowUpRight, ArrowDownRight, Wallet } from 'lucide-react';
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  Wallet
+} from '@phosphor-icons/react';
 
 interface StatsCardProps {
   title: string;
@@ -38,7 +42,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({ title, amount, type }) => 
           {icon}
         </div>
       </div>
-      <h3 className="text-[20px] font-medium tracking-tight text-[var(--text-primary)] font-mono">
+      <h3 className="text-[26px] sm:text-[28px] font-bold tracking-tight text-[var(--text-primary)] font-mono">
         {formatMoney(amount)}
       </h3>
     </div>

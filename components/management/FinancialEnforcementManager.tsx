@@ -1,10 +1,22 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AppData, TransactionType, CategoryItem } from '../../types';
-import { 
-  Trash2, Shield, Edit2, Plus, X, ArrowUpRight, ArrowDownRight, 
-  LayoutGrid, List, MoreVertical, Edit3, GitMerge, ArrowUp, ArrowDown 
-} from 'lucide-react';
+import {
+  Trash as Trash2,
+  Shield,
+  PencilSimple as Edit2,
+  Plus,
+  X,
+  ArrowUpRight,
+  ArrowDownRight,
+  SquaresFour as LayoutGrid,
+  List,
+  DotsThreeVertical as MoreVertical,
+  PencilLine as Edit3,
+  GitMerge,
+  ArrowUp,
+  ArrowDown
+} from '@phosphor-icons/react';
 import { FieldHelp } from '../pc/FieldHelp';
 import { COLOR_PRESETS, GlassSelect, GlassCheckbox } from '../shared/CommonUI';
 import { TablePaginationFooter } from '../shared/TablePaginationFooter';
@@ -808,7 +820,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                 type="text"
                 value={renameInput}
                 onChange={(e) => setRenameInput(e.target.value)}
-                className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all"
                 autoFocus
               />
               <p className="text-[11px] text-[var(--text-muted)]">All previous transaction entries in this category will be updated automatically.</p>
@@ -911,7 +923,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                       placeholder="Enter new category name..."
                       value={customMergedName}
                       onChange={(e) => setCustomMergedName(e.target.value)}
-                      className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all mt-2"
+                      className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all mt-2"
                       autoFocus
                     />
                   )}
@@ -1048,7 +1060,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                   placeholder="0.00"
                   value={budgetLimit}
                   onChange={(e) => setBudgetLimit(e.target.value)}
-                  className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all font-mono"
+                  className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all font-mono"
                 />
               </div>
             </div>
@@ -1101,7 +1113,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                   placeholder="Category label..."
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
-                  className="w-full h-[36px] bg-[var(--bg-subtle)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                  className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all"
                 />
               </div>
 

@@ -1,9 +1,23 @@
 import { Category } from '../../types';
-import { 
-  Banknote, Briefcase, GraduationCap, Landmark, Coffee, UtensilsCrossed, 
-  Utensils, Bike, Cookie, CreditCard, Car, ShoppingBag, Zap, Music, 
-  Activity, ArrowRightLeft, MoreHorizontal 
-} from 'lucide-react';
+import {
+  Money as Banknote,
+  Briefcase,
+  GraduationCap,
+  Bank as Landmark,
+  Coffee,
+  ForkKnife as UtensilsCrossed,
+  ForkKnife as Utensils,
+  Bicycle as Bike,
+  Cookie,
+  CreditCard,
+  Car,
+  ShoppingBag,
+  Lightning as Zap,
+  MusicNotes as Music,
+  Pulse as Activity,
+  ArrowsLeftRight as ArrowRightLeft,
+  DotsThree as MoreHorizontal
+} from '@phosphor-icons/react';
 import React from 'react';
 
 export const CategoryIcon = ({ category, color, size = 16, strokeWidth = 1.5 }: { category: string, color?: string, size?: number, strokeWidth?: number }) => {

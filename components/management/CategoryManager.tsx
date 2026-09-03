@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { AppData, TransactionType, CategoryItem } from '../../types';
-import { Trash2 } from 'lucide-react';
+import {
+  Trash as Trash2
+} from '@phosphor-icons/react';
 import { COLOR_PRESETS } from '../shared/CommonUI';
 
 interface CategoryManagerProps {

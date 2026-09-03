@@ -1,24 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Search, 
-  LayoutGrid, 
-  Activity, 
-  TrendingUp, 
-  ArrowDownRight, 
+import {
+  MagnifyingGlass as Search,
+  SquaresFour as LayoutGrid,
+  Pulse as Activity,
+  TrendUp as TrendingUp,
+  ArrowDownRight,
   HandCoins,
-  Calendar, 
-  Ghost, 
-  UserCircle, 
-  Fingerprint, 
-  Plus, 
-  ChevronRight,
-  Sparkles,
+  Calendar,
+  Ghost,
+  UserCircle,
+  Fingerprint,
+  Plus,
+  CaretRight as ChevronRight,
+  Sparkle as Sparkles,
   Wallet as WalletIcon,
   Sliders,
   Check,
-  Ban,
-  Zap
-} from 'lucide-react';
+  Prohibit as Ban,
+  Lightning as Zap
+} from '@phosphor-icons/react';
 import { AppData, ViewState, TransactionType } from '../types';
 import { parseTransactionWithAI, AIParsedTransaction } from '../services/aiService';
 

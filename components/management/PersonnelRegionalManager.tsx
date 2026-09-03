@@ -3,34 +3,35 @@ import { createPortal } from 'react-dom';
 import { AppData, Wallet, ThemeOption } from '../../types';
 import { 
   Bell, 
-  AlertTriangle, 
+  Warning as AlertTriangle, 
   User, 
-  Settings, 
+  Gear as Settings, 
   Fingerprint, 
-  Mail, 
-  LogOut, 
-  Trash2, 
-  ChevronRight,
+  Envelope as Mail, 
+  SignOut as LogOut, 
+  Trash as Trash2, 
+  CaretRight as ChevronRight,
   X,
   Upload,
-  FileJson,
-  FileSpreadsheet,
-  Edit2,
+  FileCode as FileJson,
+  FileCsv as FileSpreadsheet,
+  PencilSimple as Edit2,
   Check,
   Plus,
   Wallet as WalletIcon,
   ShieldCheck,
-  EyeOff,
+  EyeSlash as EyeOff,
   Target,
   Palette,
-  ExternalLink,
-  Zap
-} from 'lucide-react';
+  ArrowSquareOut as ExternalLink,
+  Lightning as Zap
+} from '@phosphor-icons/react';
 import { CURRENCIES } from '../shared/CommonUI';
 import { supabase } from '../../services/supabase';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { SegmentedSubTabs } from '../shared/SegmentedSubTabs';
+import { CustomSelect } from '../shared/CustomSelect';
 
 interface PersonnelRegionalManagerProps {
   data: AppData;
@@ -39,6 +40,8 @@ interface PersonnelRegionalManagerProps {
   isCompact?: boolean;
   onDirtyChange?: (isDirty: boolean) => void;
   onLogout?: () => void;
+  initialTab?: 'general' | 'wallets' | 'data_security';
+  onTabChange?: (tab: 'general' | 'wallets' | 'data_security') => void;
 }
 
 export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> = ({ 
@@ -47,10 +50,28 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
   formatMoney,
   isCompact = false,
   onDirtyChange,
-  onLogout
+  onLogout,
+  initialTab,
+  onTabChange
 }) => {
   // 3 Sub-Tabs: General, Wallet Settings, Data & Security
-  const [activeTab, setActiveTab] = useState<'general' | 'wallets' | 'data_security'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'wallets' | 'data_security'>(
+    initialTab || 'general'
+  );
+
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  const scrollToSection = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
   
   const [localProfile, setLocalProfile] = useState(data.profile);
   const [localSettings, setLocalSettings] = useState(data.settings);
@@ -247,7 +268,10 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
       <div className="pb-1 border-b border-[var(--border-default)]">
         <SegmentedSubTabs
           activeTab={activeTab}
-          onChange={(tabId: any) => setActiveTab(tabId)}
+          onChange={(tabId: any) => {
+            setActiveTab(tabId);
+            if (onTabChange) onTabChange(tabId);
+          }}
           tabs={[
             { id: 'general', label: 'General' },
             { id: 'wallets', label: 'Wallet Settings', count: (data.wallets || []).length },
@@ -311,21 +335,22 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                   </span>
                   {editingCard === 'currency' ? (
                     <div className="flex-1 flex items-center justify-between gap-3">
-                      <select
+                      <CustomSelect
                         value={localSettings.currencySymbol}
-                        onChange={(e) => {
-                          const updated = { ...localSettings, currencySymbol: e.target.value };
+                        onChange={(val) => {
+                          const updated = { ...localSettings, currencySymbol: val };
                           setLocalSettings(updated);
                           updateData({ settings: updated });
                           setEditingCard(null);
                         }}
-                        className="h-[32px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2 text-[12px] text-[var(--text-primary)] outline-none"
-                      >
-                        {CURRENCIES.map(c => (
-                          <option key={c.value} value={c.symbol}>{c.value} ({c.symbol})</option>
-                        ))}
-                      </select>
-                      <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)]">Done</button>
+                        options={CURRENCIES.map(c => ({
+                          value: c.symbol,
+                          label: `${c.value} (${c.symbol})`
+                        }))}
+                        size="sm"
+                        className="flex-1 max-w-[200px]"
+                      />
+                      <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">Done</button>
                     </div>
                   ) : (
                     <>
@@ -494,40 +519,40 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
           <div className="lg:col-span-3 hidden lg:block">
             <div className="sticky top-6 space-y-4 text-[13px] border-l border-[var(--border-default)] pl-4">
               <div className="space-y-1.5">
-                <a href="#profile-section" className="font-medium text-[var(--text-primary)] border-l-2 border-[var(--text-primary)] -ml-[17px] pl-3 block py-0.5">
+                <a href="#profile-section" onClick={(e) => scrollToSection(e, 'profile-section')} className="font-medium text-[var(--text-primary)] border-l-2 border-[var(--text-primary)] -ml-[17px] pl-3 block py-0.5">
                   Profile & Preferences
                 </a>
-                <a href="#profile" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                <a href="#profile" onClick={(e) => scrollToSection(e, 'profile')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
                   Name
                 </a>
-                <a href="#currency" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                <a href="#currency" onClick={(e) => scrollToSection(e, 'currency')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
                   Currency & locale
                 </a>
-                <a href="#privacy" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                <a href="#privacy" onClick={(e) => scrollToSection(e, 'privacy')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
                   Stealth mode
                 </a>
               </div>
 
               <div className="space-y-1.5 pt-2 border-t border-[var(--border-default)]/40">
-                <a href="#targets-section" className="font-medium text-[var(--text-primary)] border-l-2 border-transparent hover:border-[var(--text-primary)] -ml-[17px] pl-3 block py-0.5">
+                <a href="#targets-section" onClick={(e) => scrollToSection(e, 'targets-section')} className="font-medium text-[var(--text-primary)] border-l-2 border-transparent hover:border-[var(--text-primary)] -ml-[17px] pl-3 block py-0.5">
                   Target Limits
                 </a>
-                <a href="#daily-limit" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                <a href="#daily-limit" onClick={(e) => scrollToSection(e, 'daily-limit')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
                   Daily expense limit
                 </a>
-                <a href="#monthly-limit" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                <a href="#monthly-limit" onClick={(e) => scrollToSection(e, 'monthly-limit')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
                   Monthly expense limit
                 </a>
               </div>
 
               <div className="space-y-1.5 pt-2 border-t border-[var(--border-default)]/40">
-                <a href="#notifications-section" className="font-medium text-[var(--text-primary)] border-l-2 border-transparent hover:border-[var(--text-primary)] -ml-[17px] pl-3 block py-0.5">
+                <a href="#notifications-section" onClick={(e) => scrollToSection(e, 'notifications-section')} className="font-medium text-[var(--text-primary)] border-l-2 border-transparent hover:border-[var(--text-primary)] -ml-[17px] pl-3 block py-0.5">
                   Notifications
                 </a>
-                <a href="#expense-alert" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                <a href="#expense-alert" onClick={(e) => scrollToSection(e, 'expense-alert')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
                   Expense alert
                 </a>
-                <a href="#debt-alert" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
+                <a href="#debt-alert" onClick={(e) => scrollToSection(e, 'debt-alert')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors pl-1">
                   Debt alert
                 </a>
               </div>
@@ -547,15 +572,13 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
             <div className="flex items-center justify-between pb-2">
               <div className="flex items-center gap-3">
                 <span className="text-[13px] font-medium text-[var(--text-primary)]">Choose Environment:</span>
-                <select
+                <CustomSelect
                   value={selectedWalletIdToConfig}
-                  onChange={(e) => setSelectedWalletIdToConfig(e.target.value)}
-                  className="h-[34px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-full px-4 text-[13px] font-medium text-[#2563EB] outline-none shadow-2xs"
-                >
-                  {(data.wallets || []).map(w => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedWalletIdToConfig(val)}
+                  options={(data.wallets || []).map(w => ({ value: w.id, label: w.name }))}
+                  size="sm"
+                  className="min-w-[160px]"
+                />
               </div>
 
               <button
@@ -644,15 +667,15 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                           {/* Currency */}
                           <div className="space-y-1">
                             <label className="text-[11px] font-medium text-[var(--text-muted)]">Currency</label>
-                            <select
+                            <CustomSelect
                               value={selectedWallet.currency || data.settings.currencySymbol}
-                              onChange={(e) => handleUpdateWallet(selectedWallet.id, { currency: e.target.value })}
-                              className="w-full h-[32px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2 text-[12px] text-[var(--text-primary)] outline-none"
-                            >
-                              {CURRENCIES.map(c => (
-                                <option key={c.value} value={c.symbol}>{c.value} ({c.symbol})</option>
-                              ))}
-                            </select>
+                              onChange={(val) => handleUpdateWallet(selectedWallet.id, { currency: val })}
+                              options={CURRENCIES.map(c => ({
+                                value: c.symbol,
+                                label: `${c.value} (${c.symbol})`
+                              }))}
+                              size="sm"
+                            />
                           </div>
 
                           {/* Mode */}
@@ -802,13 +825,13 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
               <div className="font-medium text-[var(--text-primary)] border-l-2 border-[var(--text-primary)] -ml-[17px] pl-3 py-0.5">
                 Wallet Configuration
               </div>
-              <a href="#wallet-identity" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+              <a href="#wallet-identity" onClick={(e) => scrollToSection(e, 'wallet-identity')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                 Wallet identity
               </a>
-              <a href="#wallet-config" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+              <a href="#wallet-config" onClick={(e) => scrollToSection(e, 'wallet-config')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                 Build configuration
               </a>
-              <a href="#wallet-active" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+              <a href="#wallet-active" onClick={(e) => scrollToSection(e, 'wallet-active')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                 Active environment
               </a>
             </div>
@@ -956,13 +979,13 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
               <div className="font-medium text-[var(--text-primary)] border-l-2 border-[var(--text-primary)] -ml-[17px] pl-3 py-0.5">
                 Data & Security
               </div>
-              <a href="#backup" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+              <a href="#backup" onClick={(e) => scrollToSection(e, 'backup')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                 Backup & export
               </a>
-              <a href="#security" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+              <a href="#security" onClick={(e) => scrollToSection(e, 'security')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                 Legal & support
               </a>
-              <a href="#security" className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+              <a href="#security" onClick={(e) => scrollToSection(e, 'security')} className="block text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                 Account session
               </a>
             </div>
@@ -1082,15 +1105,12 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
 
               <div className="space-y-1.5 pt-1">
                 <label className="text-[12px] font-medium text-[var(--text-primary)]">Reassign Transactions To:</label>
-                <select
+                <CustomSelect
                   value={targetReassignWalletId}
-                  onChange={(e) => setTargetReassignWalletId(e.target.value)}
-                  className="w-full h-[36px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-3 text-[12px] text-[var(--text-primary)] outline-none"
-                >
-                  {(data.wallets || []).filter(w => w.id !== deletingWalletId).map(w => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
+                  onChange={(val) => setTargetReassignWalletId(val)}
+                  options={(data.wallets || []).filter(w => w.id !== deletingWalletId).map(w => ({ value: w.id, label: w.name }))}
+                  size="md"
+                />
               </div>
             </div>
 

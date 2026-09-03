@@ -19,12 +19,13 @@ const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
  */
 export async function parseTransactionWithAI(
   text: string,
-  categories: string[]
+  categories: string[],
+  customApiKey?: string
 ): Promise<AIParsedTransaction | null> {
   const rawText = text.trim();
   if (!rawText) return null;
 
-  const apiKey = GROQ_API_KEY;
+  const apiKey = (customApiKey && customApiKey.trim()) || GROQ_API_KEY;
 
   if (apiKey) {
     try {
@@ -35,7 +36,7 @@ export async function parseTransactionWithAI(
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'llama-3.1-8b-instant',
+          model: 'qwen/qwen3.6-27b',
           temperature: 0.1,
           messages: [
             {
@@ -56,18 +57,20 @@ Return ONLY a valid JSON object with the following schema:
               role: 'user',
               content: rawText
             }
-          ],
-          response_format: { type: 'json_object' }
+          ]
         })
       });
 
       if (response.ok) {
         const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
+        let content = data.choices?.[0]?.message?.content;
 
         if (content) {
+          content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+          const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*?\}/);
+          const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
           try {
-            const parsed = JSON.parse(content);
+            const parsed = JSON.parse(jsonStr);
             const amount = typeof parsed.amount === 'number' && !isNaN(parsed.amount) ? parsed.amount : null;
             const isValid = parsed.is_valid !== false;
             const isDenial = parsed.is_valid === false;
@@ -157,7 +160,7 @@ export async function generateAIAdvice(data: AppData): Promise<string[] | null> 
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
+        model: 'qwen/qwen3.6-27b',
         temperature: 0.3,
         messages: [
           {
@@ -168,17 +171,19 @@ export async function generateAIAdvice(data: AppData): Promise<string[] | null> 
             role: 'user',
             content: `User balance: ${data.settings.currencySymbol}${balance}, Total Income: ${data.settings.currencySymbol}${income}, Total Expense: ${data.settings.currencySymbol}${expense}, Total Debts Owed: ${data.settings.currencySymbol}${debtTotal}, Profile Monthly Goal: ${data.settings.currencySymbol}${data.profile.monthlyGoal || 0}`
           }
-        ],
-        response_format: { type: 'json_object' }
+        ]
       })
     });
 
     if (response.ok) {
       const result = await response.json();
-      const content = result.choices?.[0]?.message?.content;
+      let content = result.choices?.[0]?.message?.content;
       if (content) {
+        content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+        const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*?\}/);
+        const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
         try {
-          const parsed = JSON.parse(content);
+          const parsed = JSON.parse(jsonStr);
           if (Array.isArray(parsed.tips) && parsed.tips.length > 0) {
             return parsed.tips;
           }

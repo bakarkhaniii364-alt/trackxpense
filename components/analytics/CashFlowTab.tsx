@@ -1,6 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
-import { Calendar, Clock, BarChart3, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  ChartBar as BarChart3,
+  Pulse as Activity,
+  ArrowUpRight,
+  ArrowDownRight
+} from '@phosphor-icons/react';
 import { Transaction, TransactionType } from '../../types';
 
 interface CashFlowTabProps {

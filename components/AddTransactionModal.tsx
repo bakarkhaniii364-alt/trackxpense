@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  X, Info, Wallet as WalletIcon, ArrowRight, EyeOff, Save, 
-  Check, PlusCircle, Trash2 
-} from 'lucide-react';
+import {
+  X,
+  Info,
+  Wallet as WalletIcon,
+  ArrowRight,
+  EyeSlash as EyeOff,
+  FloppyDisk as Save,
+  Check,
+  PlusCircle,
+  Trash as Trash2
+} from '@phosphor-icons/react';
 import { TransactionType, Category, CategoryItem, AppData, Wallet, Transaction } from '../types';
 import { Haptics } from '../services/haptics';
 import { GlassDateInput, GlassSelect } from './shared/CommonUI';
@@ -270,8 +277,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                             value={amount} 
                             onChange={e => setAmount(e.target.value)} 
                             onKeyDown={e => e.key === 'Enter' && handleSave()}
-                            placeholder="0.00" 
-                            className="w-full h-[46px] bg-[var(--bg-subtle)] border border-[var(--border-default)] focus:border-[#2563EB] rounded-[8px] px-4 font-mono text-2xl font-bold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all"
+                            className="w-full h-[46px] bg-[var(--field-bg)] border border-[var(--field-border)] rounded-[8px] px-4 font-mono text-2xl font-bold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all"
                             autoFocus
                         />
                     </div>
@@ -333,15 +339,13 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                 <div className="space-y-2 pt-1">
                                     {splits.map((s, idx) => (
                                         <div key={idx} className="flex items-center gap-2">
-                                            <select
-                                                value={s.category}
-                                                onChange={e => updateSplit(idx, 'category', e.target.value)}
-                                                className="flex-1 h-[34px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2 text-[12px] text-[var(--text-primary)] outline-none"
-                                            >
-                                                {data.categories.filter((c: CategoryItem) => c.type === type).map((c: CategoryItem) => (
-                                                    <option key={c.id} value={c.name}>{c.name}</option>
-                                                ))}
-                                            </select>
+                                            <div className="flex-1">
+                                                <GlassSelect
+                                                    value={s.category}
+                                                    onChange={val => updateSplit(idx, 'category', val)}
+                                                    options={data.categories.filter((c: CategoryItem) => c.type === type).map((c: CategoryItem) => ({ label: c.name, value: c.name }))}
+                                                />
+                                            </div>
                                             <input
                                                 type="number"
                                                 placeholder="0.00"

@@ -1,6 +1,18 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { PlusCircle, Check, Trash2, AlertTriangle, Calendar as CalendarIcon, Clock, User, ArrowUpRight, ArrowDownRight, X, ArrowRight } from 'lucide-react';
+import {
+  PlusCircle,
+  Check,
+  Trash as Trash2,
+  Warning as AlertTriangle,
+  Calendar as CalendarIcon,
+  Clock,
+  User,
+  ArrowUpRight,
+  ArrowDownRight,
+  X,
+  ArrowRight
+} from '@phosphor-icons/react';
 import { Debt, AppData, Transaction, TransactionType, Category } from '../types';
 import { Haptics } from '../services/haptics';
 import { Pagination } from './shared/CommonUI';
@@ -339,7 +351,7 @@ export const DebtView: React.FC<DebtProps> = ({ data, updateData, formatMoney, o
                                 value={amount} 
                                 onChange={e => setAmount(e.target.value)} 
                                 placeholder="0.00" 
-                                className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all font-mono"
+                                className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all font-mono"
                                 autoFocus
                             />
                          </div>
@@ -353,7 +365,7 @@ export const DebtView: React.FC<DebtProps> = ({ data, updateData, formatMoney, o
                                      placeholder="Full Name..." 
                                      value={person} 
                                      onChange={e => setPerson(e.target.value)} 
-                                     className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[13px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all" 
+                                     className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all" 
                                  />
                              </div>
 
@@ -430,7 +442,7 @@ export const DebtView: React.FC<DebtProps> = ({ data, updateData, formatMoney, o
                                  value={paymentAmount} 
                                  onChange={e => setPaymentAmount(e.target.value)} 
                                  placeholder="0.00" 
-                                 className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[14px] font-mono text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                                 className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[14px] font-mono text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all"
                                  autoFocus
                              />
                           </div>
@@ -442,7 +454,7 @@ export const DebtView: React.FC<DebtProps> = ({ data, updateData, formatMoney, o
                                  placeholder="Add a note (optional)..." 
                                  value={paymentNote} 
                                  onChange={e => setPaymentNote(e.target.value)} 
-                                 className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[13px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[#2563EB] outline-none transition-all"
+                                 className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all"
                               />
                           </div>
 

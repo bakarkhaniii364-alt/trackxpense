@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  X, 
-  Send, 
-  Plus, 
-  Check, 
-  ChevronDown, 
-  Trash2, 
+import {
+  X,
+  PaperPlaneRight as Send,
+  Plus,
+  Check,
+  CaretDown as ChevronDown,
+  Trash as Trash2,
   Paperclip,
-  MessageSquare,
+  ChatCircle as MessageSquare,
   Wallet,
   Tag,
   GitMerge,
-  AlertCircle,
+  WarningCircle as AlertCircle,
   Download
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { AppData, TransactionType, CategoryItem, Wallet as WalletType, WalletType as WType } from '../../types';
 import { 
   RabbAiConversation, 

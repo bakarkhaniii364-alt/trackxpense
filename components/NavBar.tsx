@@ -1,11 +1,11 @@
 import React from 'react';
 import {
-  LayoutGrid,
+  SquaresFour as LayoutGrid,
   Clock,
   Plus,
   HandCoins,
-  Menu,
-} from 'lucide-react';
+  List as Menu
+} from '@phosphor-icons/react';
 import { ViewState } from '../types';
 import { Haptics } from '../services/haptics';
 

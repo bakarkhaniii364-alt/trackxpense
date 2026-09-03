@@ -1,5 +1,12 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, ShieldCheck, Zap, Scale, AlertCircle } from 'lucide-react';
+import {
+  TrendUp as TrendingUp,
+  TrendDown as TrendingDown,
+  ShieldCheck,
+  Lightning as Zap,
+  Scales as Scale,
+  WarningCircle as AlertCircle
+} from '@phosphor-icons/react';
 
 interface AnalyticsKpiStripProps {
   totalIncome: number;

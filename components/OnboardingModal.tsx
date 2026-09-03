@@ -1,6 +1,11 @@
 
 import React, { useState } from 'react';
-import { ArrowRight, CheckCircle, WifiOff, ShieldCheck } from 'lucide-react';
+import {
+  ArrowRight,
+  CheckCircle,
+  WifiSlash as WifiOff,
+  ShieldCheck
+} from '@phosphor-icons/react';
 
 interface OnboardingProps {
     isOpen: boolean;
