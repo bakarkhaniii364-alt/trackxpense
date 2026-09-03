@@ -2,31 +2,27 @@ import React, { useState } from 'react';
 import {
   ArrowRight,
   ShieldCheck,
-  Database,
   ArrowsClockwise as RefreshCw,
   CaretDown as ChevronDown,
   Check,
-  TrendUp as TrendingUp,
   Lock,
   Pulse as Activity,
   SquaresFour as LayoutGrid,
   HandCoins,
   Wallet as WalletIcon,
   Tag,
-  Clock,
   Eye,
   EyeSlash as EyeOff,
   MagnifyingGlass as Search,
-  Download,
   Plus,
-  SlidersHorizontal,
   FileText,
   Calendar as CalendarIcon,
-  ChartPie as PieChart,
-  Shuffle,
   Sparkle,
   ArrowDownRight,
-  ArrowUpRight
+  ArrowUpRight,
+  DeviceMobile,
+  Globe,
+  FileCsv
 } from '@phosphor-icons/react';
 
 interface LandingPageProps {
@@ -41,20 +37,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
 
   const faqs = [
     {
-      q: "How does the offline-first architecture work?",
-      a: "TrackXpense writes all transactions, budgets, and debts directly into your device's local IndexedDB store first. It runs without an active internet connection. When online, the background SyncEngine reconciles local operations with your secure personal database."
+      q: "Do I have to create an account to start?",
+      a: "No. You can click 'Start in Guest Mode' and immediately start logging expenses. Everything is saved directly on your device. You only need an account if you want automated backup and cross-device sync."
     },
     {
-      q: "How is my financial data protected?",
-      a: "Guest mode operates in full data isolation—no telemetry, no tracking cookies, and zero server network requests. For authenticated accounts, data in transit is protected via TLS 1.3 and database tables are locked with strict PostgreSQL Row Level Security (RLS)."
+      q: "Does TrackXpense work without internet?",
+      a: "Yes. TrackXpense is built offline-first. You can record expenses on a plane, subway, or in areas with poor cellular signal. Everything updates immediately, and changes sync in the background when you reconnect."
     },
     {
-      q: "What is the Smart Advisor & Runway Engine?",
-      a: "The predictive engine computes real-time daily burn rate, financial health scores, and future runway days directly in your browser. It calculates how many days your balance will sustain your current expenditure without requiring third-party data processing."
+      q: "Do you sell my data or show advertisements?",
+      a: "Never. We do not sell transaction data to brokers, track your browsing across websites, or run commercial ads. Your finances belong strictly to you."
     },
     {
-      q: "Can I export or migrate my data anytime?",
-      a: "Yes. You have complete data sovereignty. Export your complete ledger in standard CSV format or a full JSON snapshot from Settings at any time with one click."
+      q: "Can I export my data to Excel or CSV?",
+      a: "Yes. You have full ownership of your records. You can download your entire transaction ledger as a standard CSV file or take a full data snapshot with one click."
     }
   ];
 
@@ -72,21 +68,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
               alt="TrackXpense Logo" 
               className="w-6 h-6 rounded-[5px] object-contain shrink-0" 
             />
-            <div className="flex items-center gap-2">
-              <span className="text-[14px] font-semibold tracking-tight text-[var(--text-primary)]">
-                TrackXpense
-              </span>
-              <span className="hidden sm:inline-flex items-center text-[10px] font-mono px-1.5 py-0.5 rounded-[4px] bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border-default)]">
-                v4.2
-              </span>
-            </div>
+            <span className="text-[14px] font-semibold tracking-tight text-[var(--text-primary)]">
+              TrackXpense
+            </span>
           </div>
 
           {/* Center Navigation Links */}
           <nav className="hidden md:flex items-center gap-6 text-[12px] font-medium text-[var(--text-secondary)]">
-            <a href="#preview" className="hover:text-[var(--text-primary)] transition-colors">Workstation Preview</a>
-            <a href="#features" className="hover:text-[var(--text-primary)] transition-colors">Architecture</a>
-            <a href="#security" className="hover:text-[var(--text-primary)] transition-colors">Security</a>
+            <a href="#preview" className="hover:text-[var(--text-primary)] transition-colors">Product Preview</a>
+            <a href="#features" className="hover:text-[var(--text-primary)] transition-colors">Why TrackXpense</a>
+            <a href="#privacy" className="hover:text-[var(--text-primary)] transition-colors">Privacy & Security</a>
             <a href="#faq" className="hover:text-[var(--text-primary)] transition-colors">FAQ</a>
           </nav>
 
@@ -109,75 +100,67 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
       </header>
 
       {/* HERO SECTION */}
-      <section className="relative pt-14 pb-10 sm:pt-20 sm:pb-14 px-4 sm:px-6 max-w-4xl mx-auto text-center flex flex-col items-center">
-        
-        {/* Micro Kicker */}
-        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[11px] font-medium text-[var(--text-secondary)] mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)]" />
-          <span className="text-[10px] uppercase tracking-[0.06em] text-[var(--text-muted)] font-medium">System Active</span>
-          <span className="text-[var(--border-default)]">|</span>
-          <span>Local-First Financial Workstation</span>
-        </div>
+      <section className="relative pt-16 pb-12 sm:pt-22 sm:pb-16 px-4 sm:px-6 max-w-4xl mx-auto text-center flex flex-col items-center">
 
         {/* Hero Title */}
         <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight text-[var(--text-primary)] leading-[1.15] max-w-2xl mb-5">
-          High-density expense intelligence. Zero trackers.
+          Take control of your money with complete privacy.
         </h1>
 
         {/* Hero Subtitle */}
         <p className="text-[13px] sm:text-[15px] text-[var(--text-secondary)] font-normal max-w-xl leading-relaxed mb-8">
-          An offline-first financial ledger engineered with instant IndexedDB persistence, client-side cryptographic security, and automated cloud sync. Designed for speed, precision, and complete data sovereignty.
+          Track daily expenses, stick to realistic budgets, and keep your finances organized across all your devices. Fast, ad-free, and always private.
         </p>
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto justify-center">
           <button 
             onClick={onContinueAsGuest}
-            className="w-full sm:w-auto h-[40px] px-6 text-[13px] font-medium text-[var(--accent-text)] bg-[var(--accent-solid)] hover:opacity-90 active:scale-95 rounded-[6px] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto h-[40px] px-6 text-[13px] font-medium text-[var(--accent-text)] bg-[var(--accent-solid)] hover:opacity-90 active:scale-95 rounded-[6px] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-none font-sans"
           >
-            <span>Launch Workstation (Guest Mode)</span>
+            <span>Start in Guest Mode (No Sign Up)</span>
             <ArrowRight size={14} weight="regular" />
           </button>
           
           <button 
             onClick={() => onOpenAuth(false)}
-            className="w-full sm:w-auto h-[40px] px-4.5 text-[13px] font-medium text-[var(--text-primary)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] rounded-[6px] transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto h-[40px] px-5 text-[13px] font-medium text-[var(--text-primary)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] rounded-[6px] transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             <Lock size={14} weight="regular" className="text-[var(--text-muted)]" />
-            <span>Sign In to Cloud Sync</span>
+            <span>Sign In to Sync Devices</span>
           </button>
         </div>
 
         {/* Micro Trust Indicators */}
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mt-8 text-[11px] text-[var(--text-muted)]">
           <span className="flex items-center gap-1.5">
-            <Check size={13} className="text-[var(--status-success-fg)]" /> 100% Offline Capable
+            <Check size={13} className="text-[var(--status-success-fg)]" /> Works 100% Offline
           </span>
           <span className="flex items-center gap-1.5">
-            <Check size={13} className="text-[var(--status-success-fg)]" /> Zero Telemetry or Ads
+            <Check size={13} className="text-[var(--status-success-fg)]" /> Zero Ads or Data Selling
           </span>
           <span className="flex items-center gap-1.5">
-            <Check size={13} className="text-[var(--status-success-fg)]" /> WebCrypto AES-GCM-256
+            <Check size={13} className="text-[var(--status-success-fg)]" /> Private On-Device Storage
           </span>
         </div>
       </section>
 
-      {/* INTERACTIVE WORKSTATION PREVIEW FRAME */}
+      {/* INTERACTIVE APPLICATION PREVIEW FRAME */}
       <section id="preview" className="px-4 sm:px-6 max-w-5xl mx-auto w-full mb-20">
         
-        {/* Outer Browser/App Window Frame */}
+        {/* Outer Window Frame */}
         <div className="rounded-[12px] bg-[var(--bg-surface)] border border-[var(--border-default)] overflow-hidden shadow-2xl">
           
           {/* Window Chrome Titlebar */}
           <div className="h-[38px] px-4 bg-[var(--bg-subtle)] border-b border-[var(--border-default)] flex items-center justify-between text-[11px] select-none">
             
-            {/* macOS Window Controls */}
+            {/* Window Controls */}
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]/80 border border-[#EF4444]" />
               <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]/80 border border-[#F59E0B]" />
               <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E]/80 border border-[#22C55E]" />
               <span className="ml-2 font-mono text-[10px] text-[var(--text-muted)] hidden sm:inline">
-                https://app.trackxpense.internal
+                https://trackxpense.app
               </span>
             </div>
 
@@ -185,10 +168,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)] animate-pulse" />
               <span className="font-medium text-[var(--text-primary)] text-[11px]">
-                TrackXpense Workstation
-              </span>
-              <span className="text-[var(--text-muted)] text-[10px] font-mono hidden md:inline">
-                [IndexedDB Connected]
+                Interactive Preview
               </span>
             </div>
 
@@ -212,7 +192,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                Ledger
+                Transactions
               </button>
               <button
                 onClick={() => setPreviewTab('debts')}
@@ -222,16 +202,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                Liabilities
+                Debts
               </button>
             </div>
 
           </div>
 
-          {/* Workstation App Canvas (Sidebar + Main View) */}
+          {/* App Canvas (Sidebar + Main View) */}
           <div className="flex min-h-[480px]">
             
-            {/* Left Desktop Sidebar (Authentic Technical Rail) */}
+            {/* Left Desktop Sidebar */}
             <aside className="w-[190px] border-r border-[var(--border-default)] bg-[var(--bg-surface)] p-3 hidden md:flex flex-col justify-between shrink-0 select-none">
               <div className="space-y-4">
                 
@@ -240,7 +220,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                   <div className="flex items-center gap-2 min-w-0">
                     <img src="/icon.png" alt="Logo" className="w-4 h-4 rounded-[3px] shrink-0" />
                     <span className="text-[12px] font-medium text-[var(--text-primary)] truncate">
-                      Main Vault
+                      Personal Vault
                     </span>
                   </div>
                   <ChevronDown size={12} className="text-[var(--text-muted)]" />
@@ -273,7 +253,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                   >
                     <div className="flex items-center gap-2">
                       <FileText size={14} strokeWidth={1.5} className={previewTab === 'ledger' ? 'text-[var(--accent-solid)]' : ''} />
-                      <span>Ledger</span>
+                      <span>Transactions</span>
                     </div>
                     <span className="text-[10px] font-mono text-[var(--text-muted)]">148</span>
                   </button>
@@ -293,28 +273,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                   </button>
 
                   <div className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[5px] text-[12px] font-medium text-[var(--text-muted)] opacity-60">
-                    <TrendingUp size={14} strokeWidth={1.5} />
+                    <Activity size={14} strokeWidth={1.5} />
                     <span>Analytics</span>
                   </div>
 
                   <div className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[5px] text-[12px] font-medium text-[var(--text-muted)] opacity-60">
                     <Lock size={14} strokeWidth={1.5} />
-                    <span>Device Vault</span>
+                    <span>App Lock</span>
                   </div>
                 </nav>
               </div>
 
               {/* Bottom Sidebar Status */}
               <div className="pt-2 border-t border-[var(--border-default)] text-[10px] text-[var(--text-muted)] font-mono flex items-center justify-between">
-                <span>TLS 1.3 AES-GCM</span>
-                <span className="text-[var(--status-success-fg)]">ONLINE</span>
+                <span>PRIVATE & ENCRYPTED</span>
+                <span className="text-[var(--status-success-fg)]">READY</span>
               </div>
             </aside>
 
             {/* Main Application Content Area */}
             <div className="flex-1 bg-[var(--bg-page)] p-3 sm:p-5 overflow-x-hidden">
               
-              {/* Workstation Top Control Bar */}
+              {/* Utility Control Bar */}
               <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-[var(--border-default)] text-[11px]">
                 <div className="flex items-center gap-2">
                   <div className="h-[28px] px-2.5 rounded-[5px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center gap-1.5 text-[var(--text-primary)] font-medium">
@@ -332,7 +312,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                 <div className="flex items-center gap-2">
                   <div className="h-[28px] px-2.5 rounded-[5px] bg-[var(--status-success-bg)] border border-[var(--border-default)] flex items-center gap-1 text-[var(--status-success-fg)] font-mono font-medium">
                     <Activity size={12} />
-                    <span>Runway: 342 Days</span>
+                    <span>Safe Runway: 342 Days</span>
                   </div>
 
                   <button 
@@ -340,20 +320,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                     className="h-[28px] px-2.5 rounded-[5px] bg-[var(--accent-solid)] text-[var(--accent-text)] font-medium flex items-center gap-1 hover:opacity-90 transition-opacity cursor-pointer font-sans"
                   >
                     <Plus size={12} strokeWidth={2} />
-                    <span className="hidden sm:inline">Add Transaction</span>
+                    <span className="hidden sm:inline">Add Expense</span>
                   </button>
                 </div>
               </div>
 
-              {/* VIEW 1: REAL DASHBOARD PREVIEW */}
+              {/* VIEW 1: DASHBOARD PREVIEW */}
               {previewTab === 'dashboard' && (
                 <div className="space-y-3.5 animate-in fade-in duration-200">
                   
-                  {/* Natural Language AI Prompt Bar */}
+                  {/* Smart Entry Assistant Prompt */}
                   <div className="p-2 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center gap-2 text-[11px]">
                     <Sparkle size={14} className="text-[var(--accent-solid)] shrink-0" />
                     <span className="text-[var(--text-muted)] font-mono truncate">
-                      Ask RabbAi: "Spent $18 on coffee & lunch with team..."
+                      Quick entry: "Spent $18 on coffee & lunch with team..."
                     </span>
                     <span className="ml-auto px-2 py-0.5 rounded-[4px] bg-[var(--bg-subtle)] text-[10px] font-mono text-[var(--text-muted)] border border-[var(--border-default)] shrink-0">
                       Press ⏎
@@ -383,28 +363,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                           {privacyMode ? '••••••••' : '$4,850.00'}
                         </span>
                         <div className="text-[11px] text-[var(--text-muted)] mt-0.5 flex items-center gap-1.5">
-                          <span>Adjusted Safe Runway:</span>
-                          <span className="text-[var(--text-secondary)] font-mono font-medium">
-                            {privacyMode ? '••••' : '$4,520.00'}
-                          </span>
+                          <span>Total available funds</span>
                         </div>
                       </div>
 
                       <div className="pt-2 border-t border-[var(--border-default)] grid grid-cols-3 gap-2 text-[11px] font-mono">
                         <div>
-                          <span className="text-[9px] uppercase text-[var(--text-muted)] block">Inflow</span>
+                          <span className="text-[9px] uppercase text-[var(--text-muted)] block">Monthly Inflow</span>
                           <span className="text-[var(--status-success-fg)] font-medium">
                             {privacyMode ? '••••' : '+$3,250.00'}
                           </span>
                         </div>
                         <div>
-                          <span className="text-[9px] uppercase text-[var(--text-muted)] block">Outflow</span>
+                          <span className="text-[9px] uppercase text-[var(--text-muted)] block">Monthly Spending</span>
                           <span className="text-[var(--text-primary)] font-medium">
                             {privacyMode ? '••••' : '-$1,420.00'}
                           </span>
                         </div>
                         <div>
-                          <span className="text-[9px] uppercase text-[var(--text-muted)] block">Monthly Savings</span>
+                          <span className="text-[9px] uppercase text-[var(--text-muted)] block">Savings Rate</span>
                           <span className="text-[var(--accent-solid)] font-medium">
                             {privacyMode ? '••%' : '56.3%'}
                           </span>
@@ -412,22 +389,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                       </div>
                     </div>
 
-                    {/* Daily Budget Velocity & Stability Widgets */}
+                    {/* Daily Budget & Stability Widgets */}
                     <div className="space-y-3">
                       
                       {/* Daily Budget Pace */}
                       <div className="p-3.5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex flex-col justify-between">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em]">
-                            Daily Budget Pace
+                            Daily Spend Pace
                           </span>
                           <span className="text-[10px] font-mono text-[var(--text-muted)]">
-                            Cap: $80/day
+                            Goal: $80/day
                           </span>
                         </div>
                         <div className="flex items-baseline justify-between mb-1.5">
                           <span className="text-[15px] font-semibold font-mono text-[var(--text-primary)]">$28.50</span>
-                          <span className="text-[10px] font-mono text-[var(--status-success-fg)]">35% used</span>
+                          <span className="text-[10px] font-mono text-[var(--status-success-fg)]">35% utilized</span>
                         </div>
                         <div className="w-full h-[3px] bg-[var(--border-default)] rounded-full overflow-hidden">
                           <div className="h-full bg-[var(--accent-solid)] rounded-full" style={{ width: '35%' }} />
@@ -438,7 +415,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                       <div className="p-3.5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-between">
                         <div>
                           <span className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em] block">
-                            Health Score
+                            Financial Health
                           </span>
                           <div className="flex items-baseline gap-1 mt-0.5">
                             <span className="text-[18px] font-bold font-mono text-[var(--text-primary)]">94</span>
@@ -447,7 +424,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                         </div>
                         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] text-[11px] font-medium">
                           <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)]" />
-                          <span>Optimum</span>
+                          <span>Excellent</span>
                         </div>
                       </div>
 
@@ -467,11 +444,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                             $1,420.00
                           </span>
                           <span className="text-[10px] font-mono text-[var(--status-success-fg)] flex items-center">
-                            <ArrowDownRight size={11} /> 12.4% vs prior period
+                            <ArrowDownRight size={11} /> 12% lower than last month
                           </span>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono text-[var(--text-muted)]">30-Day Window</span>
+                      <span className="text-[10px] font-mono text-[var(--text-muted)]">30-Day Spending Trend</span>
                     </div>
 
                     {/* SVG Sparkline Curve */}
@@ -506,17 +483,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                     </div>
                   </div>
 
-                  {/* Recent Ledger Row Preview */}
+                  {/* Recent Activity Rows Preview */}
                   <div className="rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] overflow-hidden">
                     <div className="px-3.5 py-2 border-b border-[var(--border-default)] bg-[var(--bg-subtle)]/40 flex items-center justify-between text-[11px]">
                       <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
-                        Recent Transactions
+                        Recent Activity
                       </span>
                       <button 
                         onClick={() => setPreviewTab('ledger')}
                         className="text-[10px] text-[var(--accent-solid)] hover:underline cursor-pointer"
                       >
-                        Open Full Ledger →
+                        View all transactions →
                       </button>
                     </div>
 
@@ -545,14 +522,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                 </div>
               )}
 
-              {/* VIEW 2: REAL LEDGER TABLE PREVIEW */}
+              {/* VIEW 2: LEDGER TABLE PREVIEW */}
               {previewTab === 'ledger' && (
                 <div className="space-y-3 animate-in fade-in duration-200">
                   <div className="flex items-center justify-between text-[11px]">
                     <div className="flex items-center gap-2">
                       <div className="h-[28px] px-2.5 rounded-[5px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center gap-1.5 text-[var(--text-muted)]">
                         <Search size={12} />
-                        <span className="text-[11px]">Search notes or tags...</span>
+                        <span className="text-[11px]">Search by merchant or category...</span>
                       </div>
                       <span className="px-2 py-0.5 rounded-full text-[10px] bg-[var(--accent-solid)] text-[var(--accent-text)] font-semibold">
                         All Records
@@ -570,7 +547,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                         <tr className="border-b border-[var(--border-default)] bg-[var(--bg-subtle)]/50 text-[10px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em]">
                           <th className="py-2 px-3">Date</th>
                           <th className="py-2 px-3">Category</th>
-                          <th className="py-2 px-3">Note / Description</th>
+                          <th className="py-2 px-3">Description</th>
                           <th className="py-2 px-3 text-right">Amount</th>
                         </tr>
                       </thead>
@@ -578,9 +555,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                         {[
                           { date: '2026-09-02', cat: 'Income', note: 'Consulting Contract Payout', amount: '+$3,250.00', inc: true },
                           { date: '2026-09-01', cat: 'Housing', note: 'Monthly Office Studio Lease', amount: '-$1,100.00', inc: false },
-                          { date: '2026-08-30', cat: 'Food', note: 'Merchant Dining Split #dinner', amount: '-$48.50', inc: false },
-                          { date: '2026-08-28', cat: 'Transit', note: 'Transit Pass Monthly Renewal', amount: '-$72.00', inc: false },
-                          { date: '2026-08-26', cat: 'Utilities', note: 'Fiber Optical Internet Bill', amount: '-$60.00', inc: false }
+                          { date: '2026-08-30', cat: 'Food', note: 'Dinner with friends', amount: '-$48.50', inc: false },
+                          { date: '2026-08-28', cat: 'Transit', note: 'Monthly Subway Pass', amount: '-$72.00', inc: false },
+                          { date: '2026-08-26', cat: 'Utilities', note: 'Home Internet Bill', amount: '-$60.00', inc: false }
                         ].map((row, idx) => (
                           <tr key={idx} className="hover:bg-[var(--bg-surface-hover)]">
                             <td className="py-2 px-3 text-[var(--text-muted)]">{row.date}</td>
@@ -597,7 +574,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                 </div>
               )}
 
-              {/* VIEW 3: REAL LIABILITIES / DEBT PREVIEW */}
+              {/* VIEW 3: LIABILITIES / DEBT PREVIEW */}
               {previewTab === 'debts' && (
                 <div className="space-y-3 animate-in fade-in duration-200">
                   <div className="grid grid-cols-3 gap-2">
@@ -610,7 +587,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
                       <span className="text-[14px] font-mono font-semibold text-[var(--status-success-fg)]">$450.00</span>
                     </div>
                     <div className="p-2.5 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)]">
-                      <span className="text-[9px] uppercase text-[var(--text-muted)] block">Net Position</span>
+                      <span className="text-[9px] uppercase text-[var(--text-muted)] block">Net Balance</span>
                       <span className="text-[14px] font-mono font-semibold text-[var(--text-primary)]">+$330.00</span>
                     </div>
                   </div>
@@ -629,8 +606,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
 
                     <div className="p-3 flex items-center justify-between">
                       <div>
-                        <span className="font-medium text-[var(--text-primary)] block">Office Depot</span>
-                        <span className="text-[10px] text-[var(--text-muted)]">Equipment Invoice • Due Sep 08</span>
+                        <span className="font-medium text-[var(--text-primary)] block">Office Supply Co.</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">Desk Monitor Invoice • Due Sep 08</span>
                       </div>
                       <div className="text-right">
                         <span className="text-[13px] font-mono font-semibold text-[var(--status-error-fg)] block">$120.00</span>
@@ -648,51 +625,51 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
         </div>
       </section>
 
-      {/* CORE ARCHITECTURE / FEATURES */}
+      {/* CORE BENEFITS (CLOUDFLARE STYLE) */}
       <section id="features" className="py-16 border-t border-[var(--border-default)] bg-[var(--bg-surface)]/40">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           
           <div className="text-center max-w-lg mx-auto mb-12">
             <span className="text-[10px] uppercase font-semibold tracking-[0.06em] text-[var(--accent-solid)] block mb-1.5">
-              Core Principles
+              Why TrackXpense
             </span>
             <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
-              Built for technical clarity and zero compromise
+              Designed for speed, clarity, and total privacy
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
-            {/* Pillar 1 */}
+            {/* Benefit 1 */}
             <div className="p-5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] transition-colors">
-              <Database size={22} weight="regular" className="text-[var(--accent-solid)] stroke-[1.5px] mb-4" />
+              <Globe size={22} weight="regular" className="text-[var(--accent-solid)] stroke-[1.5px] mb-4" />
               <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1.5">
-                Local-First Performance
+                Works Anywhere, Even Offline
               </h3>
               <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
-                IndexedDB driver executes transactions with sub-10ms UI latency. Instant read-write workflows with full capabilities without network availability.
+                Log transactions on a flight, in the subway, or when roaming with zero signal. TrackXpense saves everything immediately without slow loading spinners.
               </p>
             </div>
 
-            {/* Pillar 2 */}
+            {/* Benefit 2 */}
             <div className="p-5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] transition-colors">
               <ShieldCheck size={22} weight="regular" className="text-[var(--accent-solid)] stroke-[1.5px] mb-4" />
               <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1.5">
-                Client Cryptography
+                100% Private by Default
               </h3>
               <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
-                SubtleCrypto WebCrypto AES-GCM-256 cipher protection with salted PBKDF2 vault passcodes. Your private financial notes remain shielded.
+                No third-party bank linking, no advertisements, and zero data selling. Your finances stay strictly between you and your personal device.
               </p>
             </div>
 
-            {/* Pillar 3 */}
+            {/* Benefit 3 */}
             <div className="p-5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] transition-colors">
-              <RefreshCw size={22} weight="regular" className="text-[var(--accent-solid)] stroke-[1.5px] mb-4" />
+              <DeviceMobile size={22} weight="regular" className="text-[var(--accent-solid)] stroke-[1.5px] mb-4" />
               <h3 className="text-[14px] font-semibold text-[var(--text-primary)] mb-1.5">
-                Resilient Cloud Sync
+                Seamless Multi-Device Sync
               </h3>
               <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
-                PostgreSQL database replication with Row Level Security. Offline sync queues ensure non-blocking automatic conflict reconciliation upon reconnect.
+                Log on your phone while on the move, and review reports on your laptop at home. Your records stay synchronized automatically.
               </p>
             </div>
 
@@ -700,33 +677,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
         </div>
       </section>
 
-      {/* SECURITY SPECIFICATION */}
-      <section id="security" className="py-16 border-t border-[var(--border-default)]">
+      {/* PRIVACY & SECURITY SPECIFICATION */}
+      <section id="privacy" className="py-16 border-t border-[var(--border-default)]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] p-6 sm:p-8">
             <div className="flex items-center gap-2 mb-3">
               <Lock size={18} weight="regular" className="text-[var(--accent-solid)] stroke-[1.5px]" />
               <span className="text-[11px] uppercase tracking-[0.06em] font-medium text-[var(--text-muted)]">
-                Security Architecture
+                Privacy Guarantee
               </span>
             </div>
             
             <h3 className="text-lg sm:text-xl font-semibold text-[var(--text-primary)] mb-3 tracking-tight">
-              Data Privacy Specification
+              Your money is your personal business.
             </h3>
             
             <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-6">
-              TrackXpense guarantees zero commercial advertising, zero behavioral telemetry scripts, and zero cross-site analytics tracking. Your ledger remains your sovereign property.
+              Most budgeting tools monetize users by selling spending habits to advertisers or requiring access to your bank logins. TrackXpense is built on an entirely different philosophy: you own your financial records completely.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
               <div className="p-3 rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)]">
-                <span className="font-medium text-[var(--text-primary)] block mb-0.5">Database RLS Isolation</span>
-                <span className="text-[var(--text-muted)] text-[11px]">Strict user-scoped PostgreSQL policies enforce zero cross-tenant access.</span>
+                <span className="font-medium text-[var(--text-primary)] block mb-0.5">Device-Level Encryption</span>
+                <span className="text-[var(--text-muted)] text-[11px]">Private transaction notes are securely encrypted directly on your hardware.</span>
               </div>
               <div className="p-3 rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)]">
-                <span className="font-medium text-[var(--text-primary)] block mb-0.5">Device Vault Lock</span>
-                <span className="text-[var(--text-muted)] text-[11px]">Optional 4-digit PIN secured via 100,000 PBKDF2 iterations to lock desktop screens.</span>
+                <span className="font-medium text-[var(--text-primary)] block mb-0.5">1-Click CSV Export</span>
+                <span className="text-[var(--text-muted)] text-[11px]">Download your entire ledger to Excel or standard CSV whenever you want.</span>
               </div>
             </div>
           </div>
@@ -739,7 +716,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
           
           <div className="text-center mb-10">
             <span className="text-[10px] uppercase font-semibold tracking-[0.06em] text-[var(--accent-solid)] block mb-1">
-              Support & Documentation
+              Questions & Answers
             </span>
             <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
               Frequently Asked Questions
@@ -783,7 +760,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
           <div className="flex items-center gap-2">
             <img src="/icon.png" alt="Logo" className="w-4 h-4 rounded-[3px] shrink-0" />
             <span className="font-medium text-[var(--text-primary)]">TrackXpense</span>
-            <span>— Personal Finance Workstation</span>
+            <span>— Private Personal Finance Manager</span>
           </div>
 
           <div className="flex items-center gap-5 font-mono text-[10px]">
@@ -791,7 +768,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onContinueAsGuest, onO
             <span>•</span>
             <span>NO ADS</span>
             <span>•</span>
-            <span>LOCAL-FIRST</span>
+            <span>100% PRIVATE</span>
           </div>
         </div>
       </footer>
