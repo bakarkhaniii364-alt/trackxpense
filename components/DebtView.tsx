@@ -1,520 +1,646 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  PlusCircle,
+  Plus,
   Check,
   Trash as Trash2,
-  Warning as AlertTriangle,
   Calendar as CalendarIcon,
   Clock,
   User,
   ArrowUpRight,
   ArrowDownRight,
   X,
-  ArrowRight
+  MagnifyingGlass as Search,
+  Warning as AlertTriangle,
+  HandCoins,
+  Receipt
 } from '@phosphor-icons/react';
-import { Debt, AppData, Transaction, TransactionType, Category } from '../types';
+import { Debt, AppData, Transaction, TransactionType, Category, DebtPayment } from '../types';
 import { Haptics } from '../services/haptics';
-import { Pagination } from './shared/CommonUI';
+import { GlassCheckbox } from './shared/CommonUI';
 import { EmptyStateSeeder } from './shared/EmptyStateSeeder';
 
 interface DebtProps {
-    data: AppData;
-    updateData: (d: Partial<AppData>) => void;
-    formatMoney: (val: number, sym: string) => string;
-    onSettleTransaction: (t: Transaction) => void;
-    onAddPayment: (debtId: string, payment: any) => void;
+  data: AppData;
+  updateData: (d: Partial<AppData>) => void;
+  formatMoney: (val: number, sym: string) => string;
+  onSettleTransaction: (t: Transaction) => void;
+  onAddPayment: (debtId: string, payment: any) => void;
+  isDesktop?: boolean;
 }
 
-const ConfirmModal = ({ isOpen, onClose, onConfirm, message }: any) => {
-    if (!isOpen) return null;
-    return createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity" onClick={() => { Haptics.light(); onClose(); }} />
-            <div className="relative bg-[var(--bg-surface)] w-full max-w-[380px] rounded-[12px] p-6 border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 space-y-4">
-                <div className="flex flex-col items-center text-center">
-                    <div className="text-rose-500 mb-2">
-                        <AlertTriangle size={28} strokeWidth={1.5} />
-                    </div>
-                    <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">Are you sure?</h3>
-                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed">{message}</p>
-                </div>
-                <div className="flex gap-2.5 w-full pt-2">
-                    <button onClick={() => { Haptics.light(); onClose(); }} className="btn btn--outline flex-1 h-[38px] text-[13px]">Cancel</button>
-                    <button onClick={() => { Haptics.success(); onConfirm(); }} className="btn btn--danger flex-1 h-[38px] text-[13px]">Delete</button>
-                </div>
-            </div>
-        </div>,
-        document.body
+export const DebtView: React.FC<DebtProps> = ({ 
+  data, 
+  updateData, 
+  formatMoney, 
+  onSettleTransaction, 
+  onAddPayment,
+  isDesktop: propIsDesktop
+}) => {
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [activeDebtId, setActiveDebtId] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentNote, setPaymentNote] = useState('');
+  const [person, setPerson] = useState('');
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState<'I_OWE' | 'OWES_ME'>('OWES_ME');
+  const [note, setNote] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'ACTIVE' | 'SETTLED' | 'OWES_ME' | 'I_OWE'>('ALL');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const [isMobile, setIsMobile] = useState(!propIsDesktop && typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (propIsDesktop !== undefined) {
+        setIsMobile(!propIsDesktop);
+      } else {
+        setIsMobile(window.innerWidth < 768);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [propIsDesktop]);
+
+  const currencySymbol = data.settings.currencySymbol || '$';
+
+  // Summary Metrics
+  const totalIOwe = useMemo(() => 
+    (data.debts || []).filter(d => !d.isSettled && d.type === 'I_OWE').reduce((s, d) => s + d.amount, 0)
+  , [data.debts]);
+
+  const totalOwesMe = useMemo(() => 
+    (data.debts || []).filter(d => !d.isSettled && d.type === 'OWES_ME').reduce((s, d) => s + d.amount, 0)
+  , [data.debts]);
+
+  const netPosition = totalOwesMe - totalIOwe;
+
+  const filteredDebts = useMemo(() => {
+    return (data.debts || []).filter(d => {
+      const matchSearch = searchTerm 
+        ? d.person.toLowerCase().includes(searchTerm.toLowerCase()) || (d.note || '').toLowerCase().includes(searchTerm.toLowerCase())
+        : true;
+      if (!matchSearch) return false;
+
+      if (typeFilter === 'ACTIVE') return !d.isSettled;
+      if (typeFilter === 'SETTLED') return d.isSettled;
+      if (typeFilter === 'OWES_ME') return d.type === 'OWES_ME';
+      if (typeFilter === 'I_OWE') return d.type === 'I_OWE';
+      return true;
+    });
+  }, [data.debts, typeFilter, searchTerm]);
+
+  const handleAddDebt = (e: React.FormEvent) => {
+    e.preventDefault();
+    const numAmount = parseFloat(amount);
+    if (!numAmount || numAmount <= 0) return;
+
+    const newDebt: Debt = {
+      id: Date.now().toString(),
+      person: person.trim() || 'Unspecified',
+      amount: numAmount,
+      type,
+      note: note.trim() || undefined,
+      isSettled: false,
+      dueDate: dueDate || undefined,
+      payments: [],
+      updated_at: new Date().toISOString()
+    };
+
+    updateData({ debts: [newDebt, ...(data.debts || [])] });
+    setIsAddOpen(false);
+    setPerson('');
+    setAmount('');
+    setNote('');
+    setDueDate('');
+    Haptics.success();
+  };
+
+  const toggleSettle = (debt: Debt) => {
+    const willSettle = !debt.isSettled;
+    const updated = (data.debts || []).map(d => 
+      d.id === debt.id ? { ...d, isSettled: willSettle, updated_at: new Date().toISOString() } : d
     );
-};
+    updateData({ debts: updated });
 
-export const DebtView: React.FC<DebtProps> = ({ data, updateData, formatMoney, onSettleTransaction, onAddPayment }) => {
-    const [isAddOpen, setIsAddOpen] = useState(false);
-    const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-    const [activeDebtId, setActiveDebtId] = useState<string | null>(null);
-    const [paymentAmount, setPaymentAmount] = useState('');
-    const [paymentNote, setPaymentNote] = useState('');
-    const [person, setPerson] = useState('');
-    const [amount, setAmount] = useState('');
-    const [type, setType] = useState<'I_OWE' | 'OWES_ME'>('OWES_ME');
-    const [note, setNote] = useState('');
-    const [dueDate, setDueDate] = useState('');
-    const [deleteId, setDeleteId] = useState<string | null>(null);
-    const [isMobile, setIsMobile] = useState(false);
-    const DEBTS_PER_PAGE = 5;
-    const [currentPage, setCurrentPage] = useState(1);
+    if (willSettle) {
+      const isExpense = debt.type === 'I_OWE';
+      const newTx: Transaction = {
+        id: Date.now().toString(),
+        amount: debt.amount,
+        type: isExpense ? TransactionType.EXPENSE : TransactionType.INCOME,
+        category: isExpense ? Category.LOAN_PAYMENT : Category.LOAN,
+        date: new Date().toISOString(),
+        note: isExpense ? `Debt settled to ${debt.person}` : `Repayment received from ${debt.person}`,
+        walletId: data.currentWalletId
+      };
+      onSettleTransaction(newTx);
+      Haptics.success();
+    }
+  };
 
-    React.useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 1024);
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+  const handleAddPartialPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const payNum = parseFloat(paymentAmount);
+    if (!payNum || payNum <= 0 || !activeDebtId) return;
 
-    const handleAddDebt = () => {
-        if (!amount) return;
-        const newDebt: Debt = {
-            id: Date.now().toString(),
-            person: person.trim() || "Unspecified",
-            amount: parseFloat(amount),
-            type,
-            note,
-            isSettled: false,
-            dueDate: dueDate || undefined
-        };
-        updateData({ debts: [newDebt, ...(data.debts || [])] });
-        setIsAddOpen(false);
-        setPerson(''); setAmount(''); setNote(''); setDueDate('');
+    const payment: Omit<DebtPayment, 'id'> = {
+      amount: payNum,
+      date: new Date().toISOString(),
+      note: paymentNote.trim() || undefined
     };
 
-    const toggleSettle = (debt: Debt) => {
-        const isSettling = !debt.isSettled;
-        
-        // Update Debt Status
-        const updated = data.debts.map((d: Debt) => d.id === debt.id ? { ...d, isSettled: isSettling } : d);
-        updateData({ debts: updated });
+    onAddPayment(activeDebtId, payment);
+    setIsPaymentOpen(false);
+    setPaymentAmount('');
+    setPaymentNote('');
+    setActiveDebtId(null);
+    Haptics.success();
+  };
 
-        // If creating a settlement, add transaction
-        if (isSettling) {
-            const isExpense = debt.type === 'I_OWE';
-            const newTx: Transaction = {
-                id: Date.now().toString(),
-                amount: debt.amount,
-                type: isExpense ? TransactionType.EXPENSE : TransactionType.INCOME,
-                category: isExpense ? Category.LOAN_PAYMENT : Category.LOAN,
-                date: new Date().toISOString(),
-                note: isExpense ? `Debt paid to ${debt.person}` : `Debt repayment from ${debt.person}`,
-                walletId: data.currentWalletId
-            };
-            onSettleTransaction(newTx);
-        }
-    };
+  const handleDelete = (id: string) => {
+    updateData({ debts: (data.debts || []).filter(d => d.id !== id) });
+    setDeleteConfirmId(null);
+    Haptics.success();
+  };
 
-    const confirmDelete = () => {
-        if (deleteId) {
-            updateData({ debts: data.debts.filter((d: Debt) => d.id !== deleteId) });
-            setDeleteId(null);
-        }
-    };
+  const handleBatchDelete = () => {
+    if (selectedIds.length === 0) return;
+    if (confirm(`Delete ${selectedIds.length} selected debts?`)) {
+      updateData({ debts: (data.debts || []).filter(d => !selectedIds.includes(d.id)) });
+      setSelectedIds([]);
+      Haptics.success();
+    }
+  };
 
-    const isOverdue = (dateStr?: string) => {
-        if (!dateStr) return false;
-        return new Date(dateStr) < new Date() && new Date(dateStr).toDateString() !== new Date().toDateString();
-    };
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
 
-    // Calculate Summary
-    const totalIOwe = data.debts.filter((d:Debt) => !d.isSettled && d.type === 'I_OWE').reduce((a:number,b:Debt)=>a+b.amount,0);
-    const totalOwesMe = data.debts.filter((d:Debt) => !d.isSettled && d.type === 'OWES_ME').reduce((a:number,b:Debt)=>a+b.amount,0);
-    const netPosition = totalOwesMe - totalIOwe;
-
-    const [typeFilter, setTypeFilter] = useState<'ALL' | 'ACTIVE' | 'SETTLED' | 'OWES_ME' | 'I_OWE'>('ALL');
-
-    const filteredDebts = React.useMemo(() => {
-        return (data.debts || []).filter(d => {
-            if (typeFilter === 'ACTIVE') return !d.isSettled;
-            if (typeFilter === 'SETTLED') return d.isSettled;
-            if (typeFilter === 'OWES_ME') return d.type === 'OWES_ME';
-            if (typeFilter === 'I_OWE') return d.type === 'I_OWE';
-            return true;
-        });
-    }, [data.debts, typeFilter]);
-
-    return (
-        <div className="animate-in fade-in duration-500 space-y-4 pb-8 w-full mx-auto">
-            
-            {/* Header + Add Record */}
-            <div className="flex justify-between items-center px-1">
-                <div>
-                    <h2 className="text-xl lg:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">Debts & Loans</h2>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Track and settle what you owe and what you are owed.</p>
-                </div>
-                <button 
-                    onClick={() => {
-                        Haptics.light();
-                        setIsAddOpen(true);
-                    }} 
-                    className="btn btn--primary h-[32px] px-3 text-[12px] flex items-center gap-1.5 font-medium"
-                >
-                    <PlusCircle size={14} className="btn__icon" /> <span>Add Record</span>
-                </button>
-            </div>
-
-            {/* Bento KPI Banner */}
-            <div className="rounded-[12px] bg-[var(--bg-surface)] border border-[var(--border-default)] p-4 lg:p-5">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <span className="text-[10px] uppercase font-semibold text-[var(--text-muted)] tracking-[0.06em] block mb-1">Net Balance</span>
-                        <div className={`text-2xl lg:text-4xl font-semibold font-mono tracking-tight ${netPosition >= 0 ? 'text-[var(--status-success-fg)]' : 'text-[var(--status-error-fg)]'}`}>
-                            {netPosition >= 0 ? '+' : ''}{formatMoney(netPosition, data.settings.currencySymbol)}
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
-                        <div className="bg-[var(--bg-subtle)] border border-[var(--border-default)] p-2.5 rounded-[8px] min-w-[120px]">
-                            <div className="flex items-center gap-1 text-[var(--status-success-fg)] text-[10px] uppercase font-semibold tracking-wider mb-0.5">
-                                <ArrowUpRight size={12} />
-                                <span>Owed to Me</span>
-                            </div>
-                            <span className="text-sm font-semibold font-mono text-[var(--text-primary)]">{formatMoney(totalOwesMe, data.settings.currencySymbol)}</span>
-                        </div>
-
-                        <div className="bg-[var(--bg-subtle)] border border-[var(--border-default)] p-2.5 rounded-[8px] min-w-[120px]">
-                            <div className="flex items-center gap-1 text-[var(--status-error-fg)] text-[10px] uppercase font-semibold tracking-wider mb-0.5">
-                                <ArrowDownRight size={12} />
-                                <span>I Owe</span>
-                            </div>
-                            <span className="text-sm font-semibold font-mono text-[var(--text-primary)]">{formatMoney(totalIOwe, data.settings.currencySymbol)}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Filter Chips */}
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pt-1">
-                {[
-                    { id: 'ALL', label: 'All Records' },
-                    { id: 'ACTIVE', label: 'Active' },
-                    { id: 'SETTLED', label: 'Settled' },
-                    { id: 'OWES_ME', label: 'Owed to Me' },
-                    { id: 'I_OWE', label: 'I Owe' }
-                ].map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => { Haptics.light(); setTypeFilter(tab.id as any); setCurrentPage(1); }}
-                        className={`px-3 py-1 rounded-full text-[11px] font-medium whitespace-nowrap border transition-all ${
-                            typeFilter === tab.id
-                                ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)] font-semibold'
-                                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'
-                        }`}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
-
-            {/* List */}
-            <div className="min-h-[250px]">
-                {filteredDebts.length === 0 ? (
-                    <EmptyStateSeeder 
-                        data={data} 
-                        updateData={updateData} 
-                        title="No Debt Records Found" 
-                        description="Start tracking money you owe or are owed, or seed sample debt records to see partial payments and progress tracking." 
-                        onActionClick={() => setIsAddOpen(true)} 
-                        actionLabel="Add Record" 
-                    />
-                ) : (
-                    <>
-                    <div className="rounded-[12px] bg-[var(--bg-surface)] border border-[var(--border-default)] divide-y divide-[var(--border-default)] px-3.5 lg:px-5">
-                        {filteredDebts.slice((currentPage - 1) * DEBTS_PER_PAGE, currentPage * DEBTS_PER_PAGE).map((d: Debt) => (
-                            <div key={d.id} className={`py-3.5 flex items-center justify-between transition-all group ${d.isSettled ? 'opacity-40' : ''}`}>
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <div className={`w-8 h-8 rounded-[6px] flex items-center justify-center border shrink-0 ${d.type === 'OWES_ME' ? 'bg-[var(--status-success-bg)] border-[rgba(34,197,94,0.2)] text-[var(--status-success-fg)]' : 'bg-[var(--status-error-bg)] border-[rgba(239,68,68,0.2)] text-[var(--status-error-fg)]'}`}>
-                                        {d.type === 'OWES_ME' ? <ArrowUpRight size={15} strokeWidth={1.5} /> : <ArrowDownRight size={15} strokeWidth={1.5} />}
-                                    </div>
-                                    <div className="min-w-0">
-                                        <h4 className="text-[13px] font-medium text-[var(--text-primary)] leading-tight truncate">{d.person}</h4>
-                                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                                            <span className={`text-[9px] font-mono font-medium px-1.5 py-0.2 rounded border ${d.type === 'OWES_ME' ? 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] border-[rgba(34,197,94,0.2)]' : 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] border-[rgba(239,68,68,0.2)]'}`}>
-                                                {d.type === 'OWES_ME' ? 'OWED' : 'I OWE'}
-                                            </span>
-                                            {d.isSettled ? (
-                                                <span className="text-[9px] font-mono text-[var(--text-muted)] bg-[var(--bg-subtle)] px-1.5 py-0.2 rounded border border-[var(--border-default)]">SETTLED</span>
-                                            ) : (
-                                                d.dueDate && (
-                                                    <span className={`flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.2 rounded border ${isOverdue(d.dueDate) ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] border-[rgba(239,68,68,0.2)]' : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border-default)]'}`}>
-                                                        <Clock size={9} strokeWidth={1.5} />
-                                                        {new Date(d.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                    </span>
-                                                )
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                 <div className="flex items-center gap-3 shrink-0 ml-3 text-right">
-                                     <div className="flex flex-col items-end">
-                                         <span className="text-[13px] font-mono font-semibold text-[var(--text-primary)]">{formatMoney(d.amount, data.settings.currencySymbol)}</span>
-                                         {d.payments && d.payments.length > 0 && (
-                                             <div className="flex flex-col items-end w-full max-w-[80px] mt-0.5">
-                                                 <div className="w-full h-1 bg-[var(--bg-subtle)] rounded-full overflow-hidden border border-[var(--border-default)]">
-                                                     <div 
-                                                         className="h-full bg-[var(--status-success-fg)] transition-all duration-500" 
-                                                         style={{ width: `${Math.min((d.payments.reduce((s, p) => s + p.amount, 0) / d.amount) * 100, 100)}%` }} 
-                                                     />
-                                                 </div>
-                                                 <span className="text-[8px] font-mono text-[var(--status-success-fg)] mt-0.5">
-                                                     {formatMoney(d.payments.reduce((s, p) => s + p.amount, 0), data.settings.currencySymbol)} Paid
-                                                 </span>
-                                             </div>
-                                         )}
-                                     </div>
-                                     {!d.isSettled && (
-                                         <div className="flex items-center gap-1">
-                                             <button 
-                                                 onClick={() => { Haptics.light(); setActiveDebtId(d.id); setIsPaymentOpen(true); }}
-                                                 className="p-1.5 rounded-[5px] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] text-[var(--accent-solid)] transition-all"
-                                                 title="Add Partial Payment"
-                                             >
-                                                 <PlusCircle size={13} strokeWidth={1.5} />
-                                             </button>
-                                             <button 
-                                                 onClick={() => {
-                                                     Haptics.success();
-                                                     toggleSettle(d);
-                                                 }} 
-                                                 className="p-1.5 rounded-[5px] bg-[var(--status-success-bg)] hover:opacity-80 border border-[rgba(34,197,94,0.2)] text-[var(--status-success-fg)] transition-all" 
-                                                 title="Settle in Full"
-                                             >
-                                                 <Check size={13} strokeWidth={1.5} />
-                                             </button>
-                                             <button 
-                                                 onClick={() => {
-                                                     Haptics.warning();
-                                                     setDeleteId(d.id);
-                                                 }} 
-                                                 className="p-1.5 rounded-[5px] bg-[var(--bg-subtle)] hover:bg-[var(--status-error-bg)] hover:text-[var(--status-error-fg)] border border-[var(--border-default)] text-[var(--text-muted)] transition-all" 
-                                                 title="Delete Record"
-                                             >
-                                                <Trash2 size={13} strokeWidth={1.5} />
-                                             </button>
-                                         </div>
-                                     )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <Pagination
-                        currentPage={currentPage}
-                        totalPages={Math.ceil(filteredDebts.length / DEBTS_PER_PAGE) || 1}
-                        totalItems={filteredDebts.length}
-                        itemsPerPage={DEBTS_PER_PAGE}
-                        onPageChange={setCurrentPage}
-                    />
-                    </>
-                )}
-            </div>
-
-            {/* Record Add Modal */}
-            {isAddOpen && createPortal(
-                  <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-                     <div className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity" onClick={() => { Haptics.light(); setIsAddOpen(false); }}/>
-                     <div className="relative z-50 bg-[var(--bg-surface)] w-full max-w-md rounded-[12px] border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 p-6 space-y-4">
-
-                         {/* Header */}
-                         <div className="flex items-center justify-between">
-                             <h3 className="text-base font-semibold text-[var(--text-primary)]">Add Record</h3>
-                             <button 
-                                 onClick={() => {
-                                     Haptics.light();
-                                     setIsAddOpen(false);
-                                 }} 
-                                 className="btn btn--outline btn--icon-sm shrink-0"
-                             >
-                                 <X size={15} strokeWidth={1.5} />
-                             </button>
-                         </div>
-
-                         {/* Type Toggle */}
-                         <div className="tabs w-full flex">
-                             <button onClick={() => { Haptics.light(); setType('OWES_ME'); }} className={`tab flex-1 justify-center ${type === 'OWES_ME' ? 'is-active text-emerald-400' : ''}`}>Receivable (They owe)</button>
-                             <button onClick={() => { Haptics.light(); setType('I_OWE'); }} className={`tab flex-1 justify-center ${type === 'I_OWE' ? 'is-active text-rose-400' : ''}`}>Liability (I owe)</button>
-                         </div>
-                         
-                         {/* Amount Input */}
-                         <div className="space-y-1.5">
-                            <label className="text-[13px] font-medium text-[var(--text-primary)]">Amount ({data.settings.currencySymbol})</label>
-                            <input 
-                                type="number" 
-                                inputMode="decimal"
-                                value={amount} 
-                                onChange={e => setAmount(e.target.value)} 
-                                placeholder="0.00" 
-                                className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[14px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all font-mono"
-                                autoFocus
-                            />
-                         </div>
-
-                         {/* Form Fields */}
-                         <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1 no-scrollbar">
-                             <div className="space-y-1.5">
-                                 <label className="text-[13px] font-medium text-[var(--text-primary)]">Person / Counterparty</label>
-                                 <input 
-                                     type="text" 
-                                     placeholder="Full Name..." 
-                                     value={person} 
-                                     onChange={e => setPerson(e.target.value)} 
-                                     className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all" 
-                                 />
-                             </div>
-
-                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <label className="text-[13px] font-medium text-[var(--text-primary)]">Due Date (Optional)</label>
-                                    <input 
-                                        type="date" 
-                                        value={dueDate} 
-                                        onChange={e => setDueDate(e.target.value)} 
-                                        className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--border-default)] outline-none color-scheme-dark" 
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[13px] font-medium text-[var(--text-primary)]">Note (Optional)</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Add note..." 
-                                        value={note} 
-                                        onChange={e => setNote(e.target.value)} 
-                                        className="w-full h-[40px] bg-[var(--bg-subtle)] rounded-[8px] px-3.5 text-[13px] text-[var(--text-primary)] border border-[var(--border-default)] outline-none"
-                                    />
-                                </div>
-                             </div>
-                         </div>
-
-                         <div className="flex justify-end gap-2.5 pt-2">
-                             <button
-                                 type="button"
-                                 onClick={() => setIsAddOpen(false)}
-                                 className="btn btn--outline h-[38px] px-4 text-[13px]"
-                             >
-                                 Cancel
-                             </button>
-                             <button 
-                                onClick={() => {
-                                    Haptics.success();
-                                    handleAddDebt();
-                                }} 
-                                disabled={!amount || !person} 
-                                className="btn btn--primary h-[38px] px-5 text-[13px]"
-                             >
-                                 Save Record
-                             </button>
-                         </div>
-                     </div>
-                  </div>,
-                  document.body
-            )}
-            
-             {/* Partial Payment Modal */}
-             {isPaymentOpen && activeDebtId && createPortal(
-                  <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-                     <div className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity" onClick={() => { Haptics.light(); setIsPaymentOpen(false); }}/>
-                     <div className="relative z-50 bg-[var(--bg-surface)] w-full max-w-md rounded-[12px] border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 p-6 space-y-4">
-                          <div className="flex items-center justify-between">
-                              <h3 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Add Payment</h3>
-                              <button 
-                                  onClick={() => {
-                                      Haptics.light();
-                                      setIsPaymentOpen(false);
-                                  }} 
-                                  className="btn btn--outline btn--icon-sm shrink-0"
-                              >
-                                  <X size={15} strokeWidth={1.5} />
-                              </button>
-                          </div>
-
-                          <div>
-                             <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1">Payment Amount ({data.settings.currencySymbol})</label>
-                             <input 
-                                 type="number" 
-                                 inputMode="decimal"
-                                 value={paymentAmount} 
-                                 onChange={e => setPaymentAmount(e.target.value)} 
-                                 placeholder="0.00" 
-                                 className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[14px] font-mono text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all"
-                                 autoFocus
-                             />
-                          </div>
-
-                          <div>
-                              <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1">Payment Note (Optional)</label>
-                              <input 
-                                 type="text" 
-                                 placeholder="Add a note (optional)..." 
-                                 value={paymentNote} 
-                                 onChange={e => setPaymentNote(e.target.value)} 
-                                 className="w-full h-[40px] bg-[var(--field-bg)] rounded-[6px] px-3.5 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all"
-                              />
-                          </div>
-
-                          <div className="flex justify-end gap-2.5 pt-2">
-                              <button
-                                  type="button"
-                                  onClick={() => setIsPaymentOpen(false)}
-                                  className="btn btn--outline h-[38px] px-4 text-[13px]"
-                              >
-                                  Cancel
-                              </button>
-                              <button 
-                                 onClick={() => {
-                                     if (paymentAmount) {
-                                         Haptics.success();
-                                         onAddPayment(activeDebtId, {
-                                             amount: parseFloat(paymentAmount),
-                                             date: new Date().toISOString(),
-                                             note: paymentNote
-                                         });
-                                         
-                                         // Also log as transaction
-                                         const debt = data.debts.find(d => d.id === activeDebtId);
-                                         if (debt) {
-                                             const isExpense = debt.type === 'I_OWE';
-                                             const newTx: Transaction = {
-                                                 id: Date.now().toString(),
-                                                 amount: parseFloat(paymentAmount),
-                                                 type: isExpense ? TransactionType.EXPENSE : TransactionType.INCOME,
-                                                 category: isExpense ? Category.LOAN_PAYMENT : Category.LOAN,
-                                                 date: new Date().toISOString(),
-                                                 note: isExpense ? `Partial payment to ${debt.person}` : `Partial repayment from ${debt.person}`,
-                                                 walletId: data.currentWalletId
-                                             };
-                                             onSettleTransaction(newTx);
-                                         }
-
-                                         setIsPaymentOpen(false);
-                                         setPaymentAmount('');
-                                         setPaymentNote('');
-                                         setActiveDebtId(null);
-                                     }
-                                 }} 
-                                 disabled={!paymentAmount} 
-                                 className="btn btn--primary h-[38px] px-5 text-[13px]"
-                              >
-                                 Confirm Payment
-                              </button>
-                          </div>
-                     </div>
-                  </div>,
-                  document.body
-            )}
-
-             <ConfirmModal 
-                isOpen={!!deleteId} 
-                onClose={() => setDeleteId(null)} 
-                onConfirm={confirmDelete}
-                message="Delete this record permanently?" 
-            />
+  return (
+    <div className="animate-in fade-in duration-300 w-full mx-auto pb-8 select-none space-y-4">
+      
+      {/* Header & Add Button */}
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+        <div>
+          <h2 className="text-[18px] sm:text-[22px] font-semibold text-[var(--text-primary)] tracking-tight">
+            Debts & Liabilities
+          </h2>
+          <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+            Track obligations you owe and credit extended to counterparties.
+          </p>
         </div>
-    );
+
+        <div className="flex items-center gap-2">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBatchDelete}
+              className="h-[32px] px-3 bg-[var(--status-error-bg)] text-[var(--status-error-fg)] border border-[var(--status-error-fg)]/30 rounded-[6px] text-[12px] font-medium flex items-center gap-1.5 cursor-pointer"
+            >
+              <Trash2 size={14} strokeWidth={1.5} />
+              <span>Delete ({selectedIds.length})</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setIsAddOpen(true)}
+            className="h-[32px] px-3.5 bg-[var(--accent-solid)] text-[var(--accent-text)] rounded-[6px] text-[12px] font-medium flex items-center gap-1.5 hover:opacity-90 active:scale-95 transition-all cursor-pointer font-sans"
+          >
+            <Plus size={14} strokeWidth={2} />
+            <span>Add Record</span>
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Cards Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-between">
+          <div>
+            <span className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em] block">
+              You Owe (Payable)
+            </span>
+            <span className="text-[18px] font-semibold font-mono text-[var(--status-error-fg)] mt-0.5 block">
+              {formatMoney(totalIOwe, currencySymbol)}
+            </span>
+          </div>
+          <ArrowDownRight size={22} strokeWidth={1.5} className="text-[var(--status-error-fg)] shrink-0" />
+        </div>
+
+        <div className="p-3.5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-between">
+          <div>
+            <span className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em] block">
+              Owed to You (Receivable)
+            </span>
+            <span className="text-[18px] font-semibold font-mono text-[var(--status-success-fg)] mt-0.5 block">
+              {formatMoney(totalOwesMe, currencySymbol)}
+            </span>
+          </div>
+          <ArrowUpRight size={22} strokeWidth={1.5} className="text-[var(--status-success-fg)] shrink-0" />
+        </div>
+
+        <div className="p-3.5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-between">
+          <div>
+            <span className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em] block">
+              Net Liability Position
+            </span>
+            <span className={`text-[18px] font-semibold font-mono mt-0.5 block ${
+              netPosition >= 0 ? 'text-[var(--text-primary)]' : 'text-[var(--status-error-fg)]'
+            }`}>
+              {formatMoney(netPosition, currencySymbol)}
+            </span>
+          </div>
+          <HandCoins size={22} strokeWidth={1.5} className="text-[var(--accent-solid)] shrink-0" />
+        </div>
+      </div>
+
+      {/* Control Bar: Search & Filter Tabs */}
+      <div className="bg-[var(--bg-surface)] p-3 sm:p-4 rounded-[10px] border border-[var(--border-default)] space-y-3">
+        <div className="flex flex-col sm:flex-row gap-2.5">
+          <div className="flex-1 flex items-center gap-2 bg-[var(--bg-subtle)] rounded-[6px] px-3 py-1.5 border border-[var(--border-default)] focus-within:border-[var(--accent-solid)] transition-colors">
+            <Search size={14} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+            <input
+              type="text"
+              placeholder="Search person or note..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="bg-transparent text-[12px] text-[var(--text-primary)] w-full outline-none placeholder:text-[var(--text-muted)]"
+            />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm('')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                <X size={13} strokeWidth={1.5} />
+              </button>
+            )}
+          </div>
+
+          {/* Filter Pills */}
+          <div className="flex p-0.5 rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[11px] shrink-0 overflow-x-auto no-scrollbar">
+            {[
+              { id: 'ALL', label: 'All' },
+              { id: 'ACTIVE', label: 'Active' },
+              { id: 'I_OWE', label: 'I Owe' },
+              { id: 'OWES_ME', label: 'Owes Me' },
+              { id: 'SETTLED', label: 'Settled' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => { Haptics.light(); setTypeFilter(tab.id as any); }}
+                className={`px-3 py-1 rounded-[4px] font-medium transition-all cursor-pointer whitespace-nowrap ${
+                  typeFilter === tab.id
+                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Debt List / Table */}
+      {filteredDebts.length === 0 ? (
+        <div className="p-12 text-center rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[12px] text-[var(--text-muted)]">
+          No records match the current filters.
+        </div>
+      ) : (
+        <div className="bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] overflow-hidden shadow-xs">
+          
+          {/* Desktop/Tablet Table Layout */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[var(--border-default)] bg-[var(--bg-subtle)]/40 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em]">
+                  <th className="px-4 py-2.5 w-10">
+                    <GlassCheckbox
+                      checked={filteredDebts.length > 0 && filteredDebts.every(d => selectedIds.includes(d.id))}
+                      onChange={() => {
+                        if (selectedIds.length === filteredDebts.length) setSelectedIds([]);
+                        else setSelectedIds(filteredDebts.map(d => d.id));
+                      }}
+                    />
+                  </th>
+                  <th className="px-4 py-2.5">Person / Counterparty</th>
+                  <th className="px-4 py-2.5">Direction</th>
+                  <th className="px-4 py-2.5 text-right">Total Amount</th>
+                  <th className="px-4 py-2.5 text-right">Remaining</th>
+                  <th className="px-4 py-2.5">Due Date</th>
+                  <th className="px-4 py-2.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-default)]">
+                {filteredDebts.map(d => {
+                  const isSelected = selectedIds.includes(d.id);
+                  const totalPaid = (d.payments || []).reduce((s, p) => s + p.amount, 0);
+                  const remaining = Math.max(0, d.amount - totalPaid);
+
+                  return (
+                    <tr key={d.id} className={`hover:bg-[var(--bg-surface-hover)] transition-colors ${isSelected ? 'bg-[var(--bg-subtle)]' : ''}`}>
+                      <td className="px-4 py-3">
+                        <GlassCheckbox checked={isSelected} onChange={() => toggleSelect(d.id)} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-[13px] font-medium text-[var(--text-primary)] block">
+                          {d.person}
+                        </span>
+                        {d.note && (
+                          <span className="text-[11px] text-[var(--text-muted)] line-clamp-1">
+                            {d.note}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-[4px] ${
+                          d.type === 'I_OWE' 
+                            ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' 
+                            : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'
+                        }`}>
+                          {d.type === 'I_OWE' ? 'You Owe' : 'Owed to You'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-[13px] font-medium text-[var(--text-primary)] whitespace-nowrap">
+                        {formatMoney(d.amount, currencySymbol)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-[13px] font-semibold text-[var(--text-primary)] whitespace-nowrap">
+                        {d.isSettled ? (
+                          <span className="text-[var(--status-success-fg)]">Settled</span>
+                        ) : (
+                          formatMoney(remaining, currencySymbol)
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-[12px] font-mono text-[var(--text-muted)] whitespace-nowrap">
+                        {d.dueDate || 'No date'}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {!d.isSettled && (
+                            <button
+                              onClick={() => { setActiveDebtId(d.id); setIsPaymentOpen(true); }}
+                              className="h-[26px] px-2 rounded-[4px] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
+                            >
+                              Log Pay
+                            </button>
+                          )}
+                          <button
+                            onClick={() => toggleSettle(d)}
+                            className={`h-[26px] px-2 rounded-[4px] border text-[11px] font-medium cursor-pointer ${
+                              d.isSettled
+                                ? 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border-default)]'
+                                : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] border-[var(--status-success-fg)]/20 hover:opacity-90'
+                            }`}
+                          >
+                            {d.isSettled ? 'Reopen' : 'Settle'}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(d.id)}
+                            className="w-7 h-[26px] rounded-[4px] text-[var(--text-muted)] hover:text-[var(--status-error-fg)] hover:bg-[var(--bg-subtle)] flex items-center justify-center cursor-pointer"
+                            title="Delete"
+                          >
+                            <Trash2 size={13} strokeWidth={1.5} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card List Layout */}
+          <div className="block md:hidden divide-y divide-[var(--border-default)]">
+            {filteredDebts.map(d => {
+              const isSelected = selectedIds.includes(d.id);
+              const totalPaid = (d.payments || []).reduce((s, p) => s + p.amount, 0);
+              const remaining = Math.max(0, d.amount - totalPaid);
+
+              return (
+                <div key={d.id} className={`p-3.5 space-y-2.5 hover:bg-[var(--bg-surface-hover)] ${isSelected ? 'bg-[var(--bg-subtle)]' : ''}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div onClick={e => e.stopPropagation()}>
+                        <GlassCheckbox checked={isSelected} onChange={() => toggleSelect(d.id)} />
+                      </div>
+                      <div>
+                        <span className="text-[13px] font-medium text-[var(--text-primary)] block">{d.person}</span>
+                        <span className={`text-[10px] font-medium px-1.5 py-0.2 rounded-[4px] inline-block mt-0.5 ${
+                          d.type === 'I_OWE' ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'
+                        }`}>
+                          {d.type === 'I_OWE' ? 'You Owe' : 'Owed to You'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right font-mono">
+                      <span className="text-[14px] font-semibold text-[var(--text-primary)] block">
+                        {d.isSettled ? <span className="text-[var(--status-success-fg)]">Settled</span> : formatMoney(remaining, currencySymbol)}
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)]">
+                        of {formatMoney(d.amount, currencySymbol)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {d.note && (
+                    <p className="text-[11px] text-[var(--text-secondary)] pl-7">
+                      {d.note}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-between pl-7 pt-1">
+                    <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                      Due: {d.dueDate || 'N/A'}
+                    </span>
+
+                    <div className="flex items-center gap-1.5">
+                      {!d.isSettled && (
+                        <button
+                          onClick={() => { setActiveDebtId(d.id); setIsPaymentOpen(true); }}
+                          className="h-[24px] px-2 rounded-[4px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[10px] font-medium text-[var(--text-secondary)] cursor-pointer"
+                        >
+                          Log Pay
+                        </button>
+                      )}
+                      <button
+                        onClick={() => toggleSettle(d)}
+                        className="h-[24px] px-2 rounded-[4px] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] border border-[var(--status-success-fg)]/20 text-[10px] font-medium cursor-pointer"
+                      >
+                        {d.isSettled ? 'Reopen' : 'Settle'}
+                      </button>
+                      <button
+                        onClick={() => handleDelete(d.id)}
+                        className="w-6 h-[24px] rounded-[4px] text-[var(--text-muted)] hover:text-[var(--status-error-fg)] flex items-center justify-center cursor-pointer"
+                      >
+                        <Trash2 size={12} strokeWidth={1.5} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+      )}
+
+      {/* Add Debt Modal */}
+      {isAddOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] p-5 w-full max-w-sm space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Add Liability Record</h3>
+              <button onClick={() => setIsAddOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                <X size={16} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddDebt} className="space-y-3 text-[12px]">
+              <div>
+                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Direction</label>
+                <div className="flex p-0.5 rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)]">
+                  <button
+                    type="button"
+                    onClick={() => setType('OWES_ME')}
+                    className={`flex-1 py-1 rounded-[4px] font-medium transition-all ${type === 'OWES_ME' ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs' : 'text-[var(--text-muted)]'}`}
+                  >
+                    Owed to You
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setType('I_OWE')}
+                    className={`flex-1 py-1 rounded-[4px] font-medium transition-all ${type === 'I_OWE' ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs' : 'text-[var(--text-muted)]'}`}
+                  >
+                    You Owe
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Counterparty Person</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Alex Smith"
+                  value={person}
+                  onChange={e => setPerson(e.target.value)}
+                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] focus:border-[var(--field-border-focus)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Amount ({currencySymbol})</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] focus:border-[var(--field-border-focus)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] font-mono outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Due Date (Optional)</label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={e => setDueDate(e.target.value)}
+                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Note (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dinner bill split"
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddOpen(false)}
+                  className="flex-1 h-[34px] rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-secondary)] font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 h-[34px] rounded-[6px] bg-[var(--accent-solid)] text-[var(--accent-text)] font-medium font-sans hover:opacity-90 cursor-pointer"
+                >
+                  Save Record
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Partial Payment Modal */}
+      {isPaymentOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] p-5 w-full max-w-sm space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Log Partial Payment</h3>
+              <button onClick={() => setIsPaymentOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                <X size={16} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddPartialPayment} className="space-y-3 text-[12px]">
+              <div>
+                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Payment Amount ({currencySymbol})</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={paymentAmount}
+                  onChange={e => setPaymentAmount(e.target.value)}
+                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] focus:border-[var(--field-border-focus)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] font-mono outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Payment Note (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bank transfer reference"
+                  value={paymentNote}
+                  onChange={e => setPaymentNote(e.target.value)}
+                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentOpen(false)}
+                  className="flex-1 h-[34px] rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-secondary)] font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 h-[34px] rounded-[6px] bg-[var(--accent-solid)] text-[var(--accent-text)] font-medium font-sans hover:opacity-90 cursor-pointer"
+                >
+                  Record Payment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
 };

@@ -39,6 +39,8 @@ import { AppSkeleton } from './components/ui/Skeletons';
 import { useAuth } from './hooks/useAuth';
 import { AuthScreen } from './components/AuthScreen';
 import { syncEngine } from './services/SyncEngine';
+import { ExchangeRateService } from './services/ExchangeRateService';
+import { AuditLogger } from './services/auditLog';
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose: () => void, onConfirm: () => void }) => {
     if (!isOpen) return null;
@@ -348,18 +350,23 @@ export default function App() {
         let currentRule = { ...rule };
         
         while (nextDue <= now) {
-            const newTx: Transaction = {
-                id: `recurring_${rule.id}_${nextDue.getTime()}`,
-                amount: rule.amount,
-                type: rule.type,
-                category: rule.category,
-                date: nextDue.toISOString(),
-                note: `[Recurring] ${rule.note || rule.name}`,
-                walletId: rule.walletId,
-                isSubscription: true
-            };
+            const txId = `recurring_${rule.id}_${nextDue.getTime()}`;
+            const alreadyExists = data.transactions.some(t => t.id === txId);
             
-            newTransactions = [newTx, ...newTransactions];
+            if (!alreadyExists) {
+              const newTx: Transaction = {
+                  id: txId,
+                  amount: rule.amount,
+                  type: rule.type,
+                  category: rule.category,
+                  date: nextDue.toISOString(),
+                  note: `[Recurring] ${rule.note || rule.name}`,
+                  walletId: rule.walletId,
+                  isSubscription: true
+              };
+              newTransactions = [newTx, ...newTransactions];
+              hasChanges = true;
+            }
             
             // Advance nextDueDate
             if (rule.frequency === 'DAILY') nextDue.setDate(nextDue.getDate() + 1);
@@ -369,7 +376,6 @@ export default function App() {
             
             currentRule.nextDueDate = nextDue.toISOString().split('T')[0];
             currentRule.updated_at = new Date().toISOString();
-            hasChanges = true;
 
         }
         return currentRule;
@@ -756,6 +762,7 @@ export default function App() {
           }
           return d;
       });
+      AuditLogger.log('DEBT_PAY', debtId, `Payment of ${newPayment.amount} logged`, user?.id);
       updateData({ debts: updatedDebts });
   };
   
@@ -763,6 +770,7 @@ export default function App() {
       if (!data) return;
       const tx = { ...updatedTx, updated_at: new Date().toISOString() };
       const updatedTransactions = data.transactions.map(t => t.id === tx.id ? tx : t);
+      AuditLogger.log('TX_UPDATE', tx.id, `Updated ${tx.type} of ${tx.amount} (${tx.category})`, user?.id);
       updateData({ transactions: updatedTransactions });
       setIsAddOpen(false);
       setEditingTx(null);
@@ -771,17 +779,49 @@ export default function App() {
   const handleAddDebt = (debt: Debt) => {
       if (!data) return;
       const newDebt = { ...debt, updated_at: new Date().toISOString() };
+      AuditLogger.log('DEBT_CREATE', newDebt.id, `Created debt for ${newDebt.person} of ${newDebt.amount}`, user?.id);
       updateData({ debts: [newDebt, ...data.debts] });
   };
 
-  const handleTransfer = (amount: number, fromId: string, toId: string, note: string, dateStr: string) => {
+  const handleTransfer = async (amount: number, fromId: string, toId: string, note: string, dateStr: string) => {
     if (!data) return;
     const timestamp = Date.now();
     const dateTime = getDateTime(dateStr);
     const now = new Date().toISOString();
-    const txOut: Transaction = { id: timestamp.toString(), amount, type: TransactionType.EXPENSE, category: Category.TRANSFER, date: dateTime, note: `To: ${data.wallets.find(w => w.id === toId)?.name} - ${note}`, walletId: fromId, updated_at: now };
-    const txIn: Transaction = { id: (timestamp + 1).toString(), amount, type: TransactionType.INCOME, category: Category.TRANSFER, date: dateTime, note: `From: ${data.wallets.find(w => w.id === fromId)?.name} - ${note}`, walletId: toId, updated_at: now };
+
+    const fromWallet = data.wallets.find(w => w.id === fromId);
+    const toWallet = data.wallets.find(w => w.id === toId);
+    const fromCurr = fromWallet?.currency || data.settings.currencySymbol || '$';
+    const toCurr = toWallet?.currency || data.settings.currencySymbol || '$';
+
+    let receivedAmount = amount;
+    if (fromCurr !== toCurr) {
+      receivedAmount = await ExchangeRateService.convertAmount(amount, fromCurr, toCurr);
+    }
+
+    const txOut: Transaction = { 
+      id: timestamp.toString(), 
+      amount, 
+      type: TransactionType.EXPENSE, 
+      category: Category.TRANSFER, 
+      date: dateTime, 
+      note: `To: ${toWallet?.name || 'Wallet'} ${fromCurr !== toCurr ? `(Exchange: ${toCurr}${receivedAmount})` : ''} - ${note}`.trim(), 
+      walletId: fromId, 
+      updated_at: now 
+    };
+
+    const txIn: Transaction = { 
+      id: (timestamp + 1).toString(), 
+      amount: receivedAmount, 
+      type: TransactionType.INCOME, 
+      category: Category.TRANSFER, 
+      date: dateTime, 
+      note: `From: ${fromWallet?.name || 'Wallet'} ${fromCurr !== toCurr ? `(Exchange: ${fromCurr}${amount})` : ''} - ${note}`.trim(), 
+      walletId: toId, 
+      updated_at: now 
+    };
     
+    AuditLogger.log('TRANSFER', `${timestamp}`, `Transferred ${fromCurr}${amount} to ${toWallet?.name} (${toCurr}${receivedAmount})`, user?.id);
     updateData({ transactions: [txIn, txOut, ...data.transactions] });
     setIsAddOpen(false);
   };

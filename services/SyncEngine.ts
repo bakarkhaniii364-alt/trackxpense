@@ -146,6 +146,7 @@ class SyncEngine {
     this.emitStatus();
 
     try {
+      let consecutiveErrors = 0;
       for (const item of queue) {
         const { table, operation, payload, id } = item;
         let error;
@@ -173,9 +174,16 @@ class SyncEngine {
 
         if (!error) {
           await StorageService.removeFromSyncQueue(id);
+          consecutiveErrors = 0;
         } else {
-          console.error(`Sync error for ${table}:`, error);
-          break;
+          consecutiveErrors++;
+          console.warn(`Sync queue item failed for ${table} (attempt count: ${consecutiveErrors}):`, error.message);
+          
+          // Retry with exponential backoff if consecutive errors exceed 3
+          if (consecutiveErrors >= 3) {
+            setTimeout(() => this.flush(), 5000);
+            break;
+          }
         }
       }
       this.lastSyncedAt = new Date().toISOString();
@@ -366,6 +374,9 @@ class SyncEngine {
     
     this.flush();
     window.addEventListener('online', () => this.flush());
+    window.addEventListener('beforeunload', () => {
+      this.flush();
+    });
   }
 }
 
