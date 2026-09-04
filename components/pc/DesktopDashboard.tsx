@@ -104,6 +104,15 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const [isMobileScreen, setIsMobileScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
+
+  useEffect(() => {
+    const check = () => setIsMobileScreen(window.innerWidth < 640);
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+
   // Close search suggestions when clicking outside
   useEffect(() => {
     const handleSearchClickOutside = (e: MouseEvent | TouchEvent) => {
@@ -444,7 +453,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
   }, [data.transactions]);
 
   return (
-    <div className="space-y-10 pb-16 animate-in fade-in duration-500 w-full max-w-5xl mx-auto">
+    <div className="space-y-6 sm:space-y-10 pb-12 sm:pb-16 animate-in fade-in duration-500 w-full max-w-5xl mx-auto">
       
       {/* Hidden File Input for Receipt Attachment */}
       <input
@@ -459,10 +468,10 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       {/* CLOUDFLARE HERO SECTION: Title (NO pills) + Universal Centered Bar        */}
       {/* Orchestrated Entrance: Compose box pops first, title slides UP, rest DOWN */}
       {/* ========================================================================= */}
-      <div className={`w-full max-w-4xl mx-auto flex flex-col items-center justify-center pt-4 md:pt-12 pb-1 space-y-4 md:space-y-5 relative ${isSearchFocused ? 'z-50' : 'z-30'}`}>
+      <div className={`w-full max-w-4xl mx-auto flex flex-col items-center justify-center pt-2 sm:pt-4 md:pt-12 pb-1 space-y-3 sm:space-y-4 md:space-y-5 relative ${isSearchFocused ? 'z-50' : 'z-30'}`}>
         
         {/* Clean, Direct Heading (Transitions UP on reload) */}
-        <h1 className="animate-hero-text-up text-[22px] sm:text-[26px] md:text-[30px] font-medium text-[var(--text-primary)] tracking-[-0.012em] text-center">
+        <h1 className="animate-hero-text-up text-[20px] sm:text-[26px] md:text-[30px] font-medium text-[var(--text-primary)] tracking-[-0.012em] text-center">
           Spent anything today, {userName}?
         </h1>
 
@@ -484,7 +493,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
 
           {/* Thinner & Sleek Smart Search Container with Shining Beam */}
           <div className="shining-beam-wrapper">
-            <div className="shining-beam-inner py-1.5 px-3 transition-colors flex items-center gap-2">
+            <div className="shining-beam-inner py-1.5 px-2.5 sm:px-3 transition-colors flex items-center gap-1.5 sm:gap-2">
               
               {/* Search Icon */}
               <Search size={16} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
@@ -507,18 +516,18 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                     searchInputRef.current?.blur();
                   }
                 }}
-                placeholder="Search or jump to... (e.g. '$15 for lunch', or press Ctrl+K)"
-                className="input-reset flex-1 bg-transparent border-0 outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] leading-normal py-1"
+                placeholder={isMobileScreen ? "Search or log expense..." : "Search or jump to... (e.g. '$15 for lunch', or press Ctrl+K)"}
+                className="input-reset flex-1 min-w-0 bg-transparent border-0 outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] leading-normal py-1"
                 style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
               />
 
               {/* Right Toolbar Controls */}
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 {/* Attach Receipt Button */}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="h-[26px] px-2 rounded-[6px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors flex items-center gap-1.5 text-[11.5px] cursor-pointer"
+                  className="h-[26px] w-[26px] sm:w-auto px-0 sm:px-2 rounded-[6px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors flex items-center justify-center sm:gap-1.5 text-[11.5px] cursor-pointer shrink-0"
                   title="Attach receipt image"
                 >
                   <Paperclip size={13} strokeWidth={1.5} />
@@ -529,7 +538,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                 <button
                   type="button"
                   onClick={toggleListening}
-                  className={`h-[26px] w-[26px] rounded-[6px] flex items-center justify-center transition-all cursor-pointer ${
+                  className={`h-[26px] w-[26px] rounded-[6px] flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                     isListening
                       ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/40'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
@@ -544,12 +553,12 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                   <button
                     type="button"
                     onClick={() => { setCommandText(''); setIsSearchFocused(false); }}
-                    className="h-[22px] px-1.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded bg-[var(--bg-subtle)] border border-[var(--border-default)] cursor-pointer"
+                    className="h-[22px] px-1.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded bg-[var(--bg-subtle)] border border-[var(--border-default)] cursor-pointer shrink-0"
                   >
                     Esc
                   </button>
                 ) : (
-                  <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-muted)] select-none">
+                  <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-muted)] select-none shrink-0">
                     Ctrl K
                   </kbd>
                 )}
@@ -559,7 +568,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                   type="button"
                   onClick={handleSendCommand}
                   disabled={(!commandText.trim() && !selectedReceipt) || isAiLoading}
-                  className="btn btn--primary h-[26px] px-2.5 text-[11.5px] rounded-[6px] flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                  className="btn btn--primary h-[26px] px-2 sm:px-2.5 text-[11px] sm:text-[11.5px] rounded-[6px] flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
                   title="Submit command"
                 >
                   <span>Log</span>

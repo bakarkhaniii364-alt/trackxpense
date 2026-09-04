@@ -786,29 +786,29 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
         
         {/* Landing State: Coins + Greeting + 5 Financial Suggestions */}
         {!hasMessages && (
-          <div className="w-full max-w-md mx-auto my-auto flex flex-col items-center justify-center py-2 space-y-4 animate-in fade-in duration-300">
+          <div className="w-full max-w-md mx-auto my-auto flex flex-col items-center justify-center py-1 sm:py-2 space-y-2 sm:space-y-4 animate-in fade-in duration-300">
             
             {/* RabbAi Hero Icon */}
-            <div className="relative flex items-center justify-center py-2">
+            <div className="relative flex items-center justify-center py-0.5 sm:py-2">
               <img 
                 src="/rabAi icon.png" 
                 alt="RabbAi" 
-                className="w-20 h-20 sm:w-24 sm:h-24 object-contain select-none" 
+                className="w-14 h-14 sm:w-24 sm:h-24 object-contain select-none" 
               />
             </div>
 
             {/* Greeting */}
-            <div className="text-center space-y-1">
-              <h2 className="text-[20px] sm:text-[22px] font-semibold text-[var(--text-primary)] tracking-tight">
+            <div className="text-center space-y-0.5 sm:space-y-1 px-2">
+              <h2 className="text-[18px] sm:text-[22px] font-semibold text-[var(--text-primary)] tracking-tight">
                 {greeting}
               </h2>
-              <p className="text-[13px] text-[var(--text-secondary)]">
+              <p className="text-[12px] sm:text-[13px] text-[var(--text-secondary)] leading-tight">
                 A penny saved is peace of mind. Nu, what's doing with your gelt?
               </p>
             </div>
 
             {/* 5 Suggestion Pill Cards Stack */}
-            <div className="w-full space-y-2 pt-1">
+            <div className="w-full space-y-1.5 sm:space-y-2 pt-0.5 sm:pt-1">
               {suggestionCards.map((card, idx) => {
                 const IconComp = card.icon;
                 return (
@@ -816,14 +816,14 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => handleSend(card.prompt)}
-                    className="w-full p-2.5 px-3 rounded-[10px] bg-[#121216]/80 hover:bg-[#18181e] border border-[var(--border-default)] hover:border-[var(--border-active)] flex items-center gap-3 transition-all cursor-pointer text-left group"
+                    className="w-full p-2 px-2.5 sm:p-2.5 sm:px-3 rounded-[8px] sm:rounded-[10px] bg-[#121216]/80 hover:bg-[#18181e] border border-[var(--border-default)] hover:border-[var(--border-active)] flex items-center gap-2.5 sm:gap-3 transition-all cursor-pointer text-left group"
                   >
-                    <IconComp size={16} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0 transition-colors" />
+                    <IconComp size={15} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0 transition-colors" />
                     <div className="min-w-0 flex-1">
-                      <div className="text-[12.5px] font-medium text-[var(--text-primary)] leading-tight truncate">
+                      <div className="text-[12px] sm:text-[12.5px] font-medium text-[var(--text-primary)] leading-tight truncate">
                         {card.title}
                       </div>
-                      <div className="text-[11px] text-[var(--text-muted)] leading-tight truncate mt-0.5">
+                      <div className="text-[10.5px] sm:text-[11px] text-[var(--text-muted)] leading-tight truncate mt-0.5">
                         {card.subtitle}
                       </div>
                     </div>
@@ -1120,7 +1120,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       {/* ========================================================================= */}
       {/* CLOUDFLARE COMPOSE BOX (EXACT SCREENSHOT STYLE)                             */}
       {/* ========================================================================= */}
-      <div className="p-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] shrink-0 z-20">
+      <div className="p-2 sm:p-3 pb-[calc(8px+env(safe-area-inset-bottom,0px))] sm:pb-[calc(12px+env(safe-area-inset-bottom,0px))] shrink-0 z-20">
         <div className="w-full max-w-2xl mx-auto">
           {/* Selected Image Preview */}
           {selectedImage && (
@@ -1169,7 +1169,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
           )}
 
           {/* The Outer Box with Cloudflare Orange / Active Border */}
-          <div className="w-full bg-[#0e0e12] border border-[var(--accent)]/40 hover:border-[var(--accent)]/70 focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)]/30 rounded-[12px] p-2.5 transition-all">
+          <div className="w-full bg-[#0e0e12] border border-[var(--accent)]/40 hover:border-[var(--accent)]/70 focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)]/30 rounded-[10px] sm:rounded-[12px] p-2 sm:p-2.5 transition-all">
             
             {/* Expanding Textarea */}
             <textarea
@@ -1179,12 +1179,12 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
               onChange={handleTextChange}
               onKeyDown={handleKeyDown}
               placeholder="Type @ to tag a resource or ? for shortcuts"
-              className="input-reset w-full bg-transparent border-0 outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none leading-relaxed overflow-y-auto max-h-[140px] py-0.5"
+              className="input-reset w-full bg-transparent border-0 outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none leading-relaxed overflow-y-auto max-h-[100px] sm:max-h-[140px] py-0.5"
               style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
             />
 
             {/* Bottom Toolbar inside the box */}
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between pt-1.5 sm:pt-2">
               
               {/* Left: Attachment Paperclip + Voice Mic */}
               <div className="flex items-center gap-1.5">

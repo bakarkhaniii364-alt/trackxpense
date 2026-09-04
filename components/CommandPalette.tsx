@@ -234,29 +234,27 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         className="relative w-full max-w-xl bg-[#121216] border border-[var(--border-default)] rounded-[10px] shadow-2xl overflow-hidden flex flex-col z-10 text-[var(--text-primary)]"
       >
         {/* Top Input Bar */}
-        <div className="h-[48px] px-4 flex items-center gap-3 border-b border-[var(--border-default)] shrink-0">
+        <div className="h-[48px] px-3 sm:px-4 flex items-center gap-2 sm:gap-3 border-b border-[var(--border-default)] shrink-0">
           <Search size={16} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
           <input 
             ref={inputRef}
             type="text" 
-            placeholder="Type 'I didn't spend 200 on coffee', jump to view, or switch wallet..."
+            placeholder="Search commands, notes, wallets..."
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent border-none outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+            className="flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
           />
-          <span className="text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-subtle)] px-1.5 py-0.5 rounded border border-[var(--border-default)]">
-            Cmd/Ctrl K
+          <span className="hidden sm:inline-flex text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-subtle)] px-1.5 py-0.5 rounded border border-[var(--border-default)] shrink-0">
+            Ctrl K
           </span>
           <button 
             onClick={onClose}
-            className="px-1.5 py-0.5 rounded-[4px] border border-[var(--border-default)] bg-[var(--bg-subtle)]/50 text-[10px] text-[var(--text-muted)] font-mono hover:text-[var(--text-primary)] transition-colors"
+            className="px-1.5 py-0.5 rounded-[4px] border border-[var(--border-default)] bg-[var(--bg-subtle)]/50 text-[10px] text-[var(--text-muted)] font-mono hover:text-[var(--text-primary)] transition-colors shrink-0"
           >
             Esc
           </button>
         </div>
-
-        {/* Results List */}
         <div className="max-h-[380px] overflow-y-auto p-2 no-scrollbar">
           {results.length > 0 ? (
             Array.from(sectionsMap.entries()).map(([sectionName, items]) => (

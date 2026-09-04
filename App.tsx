@@ -939,7 +939,7 @@ export default function App() {
   }
 
     return (
-        <div className="h-screen w-full bg-[var(--bg-page)] text-main font-sans selection:bg-primary/30 transition-colors duration-300 flex flex-col lg:flex-row overflow-hidden relative">
+        <div className="h-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full bg-[var(--bg-page)] text-main font-sans selection:bg-primary/30 transition-colors duration-300 flex flex-col lg:flex-row overflow-hidden relative">
           {isDesktop && (
             <svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }} aria-hidden>
               <defs>
@@ -1300,8 +1300,8 @@ export default function App() {
             view === 'rabbai'
               ? 'max-w-none p-0 m-0 flex flex-col overflow-hidden'
               : isDesktop 
-                ? 'max-w-none px-8 overflow-y-auto pb-4' 
-                : 'max-w-md mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom,0px))]'
+                ? 'max-w-none px-8 overflow-y-auto pb-4 no-scrollbar' 
+                : 'max-w-md mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-2 sm:pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] no-scrollbar'
           } relative`}
         >
           <ErrorBoundary>

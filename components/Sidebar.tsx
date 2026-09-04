@@ -144,7 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }}
         className={`${
           isStatic
-            ? `relative ${isCollapsed ? 'w-[60px]' : 'w-[260px]'} bg-[var(--bg-sidebar)] border-r shrink-0 h-screen translate-x-0 transition-[width,border-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`
+            ? `relative ${isCollapsed ? 'w-[60px]' : 'w-[260px]'} bg-[var(--bg-sidebar)] border-r shrink-0 h-[100dvh] h-full translate-x-0 transition-[width,border-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`
             : `fixed inset-y-0 left-0 h-full ${isCollapsed ? 'w-[60px]' : 'w-[280px]'} bg-[var(--bg-sidebar)] border-r shadow-2xl shrink-0 z-[101] transform transition-[transform,width,border-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
         } flex flex-col overflow-hidden select-none`}
       >
