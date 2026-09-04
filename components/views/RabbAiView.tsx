@@ -12,7 +12,6 @@ import {
   Info,
   TrendUp,
   Hourglass,
-  Ghost,
   Calendar,
   CreditCard,
   FolderSimple,
@@ -21,6 +20,7 @@ import {
   ArrowCounterClockwise,
   Waveform
 } from '@phosphor-icons/react';
+import { SpotifyIcon } from '../shared/SpotifyIcon';
 import { AppData, TransactionType, CategoryItem, WalletType } from '../../types';
 import { 
   RabbAiConversation, 
@@ -151,13 +151,13 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     }
   }, [displayMessages.length, hasMessages]);
 
-  // Auto-send query if forwarded from dashboard compose box (instant dispatch, no delay)
+  // Auto-send query if forwarded from search box or dashboard compose box (instant dispatch in a fresh conversation)
   useEffect(() => {
     if (initialQuery || initialImage) {
       const q = initialQuery || '';
       const img = initialImage || null;
       onClearInitialQuery?.();
-      handleSend(q, img);
+      handleSend(q, img, []);
     }
   }, [initialQuery, initialImage]);
 
@@ -503,7 +503,11 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
   };
 
   // Send message from compose bar
-  const handleSend = async (overrideText?: string, overrideImage?: string | null) => {
+  const handleSend = async (
+    overrideText?: string, 
+    overrideImage?: string | null,
+    baseMessagesOverride?: RabbAiMessage[]
+  ) => {
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
@@ -521,7 +525,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       textareaRef.current.style.height = 'auto';
     }
 
-    await executeSendMessage(userText, activeConv?.messages || [], userImg);
+    const baseMsgs = baseMessagesOverride !== undefined ? baseMessagesOverride : (activeConv?.messages || []);
+    await executeSendMessage(userText, baseMsgs, userImg);
   };
 
   // Save edit of an existing user message: rolls back any transactions from this turn and re-generates
@@ -734,7 +739,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       prompt: 'How many days of financial runway do I have left based on my current balance and burn rate?'
     },
     {
-      icon: Ghost,
+      icon: SpotifyIcon,
       title: 'Recurring charges',
       subtitle: 'Review subscriptions & recurring bills',
       prompt: 'List all my active subscriptions, recurring expenses, and upcoming charges'

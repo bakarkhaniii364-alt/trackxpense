@@ -11,7 +11,6 @@ import {
   HandCoins,
   Sliders,
   Calendar,
-  Ghost,
   CaretRight,
   CaretDown,
   MagnifyingGlass,
@@ -22,6 +21,8 @@ import {
   X,
   Sparkle
 } from '@phosphor-icons/react';
+import { AiStarIcon } from './shared/AiStarIcon';
+import { SpotifyIcon } from './shared/SpotifyIcon';
 import { AppData } from '../types';
 import { Haptics } from '../services/haptics';
 
@@ -133,19 +134,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {!isStatic && (
         <div
-          className={`fixed inset-0 bg-black/80 backdrop-blur-md z-[100] transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          className={`fixed inset-0 bg-black/60 z-[100] transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
           onClick={onClose}
         />
       )}
       <aside
         className={`${
           isStatic
-            ? `relative ${isCollapsed ? 'w-[56px] bg-transparent border-r-0 shadow-none' : 'w-[280px] bg-[var(--bg-sidebar)] border-r border-[var(--border-default)]'} shrink-0 h-screen translate-x-0 transition-[width,background-color,border-color] duration-200`
-            : `fixed inset-y-0 left-0 h-full ${isCollapsed ? 'w-[56px] bg-transparent border-r-0 shadow-none' : 'w-[280px] bg-[var(--bg-sidebar)] border-r border-[var(--border-default)] shadow-2xl'} shrink-0 z-[101] transform transition-[transform,width,background-color,border-color] duration-200 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+            ? `relative ${isCollapsed ? 'w-[60px]' : 'w-[260px]'} bg-[var(--bg-sidebar)] border-r border-[var(--border-default)] shrink-0 h-screen translate-x-0 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`
+            : `fixed inset-y-0 left-0 h-full ${isCollapsed ? 'w-[60px]' : 'w-[280px]'} bg-[var(--bg-sidebar)] border-r border-[var(--border-default)] shadow-2xl shrink-0 z-[101] transform transition-[transform,width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
         } flex flex-col overflow-hidden select-none`}
       >
         {/* Top Header: Branding + Sidebar Shrink Button */}
-        <div className="h-[52px] px-3 flex items-center justify-between shrink-0">
+        <div className="h-[52px] px-3 flex items-center justify-between shrink-0 overflow-hidden">
           <div
             onClick={() => {
               if (isCollapsed) {
@@ -154,61 +155,71 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }
             }}
             title={isCollapsed ? "Expand sidebar" : undefined}
-            className={`h-8 px-1 flex items-center text-left select-none overflow-hidden ${isCollapsed ? 'cursor-pointer' : ''}`}
+            className={`h-9 flex items-center select-none overflow-hidden ${isCollapsed ? 'cursor-pointer' : ''}`}
           >
-            <div className="w-7 h-7 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 flex items-center justify-center shrink-0">
               <img 
                 src="/icon.png" 
                 alt="TrackXpense" 
                 className="w-6 h-6 rounded-full object-contain shrink-0 select-none pointer-events-none" 
               />
             </div>
-            <div className={`flex-1 flex items-center pl-2.5 whitespace-nowrap transition-all duration-200 ${isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
-              <span className="text-[13px] font-medium text-[var(--text-primary)] tracking-tight">
-                TrackXpense
-              </span>
-            </div>
+            <span className={`text-[13px] font-medium text-[var(--text-primary)] tracking-tight whitespace-nowrap pl-2 transition-opacity duration-200 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+              TrackXpense
+            </span>
           </div>
 
           {isStatic ? (
-            !isCollapsed && (
-              <button
-                onClick={() => setIsCollapsed(true)}
-                title="Collapse sidebar"
-                className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
-              >
-                <SidebarIcon size={16} weight="regular" />
-              </button>
-            )
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className={`w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all shrink-0 cursor-pointer ${
+                isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              }`}
+            >
+              <SidebarIcon size={16} weight="regular" />
+            </button>
           ) : (
             <button
               onClick={onClose}
               title="Close drawer"
-              className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
+              className="w-8 h-8 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all shrink-0 cursor-pointer"
             >
-              <X size={16} strokeWidth={1.5} />
+              <div className="relative w-4 h-4 flex items-center justify-center pointer-events-none">
+                <span
+                  className={`absolute h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-300 ease-in-out ${
+                    isOpen ? 'rotate-45 translate-y-0' : '-translate-y-1.5'
+                  }`}
+                />
+                <span
+                  className={`absolute h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-200 ease-in-out ${
+                    isOpen ? 'opacity-0 scale-x-0' : 'opacity-100 scale-x-100'
+                  }`}
+                />
+                <span
+                  className={`absolute h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-300 ease-in-out ${
+                    isOpen ? '-rotate-45 translate-y-0' : 'translate-y-1.5'
+                  }`}
+                />
+              </div>
             </button>
           )}
         </div>
 
         {/* Quick Search Bar */}
-        <div className="px-3 pt-1 pb-1">
+        <div className="px-3 pt-1 pb-1 overflow-hidden">
           <button
             onClick={() => {
               if (onOpenCommandPalette) onOpenCommandPalette();
               if (!isStatic) onClose();
             }}
             title="Quick search (Ctrl+K)"
-            className={`w-full h-[32px] flex items-center gap-2.5 rounded-[6px] text-[12px] transition-all overflow-hidden ${
-              isCollapsed
-                ? 'px-1 bg-transparent border-0 hover:bg-white/5 text-[var(--text-muted)] hover:text-white'
-                : 'px-2 bg-[var(--bg-subtle)]/60 border border-[var(--border-default)] hover:border-[var(--border-active)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
+            className="w-full h-[32px] flex items-center rounded-[6px] text-[12px] bg-[var(--bg-subtle)]/60 border border-[var(--border-default)] hover:border-[var(--border-active)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer overflow-hidden"
           >
-            <div className="w-7 h-7 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 flex items-center justify-center shrink-0">
               <MagnifyingGlass size={14} weight="regular" />
             </div>
-            <div className={`flex-1 flex items-center justify-between whitespace-nowrap transition-all duration-200 pr-1 ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+            <div className={`flex-1 flex items-center justify-between whitespace-nowrap pr-2 transition-opacity duration-200 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
               <span>Quick search...</span>
               <kbd className="text-[9px] font-mono px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-muted)]">Ctrl K</kbd>
             </div>
@@ -216,17 +227,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation Items */}
-        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1 no-scrollbar">
-          <div ref={mainMenuContainerRef} className="space-y-1 relative">
+        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1 no-scrollbar overflow-x-hidden">
+          <div ref={mainMenuContainerRef} className="space-y-1 relative w-full">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: SquaresFour, btnRef: dashboardRef },
-              ...(isStatic ? [{ id: 'rabbai', label: 'RabbAi Assistant', icon: Sparkle }] : []),
+              ...(isStatic ? [{ id: 'rabbai', label: 'RabbAi Assistant', icon: AiStarIcon }] : []),
               { id: 'history', label: 'Transactions', icon: Pulse, btnRef: historyRef },
               { id: 'analytics', label: 'Analytics', icon: TrendUp, btnRef: analyticsRef },
               { id: 'debts', label: 'Debts & Loans', icon: HandCoins, btnRef: debtsRef },
               { id: 'control', label: 'Budgets & Categories', icon: Sliders },
               { id: 'provisions', label: 'Upcoming Expenses', icon: Calendar },
-              { id: 'subscriptions', label: 'Subscriptions', icon: Ghost },
+              { id: 'subscriptions', label: 'Subscriptions', icon: SpotifyIcon },
               { id: 'identity', label: 'Profile & Settings', icon: UserCircle },
             ].map((item) => {
               const isSelected = currentView === item.id;
@@ -240,18 +251,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onViewChange(item.id);
                     if (!isStatic) onClose();
                   }}
-                  className={`w-full h-[36px] px-1 flex items-center rounded-[6px] transition-colors text-[13px] overflow-hidden cursor-pointer ${
+                  className={`w-full h-[36px] flex items-center rounded-[6px] transition-colors text-[13px] cursor-pointer overflow-hidden ${
                     isSelected
-                      ? isCollapsed ? 'bg-transparent text-white font-medium' : 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)] font-medium'
+                      ? 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)] font-medium'
                       : 'hover:bg-white/5 text-[var(--text-muted)] hover:text-[var(--text-primary)] font-normal'
                   }`}
                 >
-                  <div className="w-7 h-7 flex items-center justify-center shrink-0">
-                    {item.icon && <item.icon size={16} weight="regular" className={isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'} />}
+                  <div className="w-9 h-9 flex items-center justify-center shrink-0">
+                    {item.icon && (
+                      <item.icon
+                        size={16}
+                        weight="regular"
+                        className={isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}
+                      />
+                    )}
                   </div>
-                  <div className={`flex-1 flex items-center pl-2 whitespace-nowrap transition-all duration-200 ${isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
-                    <span>{item.label}</span>
-                  </div>
+                  <span
+                    className={`truncate whitespace-nowrap pl-2 transition-opacity duration-200 ${
+                      isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                    }`}
+                  >
+                    {item.label}
+                  </span>
                 </button>
               );
             })}
@@ -259,7 +280,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Bottom User Section */}
-        <div className="p-3 mt-auto shrink-0 relative">
+        <div className="p-3 mt-auto shrink-0 relative overflow-hidden">
           {/* User Trigger Button */}
           <div 
             ref={userButtonRef}
@@ -268,12 +289,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               setIsUserMenuOpen(!isUserMenuOpen); 
             }}
             title={data.profile.name}
-            className="p-1 rounded-[8px] hover:bg-white/5 cursor-pointer transition-colors group flex items-center gap-2 overflow-hidden"
+            className="w-full h-[36px] rounded-[6px] hover:bg-white/5 cursor-pointer transition-colors group flex items-center overflow-hidden"
           >
-            <div className={`w-7 h-7 rounded-[6px] ${isCollapsed ? 'bg-transparent text-white border-0 font-bold' : 'bg-white/10 text-[var(--text-primary)] font-semibold'} flex items-center justify-center text-xs shrink-0 transition-colors`}>
-              {data.profile.name ? data.profile.name.charAt(0).toUpperCase() : 'U'}
+            <div className="w-9 h-9 flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 rounded-[6px] bg-white/10 text-[var(--text-primary)] font-semibold flex items-center justify-center text-xs shrink-0 transition-colors">
+                {data.profile.name ? data.profile.name.charAt(0).toUpperCase() : 'U'}
+              </div>
             </div>
-            <div className={`flex-1 flex items-center justify-between min-w-0 whitespace-nowrap transition-all duration-200 pr-1 ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+            <div className={`flex-1 flex items-center justify-between min-w-0 whitespace-nowrap pl-2 pr-1 transition-opacity duration-200 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
               <div className="flex flex-col min-w-0">
                 <h2 className="text-[12px] font-medium text-[var(--text-primary)] leading-tight truncate">{data.profile.name}</h2>
                 <span className="text-[10px] text-[var(--text-muted)] font-normal truncate">Standard Account</span>

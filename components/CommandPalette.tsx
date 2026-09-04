@@ -7,18 +7,18 @@ import {
   ArrowDownRight,
   HandCoins,
   Calendar,
-  Ghost,
   UserCircle,
   Fingerprint,
   Plus,
   CaretRight as ChevronRight,
-  Sparkle as Sparkles,
   Wallet as WalletIcon,
   Sliders,
   Check,
   Prohibit as Ban,
   Lightning as Zap
 } from '@phosphor-icons/react';
+import { AiStarIcon as Sparkles } from './shared/AiStarIcon';
+import { SpotifyIcon } from './shared/SpotifyIcon';
 import { AppData, ViewState, TransactionType } from '../types';
 import { parseTransactionWithAI, AIParsedTransaction } from '../services/aiService';
 
@@ -57,7 +57,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     { id: 'debt', label: 'Debts & Loans', icon: HandCoins, action: () => onViewChange('debts'), section: 'Navigation' },
     { id: 'ctrl', label: 'Budgets & Categories', icon: Sliders, action: () => onViewChange('control'), section: 'Navigation' },
     { id: 'prov', label: 'Upcoming Bills & Provisions', icon: Calendar, action: () => onViewChange('provisions'), section: 'Navigation' },
-    { id: 'subs', label: 'Subscriptions & Recurring', icon: Ghost, action: () => onViewChange('subscriptions'), section: 'Navigation' },
+    { id: 'subs', label: 'Subscriptions & Recurring', icon: SpotifyIcon, action: () => onViewChange('subscriptions'), section: 'Navigation' },
     { id: 'sett', label: 'Profile & Account Settings', icon: UserCircle, action: () => onViewChange('identity'), section: 'Navigation' },
     { id: 'priv', label: 'Toggle Privacy Mode', icon: Fingerprint, action: onTogglePrivacy, section: 'Security' },
   ];

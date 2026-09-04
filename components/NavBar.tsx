@@ -6,6 +6,7 @@ import {
   Sparkle,
   List as Menu
 } from '@phosphor-icons/react';
+import { AiStarIcon } from './shared/AiStarIcon';
 import { ViewState } from '../types';
 import { Haptics } from '../services/haptics';
 
@@ -94,7 +95,7 @@ export const NavBar: React.FC<NavBarProps> = ({
           }`}
         >
           <div className="relative flex flex-col items-center">
-            <Sparkle size={17} strokeWidth={1.5} className={currentView === 'rabbai' ? 'text-[var(--ds-accent)]' : ''} />
+            <AiStarIcon size={17} strokeWidth={1.5} className={currentView === 'rabbai' ? 'text-[var(--ds-accent)]' : ''} />
             {currentView === 'rabbai' && (
               <span className="absolute -bottom-1 w-3 h-[2px] rounded-full bg-[var(--ds-accent)]" />
             )}

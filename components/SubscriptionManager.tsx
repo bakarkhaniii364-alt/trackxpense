@@ -3,13 +3,13 @@ import { AppData, Transaction, TransactionType, RecurringRule } from '../types';
 import {
   Calendar,
   CheckCircle as CheckCircle2,
-  Ghost,
   Plus,
   WarningCircle as AlertCircle,
   TrendUp as TrendingUp,
   X,
   Trash as Trash2
 } from '@phosphor-icons/react';
+import { SpotifyIcon } from './shared/SpotifyIcon';
 import { Haptics } from '../services/haptics';
 import { Modal } from './shared/Modal';
 import { CustomSelect } from './shared/CustomSelect';
@@ -165,7 +165,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                                         className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all"
                                     >
                                         <div className="flex items-center gap-3.5">
-                                            <Ghost size={20} strokeWidth={1.5} className={rule.isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} />
+                                            <SpotifyIcon size={20} strokeWidth={1.5} className={rule.isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} />
                                             <div>
                                                 <h4 className="text-[14px] font-medium text-[var(--text-primary)] flex items-center gap-2">
                                                     {rule.name}
@@ -207,7 +207,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                                     return (
                                         <div key={sub.id} className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all">
                                             <div className="flex items-center gap-3.5">
-                                                <Ghost size={20} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+                                                <SpotifyIcon size={20} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                                                 <div>
                                                     <h4 className="text-[14px] font-medium text-[var(--text-primary)]">{sub.name}</h4>
                                                     <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
@@ -233,7 +233,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
             ) : (
                 /* Centered Empty State Box */
                 <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] p-12 text-center flex flex-col items-center justify-center my-4">
-                    <Ghost size={32} strokeWidth={1.5} className="text-[var(--text-muted)] mb-3" />
+                    <SpotifyIcon size={32} strokeWidth={1.5} className="text-[var(--text-muted)] mb-3" />
                     <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">No active subscriptions</h3>
                     <p className="text-xs text-[var(--text-secondary)] max-w-sm mb-6 leading-relaxed">
                         Track your recurring software, streaming services, or monthly bills to prevent hidden subscription drift.

@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import {
   ChartPie as PieChart,
   Calendar,
-  Ghost,
   TrendUp as TrendingUp,
   Sliders,
   UserCircle,
@@ -28,6 +27,8 @@ import {
   Warning as AlertTriangle,
   Sparkle
 } from '@phosphor-icons/react';
+import { AiStarIcon } from './shared/AiStarIcon';
+import { SpotifyIcon } from './shared/SpotifyIcon';
 import { ViewState, AppData, ThemeOption, Streak } from '../types';
 import { Haptics } from '../services/haptics';
 import { formatMoney } from '../utils/formatters';
@@ -290,7 +291,7 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                   id: 'rabbai' as ViewState,
                   label: 'RabbAi Assistant',
                   desc: 'Conversational AI, receipt scanning & commands',
-                  icon: Sparkle,
+                  icon: AiStarIcon,
                 },
                 {
                   id: 'analytics' as ViewState,
@@ -308,7 +309,7 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                   id: 'subscriptions' as ViewState,
                   label: 'Subscriptions',
                   desc: 'Recurring automated cost tracking',
-                  icon: Ghost,
+                  icon: SpotifyIcon,
                 },
                 {
                   id: 'control' as ViewState,

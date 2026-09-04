@@ -31,9 +31,11 @@ import {
   X, PlusCircle, Check,
   Plus, Pulse as Activity, WarningCircle as AlertCircle,
   CaretLeft as ChevronLeft, CaretRight as ChevronRight,
-  SquaresFour as LayoutGrid, TrendUp as TrendingUp, ArrowDownRight, HandCoins, Sliders, Calendar, Ghost, UserCircle, MagnifyingGlass as Search, Info,
+  SquaresFour as LayoutGrid, TrendUp as TrendingUp, ArrowDownRight, HandCoins, Sliders, Calendar, UserCircle, MagnifyingGlass as Search, Info,
   Eye, EyeSlash as EyeOff, Sparkle, List, ClockCounterClockwise, Wallet as WalletIcon, Key
 } from '@phosphor-icons/react';
+import { AiStarIcon } from './components/shared/AiStarIcon';
+import { SpotifyIcon } from './components/shared/SpotifyIcon';
 import { parseCurrentRoute, subscribeToRoutes, navigateTo } from './src/services/router';
 import { CategoryIcon } from './components/shared/CategoryIcon';
 import { getDateTime, formatMoney } from './utils/formatters';
@@ -119,6 +121,25 @@ export default function App() {
     saveRabbAiConversations(updated);
     setActiveConvId(newConv.id);
     setIsRabbaiConvDropdownOpen(false);
+    return newConv.id;
+  };
+
+  const handleOpenRabbAiWithQuery = (q: { text: string; image?: string }) => {
+    Haptics.light();
+    const newConvId = `conv_${Date.now()}`;
+    const newConv: RabbAiConversation = {
+      id: newConvId,
+      title: q.text ? q.text.slice(0, 32) : 'New conversation',
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    const updated = [newConv, ...conversations];
+    setConversations(updated);
+    saveRabbAiConversations(updated);
+    setActiveConvId(newConvId);
+    setRabbaiPendingQuery(q);
+    requestViewChange('rabbai');
   };
 
   const handleDeleteRabbAiConversation = (id: string, e: React.MouseEvent) => {
@@ -875,6 +896,23 @@ export default function App() {
   };
 
   const requestViewChange = (newView: ViewState, subTab?: string) => {
+      if (newView === 'rabbai' && view !== 'rabbai') {
+        // If user left conversation and is now tapping on AI, open in a new conversation
+        if (activeRabbAiConv && activeRabbAiConv.messages.length > 0) {
+          const newConvId = `conv_${Date.now()}`;
+          const newConv: RabbAiConversation = {
+            id: newConvId,
+            title: 'New conversation',
+            messages: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          const updated = [newConv, ...conversations];
+          setConversations(updated);
+          saveRabbAiConversations(updated);
+          setActiveConvId(newConvId);
+        }
+      }
       if (isDirty) {
           setPendingView(newView);
           setIsUnsavedModalOpen(true);
@@ -1022,12 +1060,28 @@ export default function App() {
                       type="button"
                       onClick={() => {
                         Haptics.light();
-                        setIsSidebarOpen(true);
+                        setIsSidebarOpen(prev => !prev);
                       }}
                       className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
-                      title="Open navigation menu"
+                      title={isSidebarOpen ? "Close navigation menu" : "Open navigation menu"}
                     >
-                      <List size={20} strokeWidth={1.5} />
+                      <div className="relative w-5 h-5 flex items-center justify-center pointer-events-none">
+                        <span
+                          className={`absolute h-[1.5px] w-4 bg-current rounded-full transition-all duration-300 ease-in-out ${
+                            isSidebarOpen ? 'rotate-45 translate-y-0' : '-translate-y-1.5'
+                          }`}
+                        />
+                        <span
+                          className={`absolute h-[1.5px] w-4 bg-current rounded-full transition-all duration-200 ease-in-out ${
+                            isSidebarOpen ? 'opacity-0 scale-x-0' : 'opacity-100 scale-x-100'
+                          }`}
+                        />
+                        <span
+                          className={`absolute h-[1.5px] w-4 bg-current rounded-full transition-all duration-300 ease-in-out ${
+                            isSidebarOpen ? '-rotate-45 translate-y-0' : 'translate-y-1.5'
+                          }`}
+                        />
+                      </div>
                     </button>
 
                     {/* Wallet Dropdown with Wallet Icon (Container-Free) */}
@@ -1060,7 +1114,7 @@ export default function App() {
                       className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
                       title="Open RabbAi Assistant"
                     >
-                      <Sparkle size={19} strokeWidth={1.5} />
+                      <AiStarIcon size={19} strokeWidth={1.5} />
                     </button>
 
                     <button
@@ -1194,7 +1248,7 @@ export default function App() {
                       analytics: { title: 'Analytics & Trends', icon: TrendingUp },
                       control: { title: 'Budgets & Categories', icon: Sliders },
                       provisions: { title: 'Upcoming Expenses', icon: Calendar },
-                      subscriptions: { title: 'Subscriptions', icon: Ghost },
+                      subscriptions: { title: 'Subscriptions', icon: SpotifyIcon },
                       identity: { title: 'Profile & Settings', icon: UserCircle },
                     };
                     const current = pageConfig[view] || { title: 'Overview', icon: LayoutGrid };
@@ -1290,12 +1344,7 @@ export default function App() {
                         onEditTransaction={openEditModal}
                         onDeleteTemplate={handleDeleteTemplate}
                         onAddTransaction={handleAddTransaction}
-                        onOpenRabbAi={(q) => {
-                          const newConvId = `conv_${Date.now()}`;
-                          setActiveConvId(newConvId);
-                          setRabbaiPendingQuery(q);
-                          requestViewChange('rabbai');
-                        }}
+                        onOpenRabbAi={handleOpenRabbAiWithQuery}
                     />
                  )}
                  {view === 'history' && (
@@ -1828,12 +1877,7 @@ export default function App() {
             updateData({ currentWalletId: walletId });
             Haptics.light();
           }}
-          onOpenRabbAi={(q) => {
-            const newConvId = `conv_${Date.now()}`;
-            setActiveConvId(newConvId);
-            setRabbaiPendingQuery(q);
-            requestViewChange('rabbai');
-          }}
+          onOpenRabbAi={handleOpenRabbAiWithQuery}
         />
       )}
     </div>

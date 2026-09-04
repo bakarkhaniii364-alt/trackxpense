@@ -23,10 +23,10 @@ import {
   HandCoins,
   Sliders,
   Calendar,
-  Ghost,
   UserCircle,
   Prohibit as Ban
 } from '@phosphor-icons/react';
+import { SpotifyIcon } from '../shared/SpotifyIcon';
 import { parseTransactionWithAI, AIParsedTransaction } from '../../services/aiService';
 import { Transaction, TransactionType, AppData, Wallet, Category } from '../../types';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
@@ -39,6 +39,7 @@ import { LocalAdvisor } from '../dashboard/LocalAdvisor';
 import { BudgetAlerts } from '../dashboard/BudgetAlerts';
 import { SimulationModule } from '../dashboard/SimulationModule';
 import { CloudflareDateRangePicker, DateRange } from '../shared/CloudflareDateRangePicker';
+import { AiStarIcon } from '../shared/AiStarIcon';
 import { NoDataWave } from '../shared/NoDataWave';
 import { sendRabbAiTextMessage, sendRabbAiImageMessage, RabbAiMessage } from '../../services/rabbAiService';
 import { Haptics } from '../../services/haptics';
@@ -605,9 +606,9 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                       { id: 'analytics', label: 'Financial Analytics', icon: TrendingUp, action: () => { setView('analytics'); setIsSearchFocused(false); } },
                       { id: 'debts', label: 'Debts & Loans', icon: HandCoins, action: () => { setView('debts'); setIsSearchFocused(false); } },
                       { id: 'control', label: 'Budgets & Categories', icon: Sliders, action: () => { setView('control'); setIsSearchFocused(false); } },
-                      { id: 'bills', label: 'Upcoming Bills', icon: Calendar, action: () => { setView('bills'); setIsSearchFocused(false); } },
-                      { id: 'stealth', label: 'Stealth Vault', icon: Ghost, action: () => { setView('stealth'); setIsSearchFocused(false); } },
-                      { id: 'settings', label: 'Profile & Settings', icon: UserCircle, action: () => { setView('settings'); setIsSearchFocused(false); } },
+                      { id: 'bills', label: 'Upcoming Bills & Expenses', icon: Calendar, action: () => { setView('provisions'); setIsSearchFocused(false); } },
+                      { id: 'subscriptions', label: 'Subscriptions & Recurring', icon: SpotifyIcon, action: () => { setView('subscriptions'); setIsSearchFocused(false); } },
+                      { id: 'settings', label: 'Profile & Settings', icon: UserCircle, action: () => { setView('identity'); setIsSearchFocused(false); } },
                     ]
                       .filter(item => !commandText.trim() || item.label.toLowerCase().includes(commandText.toLowerCase()))
                       .slice(0, commandText.trim() ? 6 : 5)
@@ -700,7 +701,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
           {/* Feedback Card */}
           {isAiLoading && (
             <div className="p-2.5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center gap-2 text-[12px] text-[var(--text-secondary)] animate-in fade-in">
-              <Sparkle size={14} className="text-[var(--accent)] animate-spin" />
+              <AiStarIcon size={14} className="text-[var(--accent)] animate-spin" />
               <span>Processing and updating your ledger...</span>
             </div>
           )}
