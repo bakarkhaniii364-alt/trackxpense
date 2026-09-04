@@ -32,7 +32,7 @@ import {
   Plus, Pulse as Activity, WarningCircle as AlertCircle,
   CaretLeft as ChevronLeft, CaretRight as ChevronRight,
   SquaresFour as LayoutGrid, TrendUp as TrendingUp, ArrowDownRight, HandCoins, Sliders, Calendar, UserCircle, MagnifyingGlass as Search, Info,
-  Eye, EyeSlash as EyeOff, Sparkle, List, ClockCounterClockwise, Wallet as WalletIcon, Key
+  Eye, EyeSlash as EyeOff, Sparkle, List, ClockCounterClockwise, Wallet as WalletIcon, Key, NotePencil
 } from '@phosphor-icons/react';
 import { AiStarIcon } from './components/shared/AiStarIcon';
 import { SpotifyIcon } from './components/shared/SpotifyIcon';
@@ -993,7 +993,7 @@ export default function App() {
                             onClick={handleCreateNewRabbAiConversation}
                             className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[6px] text-[var(--text-primary)] hover:bg-white/5 font-medium cursor-pointer transition-colors border-b border-[var(--border-default)] mb-1"
                           >
-                            <Plus size={14} strokeWidth={1.5} />
+                            <NotePencil size={14} strokeWidth={1.5} />
                             <span>New conversation</span>
                           </button>
 
@@ -1032,7 +1032,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Right: + (new chat) and ✕ (close / return to dashboard) */}
+                  {/* Right: NotePencil (new conversation) and ✕ (close / return to dashboard) */}
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
@@ -1040,7 +1040,7 @@ export default function App() {
                       className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
                       title="New conversation"
                     >
-                      <Plus size={18} strokeWidth={1.5} />
+                      <NotePencil size={18} strokeWidth={1.5} />
                     </button>
                     <button
                       type="button"
@@ -1158,7 +1158,7 @@ export default function App() {
                         onClick={handleCreateNewRabbAiConversation}
                         className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[6px] text-[var(--text-primary)] hover:bg-white/5 font-medium cursor-pointer transition-colors border-b border-[var(--border-default)] mb-1"
                       >
-                        <Plus size={14} strokeWidth={1.5} />
+                        <NotePencil size={14} strokeWidth={1.5} />
                         <span>New conversation</span>
                       </button>
 
@@ -1231,8 +1231,8 @@ export default function App() {
                     onClick={handleCreateNewRabbAiConversation}
                     className="h-[32px] px-2.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                   >
-                    <Plus size={14} strokeWidth={1.5} />
-                    <span>New chat</span>
+                    <NotePencil size={14} strokeWidth={1.5} />
+                    <span>New conversation</span>
                   </button>
                 </div>
               </div>

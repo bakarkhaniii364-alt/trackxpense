@@ -139,70 +139,89 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
       <aside
+        style={{
+          borderRightColor: isCollapsed ? 'transparent' : 'var(--border-default)',
+        }}
         className={`${
           isStatic
-            ? `relative ${isCollapsed ? 'w-[60px]' : 'w-[260px]'} bg-[var(--bg-sidebar)] border-r border-[var(--border-default)] shrink-0 h-screen translate-x-0 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`
-            : `fixed inset-y-0 left-0 h-full ${isCollapsed ? 'w-[60px]' : 'w-[280px]'} bg-[var(--bg-sidebar)] border-r border-[var(--border-default)] shadow-2xl shrink-0 z-[101] transform transition-[transform,width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+            ? `relative ${isCollapsed ? 'w-[60px]' : 'w-[260px]'} bg-[var(--bg-sidebar)] border-r shrink-0 h-screen translate-x-0 transition-[width,border-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`
+            : `fixed inset-y-0 left-0 h-full ${isCollapsed ? 'w-[60px]' : 'w-[280px]'} bg-[var(--bg-sidebar)] border-r shadow-2xl shrink-0 z-[101] transform transition-[transform,width,border-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
         } flex flex-col overflow-hidden select-none`}
       >
-        {/* Top Header: Branding + Sidebar Shrink Button */}
-        <div className="h-[52px] px-3 flex items-center justify-between shrink-0 overflow-hidden">
-          <div
-            onClick={() => {
-              if (isCollapsed) {
+        {/* Top Header: Branding + Sidebar Collapse/Expand Button */}
+        <div className="h-[52px] px-3 flex items-center shrink-0 overflow-hidden">
+          {isCollapsed ? (
+            <button
+              onClick={() => {
                 Haptics.light();
                 setIsCollapsed(false);
-              }
-            }}
-            title={isCollapsed ? "Expand sidebar" : undefined}
-            className={`h-9 flex items-center select-none overflow-hidden ${isCollapsed ? 'cursor-pointer' : ''}`}
-          >
-            <div className="w-9 h-9 flex items-center justify-center shrink-0">
+              }}
+              title="Expand sidebar"
+              className="w-9 h-9 rounded-[6px] flex items-center justify-center hover:bg-white/5 cursor-pointer relative group transition-colors shrink-0"
+            >
               <img 
                 src="/icon.png" 
                 alt="TrackXpense" 
-                className="w-6 h-6 rounded-full object-contain shrink-0 select-none pointer-events-none" 
+                className="w-6 h-6 rounded-full object-contain pointer-events-none transition-opacity duration-200 group-hover:opacity-0 absolute" 
               />
-            </div>
-            <span className={`text-[13px] font-medium text-[var(--text-primary)] tracking-tight whitespace-nowrap pl-2 transition-opacity duration-200 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-              TrackXpense
-            </span>
-          </div>
-
-          {isStatic ? (
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className={`w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all shrink-0 cursor-pointer ${
-                isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
-              }`}
-            >
-              <SidebarIcon size={16} weight="regular" />
+              <SidebarIcon 
+                size={16} 
+                weight="regular" 
+                className="text-[var(--text-primary)] opacity-0 group-hover:opacity-100 transition-opacity duration-200" 
+              />
             </button>
           ) : (
-            <button
-              onClick={onClose}
-              title="Close drawer"
-              className="w-8 h-8 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all shrink-0 cursor-pointer"
-            >
-              <div className="relative w-4 h-4 flex items-center justify-center pointer-events-none">
-                <span
-                  className={`absolute h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-300 ease-in-out ${
-                    isOpen ? 'rotate-45 translate-y-0' : '-translate-y-1.5'
-                  }`}
-                />
-                <span
-                  className={`absolute h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-200 ease-in-out ${
-                    isOpen ? 'opacity-0 scale-x-0' : 'opacity-100 scale-x-100'
-                  }`}
-                />
-                <span
-                  className={`absolute h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-300 ease-in-out ${
-                    isOpen ? '-rotate-45 translate-y-0' : 'translate-y-1.5'
-                  }`}
-                />
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center min-w-0 overflow-hidden">
+                <div className="w-9 h-9 flex items-center justify-center shrink-0">
+                  <img 
+                    src="/icon.png" 
+                    alt="TrackXpense" 
+                    className="w-6 h-6 rounded-full object-contain shrink-0 select-none pointer-events-none" 
+                  />
+                </div>
+                <span className="text-[13px] font-medium text-[var(--text-primary)] tracking-tight whitespace-nowrap pl-2">
+                  TrackXpense
+                </span>
               </div>
-            </button>
+
+              {isStatic ? (
+                <button
+                  onClick={() => {
+                    Haptics.light();
+                    setIsCollapsed(true);
+                  }}
+                  title="Collapse sidebar"
+                  className="w-8 h-8 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all shrink-0 cursor-pointer"
+                >
+                  <SidebarIcon size={16} weight="regular" />
+                </button>
+              ) : (
+                <button
+                  onClick={onClose}
+                  title="Close drawer"
+                  className="w-8 h-8 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-all shrink-0 cursor-pointer"
+                >
+                  <div className="relative w-4 h-4 flex items-center justify-center pointer-events-none">
+                    <span
+                      className={`absolute h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-300 ease-in-out ${
+                        isOpen ? 'rotate-45 translate-y-0' : '-translate-y-1.5'
+                      }`}
+                    />
+                    <span
+                      className={`absolute h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-200 ease-in-out ${
+                        isOpen ? 'opacity-0 scale-x-0' : 'opacity-100 scale-x-100'
+                      }`}
+                    />
+                    <span
+                      className={`absolute h-[1.5px] w-3.5 bg-current rounded-full transition-all duration-300 ease-in-out ${
+                        isOpen ? '-rotate-45 translate-y-0' : 'translate-y-1.5'
+                      }`}
+                    />
+                  </div>
+                </button>
+              )}
+            </div>
           )}
         </div>
 
