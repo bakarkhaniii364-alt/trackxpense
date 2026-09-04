@@ -953,19 +953,67 @@ textarea[class*="border-none"]:focus,
 }
 
 /* =========================================================================
-   Coin Flipping Side-View (Spinning Bar) Loading Animation
+   Coin Flipping Side-View with Physical Jump & Rotational Speed Falloff
    ========================================================================= */
-@keyframes coinBarSpin {
+@keyframes coinTossPhysics {
   0% {
-    transform: rotate(0deg);
+    transform: translateY(0px) rotate(0deg);
+  }
+  10% {
+    transform: translateY(-4px) rotate(220deg);
+  }
+  20% {
+    transform: translateY(-7.5px) rotate(410deg);
+  }
+  30% {
+    transform: translateY(-9.8px) rotate(570deg);
+  }
+  40% {
+    transform: translateY(-11.2px) rotate(700deg);
+  }
+  50% {
+    transform: translateY(-11.5px) rotate(800deg);
+  }
+  60% {
+    transform: translateY(-11.2px) rotate(880deg);
+  }
+  70% {
+    transform: translateY(-9.8px) rotate(945deg);
+  }
+  80% {
+    transform: translateY(-7.5px) rotate(995deg);
+  }
+  90% {
+    transform: translateY(-4px) rotate(1040deg);
+  }
+  97% {
+    transform: translateY(-0.5px) rotate(1072deg);
   }
   100% {
-    transform: rotate(360deg);
+    transform: translateY(0px) rotate(1080deg);
   }
 }
 
-.animate-coin-bar {
-  animation: coinBarSpin 0.85s linear infinite;
+.animate-coin-toss {
+  animation: coinTossPhysics 1.15s linear infinite;
   transform-origin: center center;
   will-change: transform;
 }
+
+@keyframes coinTossShadow {
+  0%, 100% {
+    transform: scaleX(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleX(0.35);
+    opacity: 0.12;
+  }
+}
+
+.animate-coin-shadow {
+  animation: coinTossShadow 1.15s linear infinite;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
