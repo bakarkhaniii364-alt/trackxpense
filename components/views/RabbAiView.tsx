@@ -21,6 +21,7 @@ import {
   Waveform
 } from '@phosphor-icons/react';
 import { SpotifyIcon } from '../shared/SpotifyIcon';
+import { CoinFlipLoader } from '../shared/CoinFlipLoader';
 import { AppData, TransactionType, CategoryItem, WalletType } from '../../types';
 import { 
   RabbAiConversation, 
@@ -1105,12 +1106,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
             {isAnalyzing && (
               <div className="flex items-center gap-2.5 text-[12px] text-[var(--text-secondary)] pl-0.5">
-                <img 
-                  src="/rabAi icon.png" 
-                  alt="RabbAi" 
-                  className="w-8 h-8 object-contain shrink-0 animate-pulse select-none" 
-                />
-                <span className="text-[12px] text-[var(--text-secondary)]">RabbAi is analyzing...</span>
+                <CoinFlipLoader size={20} />
+                <span className="text-[12px] text-[var(--text-secondary)]">RabbAi is thinking...</span>
               </div>
             )}
 

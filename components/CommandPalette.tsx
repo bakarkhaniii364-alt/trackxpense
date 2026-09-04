@@ -230,7 +230,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         role="dialog" 
         aria-modal="true" 
         aria-label="Command Palette"
-        className="relative w-full max-w-xl bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] shadow-2xl overflow-hidden flex flex-col z-10 text-[var(--text-primary)]"
+        style={{ backgroundColor: '#121216' }}
+        className="relative w-full max-w-xl bg-[#121216] border border-[var(--border-default)] rounded-[10px] shadow-2xl overflow-hidden flex flex-col z-10 text-[var(--text-primary)]"
       >
         {/* Top Input Bar */}
         <div className="h-[48px] px-4 flex items-center gap-3 border-b border-[var(--border-default)] shrink-0">

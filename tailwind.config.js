@@ -14,11 +14,11 @@ export default {
         primary: 'rgb(var(--color-primary) / <alpha-value>)', 
         secondary: '#4ad991', 
         danger: '#e2685c', 
-        dark: 'rgb(var(--bg-core) / <alpha-value>)', 
-        card: 'rgb(var(--bg-card) / <alpha-value>)', 
-        surface: 'rgb(var(--bg-surface) / <alpha-value>)',
-        main: 'rgb(var(--text-main) / <alpha-value>)',
-        muted: 'rgb(var(--text-muted) / <alpha-value>)',
+        dark: 'var(--bg-core, #000000)', 
+        card: 'var(--bg-card, #0D0D10)', 
+        surface: 'var(--bg-surface, #0D0D10)',
+        main: 'var(--text-main, #F4F4F5)',
+        muted: 'var(--text-muted, #71717A)',
       },
       fontFamily: {
         sans: [

@@ -952,6 +952,20 @@ textarea[class*="border-none"]:focus,
   }
 }
 
+/* =========================================================================
+   Coin Flipping Side-View (Spinning Bar) Loading Animation
+   ========================================================================= */
+@keyframes coinBarSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
 
-
-
+.animate-coin-bar {
+  animation: coinBarSpin 0.85s linear infinite;
+  transform-origin: center center;
+  will-change: transform;
+}

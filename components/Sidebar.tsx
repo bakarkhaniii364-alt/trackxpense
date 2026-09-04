@@ -270,10 +270,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onViewChange(item.id);
                     if (!isStatic) onClose();
                   }}
-                  className={`w-full h-[36px] flex items-center rounded-[6px] transition-colors text-[13px] cursor-pointer overflow-hidden ${
+                  className={`w-full h-[36px] flex items-center rounded-[6px] transition-colors text-[13px] cursor-pointer overflow-hidden group ${
                     isSelected
-                      ? 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)] font-medium'
-                      : 'hover:bg-white/5 text-[var(--text-muted)] hover:text-[var(--text-primary)] font-normal'
+                      ? 'text-[var(--text-primary)] font-medium'
+                      : 'hover:text-[var(--text-primary)] text-[var(--text-muted)] font-normal'
                   }`}
                 >
                   <div className="w-9 h-9 flex items-center justify-center shrink-0">
@@ -281,7 +281,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <item.icon
                         size={16}
                         weight="regular"
-                        className={isSelected ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}
+                        className={isSelected ? 'text-[#F6821F]' : 'text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors'}
                       />
                     )}
                   </div>

@@ -40,6 +40,7 @@ import { BudgetAlerts } from '../dashboard/BudgetAlerts';
 import { SimulationModule } from '../dashboard/SimulationModule';
 import { CloudflareDateRangePicker, DateRange } from '../shared/CloudflareDateRangePicker';
 import { AiStarIcon } from '../shared/AiStarIcon';
+import { CoinFlipLoader } from '../shared/CoinFlipLoader';
 import { NoDataWave } from '../shared/NoDataWave';
 import { sendRabbAiTextMessage, sendRabbAiImageMessage, RabbAiMessage } from '../../services/rabbAiService';
 import { Haptics } from '../../services/haptics';
@@ -570,7 +571,10 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
 
           {/* Anchored Suggestions Dropdown Menu */}
           {isSearchFocused && (
-            <div className="absolute left-0 right-0 top-full mt-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-[0_16px_36px_rgba(0,0,0,0.45)] z-50 overflow-hidden text-[12.5px] animate-in fade-in zoom-in-95 duration-100 divide-y divide-[var(--border-default)]">
+            <div 
+              style={{ backgroundColor: '#121216' }}
+              className="absolute left-0 right-0 top-full mt-1.5 bg-[#121216] border border-[var(--border-default)] rounded-[8px] shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 overflow-hidden text-[12.5px] animate-in fade-in zoom-in-95 duration-100 divide-y divide-[var(--border-default)]"
+            >
               <div className="max-h-[340px] overflow-y-auto divide-y divide-[var(--border-default)]">
                 
                 {/* 1. Actions / Dynamic Query */}
@@ -700,9 +704,12 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
 
           {/* Feedback Card */}
           {isAiLoading && (
-            <div className="p-2.5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center gap-2 text-[12px] text-[var(--text-secondary)] animate-in fade-in">
-              <AiStarIcon size={14} className="text-[var(--accent)] animate-spin" />
-              <span>Processing and updating your ledger...</span>
+            <div 
+              style={{ backgroundColor: '#121216' }}
+              className="p-2.5 rounded-[8px] bg-[#121216] border border-[var(--border-default)] flex items-center gap-2.5 text-[12px] text-[var(--text-secondary)] animate-in fade-in"
+            >
+              <CoinFlipLoader size={18} />
+              <span>RabbAi is thinking...</span>
             </div>
           )}
 
@@ -780,7 +787,10 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
 
             {/* Status Context Menu */}
             {activeMenu === 'status' && (
-              <div className="absolute right-0 top-7 z-50 w-52 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.6)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100">
+              <div 
+                style={{ backgroundColor: '#121216' }}
+                className="absolute right-0 top-7 z-50 w-52 bg-[#121216] border border-[var(--border-default)] rounded-[6px] shadow-[0_12px_32px_rgba(0,0,0,0.8)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100"
+              >
                 <button
                   type="button"
                   onClick={() => { setView('analytics'); setActiveMenu(null); }}
@@ -919,7 +929,10 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
 
             {/* Actions Context Menu */}
             {activeMenu === 'actions' && (
-              <div className="absolute right-0 top-7 z-50 w-52 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.6)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100">
+              <div 
+                style={{ backgroundColor: '#121216' }}
+                className="absolute right-0 top-7 z-50 w-52 bg-[#121216] border border-[var(--border-default)] rounded-[6px] shadow-[0_12px_32px_rgba(0,0,0,0.8)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100"
+              >
                 <button
                   type="button"
                   onClick={() => { onAddTransactionRequest(TransactionType.EXPENSE); setActiveMenu(null); }}
@@ -1042,7 +1055,10 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
 
             {/* Recents Context Menu */}
             {activeMenu === 'recents' && (
-              <div className="absolute right-0 top-7 z-50 w-52 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.6)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100">
+              <div 
+                style={{ backgroundColor: '#121216' }}
+                className="absolute right-0 top-7 z-50 w-52 bg-[#121216] border border-[var(--border-default)] rounded-[6px] shadow-[0_12px_32px_rgba(0,0,0,0.8)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100"
+              >
                 <button
                   type="button"
                   onClick={() => { setView('history'); setActiveMenu(null); }}
