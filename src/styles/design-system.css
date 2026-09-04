@@ -872,10 +872,14 @@ textarea[class*="border-none"]:focus,
 }
 
 .animate-hero-compose {
+  position: relative;
+  z-index: 40;
   animation: heroComposePop 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0s both;
 }
 
 .animate-hero-bottom-down {
+  position: relative;
+  z-index: 10;
   animation: heroBottomSlideDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
 }
 

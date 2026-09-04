@@ -459,7 +459,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       {/* CLOUDFLARE HERO SECTION: Title (NO pills) + Universal Centered Bar        */}
       {/* Orchestrated Entrance: Compose box pops first, title slides UP, rest DOWN */}
       {/* ========================================================================= */}
-      <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center pt-4 md:pt-12 pb-1 space-y-4 md:space-y-5">
+      <div className={`w-full max-w-4xl mx-auto flex flex-col items-center justify-center pt-4 md:pt-12 pb-1 space-y-4 md:space-y-5 relative ${isSearchFocused ? 'z-50' : 'z-30'}`}>
         
         {/* Clean, Direct Heading (Transitions UP on reload) */}
         <h1 className="animate-hero-text-up text-[22px] sm:text-[26px] md:text-[30px] font-medium text-[var(--text-primary)] tracking-[-0.012em] text-center">
@@ -467,7 +467,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
         </h1>
 
         {/* Smart Search & Command Box with Suggestions */}
-        <div ref={searchBoxRef} className="animate-hero-compose w-full space-y-2 relative">
+        <div ref={searchBoxRef} className={`animate-hero-compose w-full space-y-2 relative ${isSearchFocused ? 'z-50' : 'z-40'}`}>
           
           {/* Selected Receipt Image Preview */}
           {selectedReceipt && (
@@ -573,7 +573,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
           {isSearchFocused && (
             <div 
               style={{ backgroundColor: '#121216' }}
-              className="absolute left-0 right-0 top-full mt-1.5 bg-[#121216] border border-[var(--border-default)] rounded-[8px] shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 overflow-hidden text-[12.5px] animate-in fade-in zoom-in-95 duration-100 divide-y divide-[var(--border-default)]"
+              className="absolute left-0 right-0 top-full mt-1.5 bg-[#121216] border border-[var(--border-default)] rounded-[8px] shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-[100] overflow-hidden text-[12.5px] animate-in fade-in zoom-in-95 duration-100 divide-y divide-[var(--border-default)]"
             >
               <div className="max-h-[340px] overflow-y-auto divide-y divide-[var(--border-default)]">
                 
@@ -759,7 +759,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       {/* ========================================================================= */}
       {/* LOWER CONTENT: Transitions DOWN on reload                                 */}
       {/* ========================================================================= */}
-      <div className="animate-hero-bottom-down space-y-7">
+      <div className="animate-hero-bottom-down space-y-7 relative z-10">
         
         {/* CLOUDFLARE 3-COLUMN LOOK: Status | Actions | Recents List */}
         {/* Free-standing, no outside cards, with 3-dot context menus on each header */}
