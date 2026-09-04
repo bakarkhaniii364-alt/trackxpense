@@ -12,6 +12,8 @@ import {
   SquaresFour as LayoutGrid,
   List,
   DotsThreeVertical as MoreVertical,
+  DotsThree,
+  CheckSquare,
   PencilLine as Edit3,
   GitMerge,
   ArrowUp,
@@ -22,14 +24,16 @@ import { COLOR_PRESETS, GlassSelect, GlassCheckbox } from '../shared/CommonUI';
 import { TablePaginationFooter } from '../shared/TablePaginationFooter';
 import { SegmentedSubTabs } from '../shared/SegmentedSubTabs';
 
-interface FinancialEnforcementManagerProps {
+export interface BudgetSettingsProps {
   data: AppData;
   updateData: (d: Partial<AppData>) => void;
   formatMoney: (val: number, sym: string) => string;
   isCompact?: boolean;
 }
 
-export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerProps> = ({ 
+export type FinancialEnforcementManagerProps = BudgetSettingsProps;
+
+export const BudgetSettings: React.FC<BudgetSettingsProps> = ({ 
   data, 
   updateData, 
   formatMoney, 
@@ -410,7 +414,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                       className={`w-9 h-9 rounded-[8px] flex items-center justify-center text-[11px] font-bold ${
                         config.period === 'DAILY' 
                           ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
-                          : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                          : 'bg-[var(--accent-bg-soft)] text-[var(--accent)] border border-[var(--accent)]/20'
                       }`}
                     >
                       {config.period === 'DAILY' ? 'D' : 'M'}
@@ -532,7 +536,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                   <div 
                     key={cat.id} 
                     className={`bg-[var(--bg-surface)] border p-4 rounded-[10px] flex items-center justify-between group transition-all relative ${
-                      isSelected ? 'border-[#2563EB] bg-[var(--bg-subtle)]' : 'border-[var(--border-default)] hover:border-[var(--border-active)]'
+                      isSelected ? 'border-[var(--accent)] bg-[var(--bg-subtle)]' : 'border-[var(--border-default)] hover:border-[var(--border-active)]'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -608,98 +612,137 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
             </div>
           ) : (
             /* --- TABLE VIEW --- */
-            <div className="bg-[#0D0D0E] rounded-[10px] border-[1.25px] border-[#35363C] overflow-hidden shadow-none">
+            <div className="bg-[var(--bg-surface)] rounded-[8px] border border-[var(--border-default)] shadow-none">
+              
+              {/* Cloudflare-Style Bulk Selection Bar */}
+              {selectedCategoryIds.length > 0 && (
+                <div className="flex items-center justify-between px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-default)] text-[12px] animate-in fade-in">
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium text-[var(--text-primary)]">
+                      {selectedCategoryIds.length} {selectedCategoryIds.length === 1 ? 'category' : 'categories'} selected
+                    </span>
+                    <button
+                      onClick={() => setSelectedCategoryIds([])}
+                      className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline transition-colors cursor-pointer text-[11.5px]"
+                    >
+                      Cancel selection
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {selectedCategoryIds.length > 1 && (
+                      <button
+                        onClick={() => setIsMergeModalOpen(true)}
+                        className="px-2.5 py-1 rounded-[6px] text-[11.5px] font-medium text-[var(--text-primary)] border border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer"
+                      >
+                        Merge selected
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setIsBatchDeleteModalOpen(true)}
+                      className="px-2.5 py-1 rounded-[6px] text-[11.5px] font-medium text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors cursor-pointer"
+                    >
+                      Delete selected ({selectedCategoryIds.length})
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b-[1.25px] border-[#35363C] bg-[#0D0D0E]">
-                    <th className="px-5 py-2.5 w-10 leading-tight">
-                      <GlassCheckbox 
-                        checked={data.categories?.length > 0 && selectedCategoryIds.length === data.categories?.length}
-                        onChange={selectAllCategories}
-                      />
-                    </th>
+                  <tr className="border-b border-[var(--border-default)] bg-[var(--bg-surface)] text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em]">
+                    {selectedCategoryIds.length > 0 && (
+                      <th className="px-4 py-2 w-10 leading-tight">
+                        <GlassCheckbox 
+                          checked={data.categories?.length > 0 && selectedCategoryIds.length === data.categories?.length}
+                          onChange={selectAllCategories}
+                        />
+                      </th>
+                    )}
                     <th 
-                      className="px-5 py-2.5 text-[12px] font-medium text-[#A1A1AA] cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
+                      className="px-4 py-2 cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
                       onClick={() => handleCatSort('type')}
                     >
                       <div className="flex items-center gap-1.5">
-                        Type / Direction {catSortKey === 'type' && (catSortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
+                        Type {catSortKey === 'type' && (catSortDirection === 'asc' ? <ArrowUp size={11}/> : <ArrowDown size={11}/>)}
                       </div>
                     </th>
                     <th 
-                      className="px-5 py-2.5 text-[12px] font-medium text-[#A1A1AA] cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
+                      className="px-4 py-2 cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
                       onClick={() => handleCatSort('name')}
                     >
                       <div className="flex items-center gap-1.5">
-                        Category Name {catSortKey === 'name' && (catSortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
+                        Category Name {catSortKey === 'name' && (catSortDirection === 'asc' ? <ArrowUp size={11}/> : <ArrowDown size={11}/>)}
                       </div>
                     </th>
                     <th 
-                      className="px-5 py-2.5 text-[12px] font-medium text-[#A1A1AA] cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
+                      className="px-4 py-2 cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
                       onClick={() => handleCatSort('volume')}
                     >
                       <div className="flex items-center gap-1.5">
-                        Total Volume {catSortKey === 'volume' && (catSortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
+                        Total Volume {catSortKey === 'volume' && (catSortDirection === 'asc' ? <ArrowUp size={11}/> : <ArrowDown size={11}/>)}
                       </div>
                     </th>
-                    <th className="px-5 py-2.5 text-[12px] font-medium text-[#A1A1AA] text-right select-none leading-tight">Actions</th>
+                    <th className="px-4 py-2 text-right select-none leading-tight">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#35363C]">
+                <tbody className="divide-y divide-[var(--border-default)] text-[12px]">
                   {sortedCategories
                     .slice((catCurrentPage - 1) * CAT_PAGE_SIZE, catCurrentPage * CAT_PAGE_SIZE)
-                    .map((cat: CategoryItem) => {
+                    .map((cat: CategoryItem, idx: number, arr: CategoryItem[]) => {
                     const isIncome = cat.type === TransactionType.INCOME;
                     const isSelected = selectedCategoryIds.includes(cat.id);
                     const stats = categoryStats[cat.name] || { count: 0, total: 0 };
                     const isMenuOpen = activeCatMenuId === cat.id;
+                    const openUpwards = idx >= Math.max(1, arr.length - 2);
 
                     return (
                       <tr 
                         key={cat.id} 
-                        className={`hover:bg-[#141417] transition-colors ${
-                          isSelected ? 'bg-[#141417] border-l-2 border-l-[#2563eb]' : 'border-l-2 border-l-transparent'
+                        className={`hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer ${
+                          isSelected ? 'bg-[var(--bg-surface-hover)]/70' : ''
                         }`}
                       >
-                        <td className="px-5 py-2.5 leading-tight">
-                          <GlassCheckbox 
-                            checked={isSelected}
-                            onChange={() => toggleSelectCategory(cat.id)}
-                          />
-                        </td>
-                        <td className="px-5 py-2.5 leading-tight">
+                        {selectedCategoryIds.length > 0 && (
+                          <td className="px-4 py-2 leading-tight w-10">
+                            <GlassCheckbox 
+                              checked={isSelected}
+                              onChange={() => toggleSelectCategory(cat.id)}
+                            />
+                          </td>
+                        )}
+                        <td className="px-4 py-2 leading-tight">
                           <div className="flex items-center gap-2">
                             {isIncome ? (
-                              <ArrowUpRight size={14} strokeWidth={1.5} className="shrink-0 text-[#71717A]" />
+                              <ArrowUpRight size={13} strokeWidth={1.5} className="shrink-0 text-[var(--status-success-fg)]" />
                             ) : (
-                              <ArrowDownRight size={14} strokeWidth={1.5} className="shrink-0 text-[#71717A]" />
+                              <ArrowDownRight size={13} strokeWidth={1.5} className="shrink-0 text-[var(--status-error-fg)]" />
                             )}
-                            <span className="text-[11px] font-mono uppercase tracking-[0.04em] text-[#71717A]">
+                            <span className="text-[10.5px] font-mono uppercase tracking-[0.04em] text-[var(--text-secondary)]">
                               {cat.type}
                             </span>
                           </div>
                         </td>
-                        <td className="px-5 py-2.5 leading-tight">
-                          <span className="text-[13.5px] font-medium text-[#F4F4F5] tracking-tight">{cat.name}</span>
+                        <td className="px-4 py-2 leading-tight">
+                          <span className="font-medium text-[var(--text-primary)] tracking-tight">{cat.name}</span>
                         </td>
-                        <td className="px-5 py-2.5 leading-tight">
-                          <div className="text-[13px] font-mono flex items-center gap-2">
-                            <span className="text-[#A1A1AA] font-normal">
+                        <td className="px-4 py-2 leading-tight">
+                          <div className="text-[12px] font-mono flex items-center gap-2">
+                            <span className="text-[var(--text-primary)] font-medium">
                               {formatMoney(stats.total, data.settings.currencySymbol)}
                             </span>
-                            <span className="text-[11px] text-[#71717A] font-normal">
+                            <span className="text-[10.5px] text-[var(--text-muted)] font-normal">
                               ({stats.count} {stats.count === 1 ? 'entry' : 'entries'})
                             </span>
                           </div>
                         </td>
-                        <td className="px-5 py-2.5 text-right leading-tight">
+                        <td className="px-4 py-2 text-right leading-tight">
                           <div className="relative inline-block text-left">
                             <button
                               onClick={() => setActiveCatMenuId(isMenuOpen ? null : cat.id)}
-                              className="p-1 text-[#71717A] hover:text-[#F4F4F5] rounded-[6px] hover:bg-[#141417] transition-all"
+                              className="w-6 h-6 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] hover:bg-[var(--bg-surface-hover)] inline-flex items-center justify-center transition-colors cursor-pointer"
                               title="Actions"
                             >
-                              <MoreVertical size={14} strokeWidth={1.5} />
+                              <DotsThree size={16} weight="bold" />
                             </button>
 
                             {/* Context Menu Dropdown */}
@@ -709,14 +752,26 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                                   className="fixed inset-0 z-[50]" 
                                   onClick={() => setActiveCatMenuId(null)} 
                                 />
-                                <div className="absolute right-0 top-7 z-[60] w-36 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-xl p-1 text-[12px] animate-in fade-in zoom-in-95 duration-150">
+                                <div className={`absolute right-0 z-[60] w-36 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.5)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100 ${openUpwards ? 'bottom-8' : 'top-7'}`}>
+                                  {/* Select / Deselect Action */}
+                                  <button
+                                    onClick={() => {
+                                      toggleSelectCategory(cat.id);
+                                      setActiveCatMenuId(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left cursor-pointer"
+                                  >
+                                    <CheckSquare size={13} strokeWidth={1.5} />
+                                    <span>{isSelected ? 'Deselect' : 'Select'}</span>
+                                  </button>
+
                                   <button
                                     onClick={() => {
                                       setRenamingCategory(cat);
                                       setRenameInput(cat.name);
                                       setActiveCatMenuId(null);
                                     }}
-                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[5px] text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors text-left"
+                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left cursor-pointer"
                                   >
                                     <Edit3 size={13} strokeWidth={1.5} />
                                     <span>Rename</span>
@@ -727,7 +782,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                                         setDeletingCategory(cat);
                                         setActiveCatMenuId(null);
                                       }}
-                                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[5px] text-red-400 hover:bg-red-500/10 transition-colors text-left"
+                                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--status-error-fg)] hover:bg-red-500/10 transition-colors text-left cursor-pointer"
                                     >
                                       <Trash2 size={13} strokeWidth={1.5} />
                                       <span>Delete</span>
@@ -802,10 +857,16 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
           <div 
             className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setRenamingCategory(null)} 
+            aria-hidden="true"
           />
-          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+          <div 
+            role="dialog" 
+            aria-modal="true" 
+            aria-labelledby="rename-cat-title"
+            className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150"
+          >
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-[var(--text-primary)]">Rename Category</h3>
+              <h3 id="rename-cat-title" className="text-base font-semibold text-[var(--text-primary)]">Rename Category</h3>
               <button 
                 onClick={() => setRenamingCategory(null)}
                 className="btn btn--outline btn--icon-sm shrink-0"
@@ -854,10 +915,16 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
           <div 
             className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setIsMergeModalOpen(false)} 
+            aria-hidden="true"
           />
-          <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+          <div 
+            role="dialog" 
+            aria-modal="true" 
+            aria-labelledby="merge-cat-title"
+            className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150"
+          >
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-[var(--text-primary)]">Merge Categories</h3>
+              <h3 id="merge-cat-title" className="text-base font-semibold text-[var(--text-primary)]">Merge Categories</h3>
               <button 
                 onClick={() => setIsMergeModalOpen(false)}
                 className="btn btn--outline btn--icon-sm shrink-0"
@@ -881,7 +948,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                       key={cat.id} 
                       className={`flex items-center justify-between p-3 rounded-[8px] border cursor-pointer transition-all ${
                         selectedMergeTarget === cat.name 
-                          ? 'border-[#2563EB] bg-[#2563EB]/10 text-[var(--text-primary)]' 
+                          ? 'border-[var(--accent)] bg-[var(--accent-bg-soft)] text-[var(--text-primary)]' 
                           : 'border-[var(--border-default)] bg-[var(--bg-subtle)]/50 text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                       }`}
                     >
@@ -891,7 +958,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                           name="mergeTarget" 
                           checked={selectedMergeTarget === cat.name}
                           onChange={() => setSelectedMergeTarget(cat.name)}
-                          className="accent-[#2563EB]"
+                          className="accent-[#F6821F]"
                         />
                         <span className="text-[13px] font-medium">{cat.name}</span>
                       </div>
@@ -903,7 +970,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                   <label 
                     className={`flex items-center gap-2.5 p-3 rounded-[8px] border cursor-pointer transition-all ${
                       selectedMergeTarget === 'CUSTOM' 
-                        ? 'border-[#2563EB] bg-[#2563EB]/10 text-[var(--text-primary)]' 
+                        ? 'border-[var(--accent)] bg-[var(--accent-bg-soft)] text-[var(--text-primary)]' 
                         : 'border-[var(--border-default)] bg-[var(--bg-subtle)]/50 text-[var(--text-secondary)]'
                     }`}
                   >
@@ -912,7 +979,7 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
                       name="mergeTarget" 
                       checked={selectedMergeTarget === 'CUSTOM'}
                       onChange={() => setSelectedMergeTarget('CUSTOM')}
-                      className="accent-[#2563EB]"
+                      className="accent-[#F6821F]"
                     />
                     <span className="text-[13px] font-medium">Create a new merged category name...</span>
                   </label>
@@ -959,10 +1026,16 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
           <div 
             className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setIsBatchDeleteModalOpen(false)} 
+            aria-hidden="true"
           />
-          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+          <div 
+            role="dialog" 
+            aria-modal="true" 
+            aria-labelledby="batch-delete-cat-title"
+            className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150"
+          >
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-[var(--text-primary)]">Delete Selected Categories</h3>
+              <h3 id="batch-delete-cat-title" className="text-base font-semibold text-[var(--text-primary)]">Delete Selected Categories</h3>
               <button 
                 onClick={() => setIsBatchDeleteModalOpen(false)}
                 className="btn btn--outline btn--icon-sm shrink-0"
@@ -1007,10 +1080,16 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
           <div 
             className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setIsAddBudgetModalOpen(false)} 
+            aria-hidden="true"
           />
-          <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+          <div 
+            role="dialog" 
+            aria-modal="true" 
+            aria-labelledby="add-budget-title"
+            className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150"
+          >
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-[var(--text-primary)]">
+              <h3 id="add-budget-title" className="text-base font-semibold text-[var(--text-primary)]">
                 {editingCat ? 'Edit Budget' : 'Add a Budget'}
               </h3>
               <button 
@@ -1093,10 +1172,16 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
           <div 
             className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setIsAddCategoryModalOpen(false)} 
+            aria-hidden="true"
           />
-          <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+          <div 
+            role="dialog" 
+            aria-modal="true" 
+            aria-labelledby="add-cat-title"
+            className="relative w-full max-w-[460px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150"
+          >
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-[var(--text-primary)]">Add a Category</h3>
+              <h3 id="add-cat-title" className="text-base font-semibold text-[var(--text-primary)]">Add a Category</h3>
               <button 
                 onClick={() => setIsAddCategoryModalOpen(false)}
                 className="btn btn--outline btn--icon-sm shrink-0"
@@ -1183,10 +1268,16 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
           <div 
             className="fixed inset-0 bg-black/75 backdrop-blur-xs"
             onClick={() => setDeletingCategory(null)} 
+            aria-hidden="true"
           />
-          <div className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150">
+          <div 
+            role="dialog" 
+            aria-modal="true" 
+            aria-labelledby="delete-cat-title"
+            className="relative w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-150"
+          >
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold text-[var(--text-primary)]">Delete Category</h3>
+              <h3 id="delete-cat-title" className="text-base font-semibold text-[var(--text-primary)]">Delete Category</h3>
               <button 
                 onClick={() => setDeletingCategory(null)}
                 className="btn btn--outline btn--icon-sm shrink-0"
@@ -1231,3 +1322,5 @@ export const FinancialEnforcementManager: React.FC<FinancialEnforcementManagerPr
     </div>
   );
 };
+
+export const FinancialEnforcementManager = BudgetSettings;

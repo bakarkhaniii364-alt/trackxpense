@@ -30,7 +30,7 @@ export const BudgetAlerts: React.FC<BudgetAlertsProps> = ({ budgetAlerts, data, 
                     return (
                         <div
                             key={b.cat}
-                            className="rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 flex flex-col justify-between transition-colors"
+                            className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors"
                         >
                             <div className="flex items-start justify-between mb-2">
                                 <div>

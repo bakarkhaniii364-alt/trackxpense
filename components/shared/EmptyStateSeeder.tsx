@@ -11,8 +11,9 @@ import { Haptics } from '../../services/haptics';
 interface EmptyStateSeederProps {
   title?: string;
   description?: string;
-  data: AppData;
-  updateData: (d: Partial<AppData>) => void;
+  data?: AppData;
+  updateData?: (d: Partial<AppData>) => void;
+  onSeed?: (d: Partial<AppData>) => void;
   onActionClick?: () => void;
   actionLabel?: string;
   compact?: boolean;
@@ -23,13 +24,17 @@ export const EmptyStateSeeder: React.FC<EmptyStateSeederProps> = ({
   description = 'You have not added any entries yet. Seed pre-populated demo data to explore all features, or create your first entry manually.',
   data,
   updateData,
+  onSeed,
   onActionClick,
   actionLabel = 'Add Entry',
   compact = false
 }) => {
   const handleSeed = () => {
     Haptics.success();
-    seedSampleData(data, updateData);
+    const updater = updateData || onSeed;
+    if (updater) {
+      seedSampleData(data, updater);
+    }
   };
 
   return (

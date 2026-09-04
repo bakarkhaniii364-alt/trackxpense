@@ -8,8 +8,16 @@ interface MarkdownRendererProps {
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className = '' }) => {
   if (!content) return null;
 
+  // Clean any reasoning tags (closed or unclosed) to ensure clean UI presentation
+  const sanitized = content
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<think>[\s\S]*$/gi, '')
+    .trim();
+
+  if (!sanitized) return null;
+
   // Split lines to parse blocks
-  const lines = content.split('\n');
+  const lines = sanitized.split('\n');
   const elements: React.ReactNode[] = [];
 
   let inCodeBlock = false;

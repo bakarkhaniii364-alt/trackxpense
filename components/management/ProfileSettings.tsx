@@ -32,8 +32,9 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { SegmentedSubTabs } from '../shared/SegmentedSubTabs';
 import { CustomSelect } from '../shared/CustomSelect';
+import { AuditLogger } from '../../services/auditLog';
 
-interface PersonnelRegionalManagerProps {
+export interface ProfileSettingsProps {
   data: AppData;
   updateData: (d: Partial<AppData>) => void;
   formatMoney?: (val: number, sym?: string) => string;
@@ -44,7 +45,9 @@ interface PersonnelRegionalManagerProps {
   onTabChange?: (tab: 'general' | 'wallets' | 'data_security') => void;
 }
 
-export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> = ({ 
+export type PersonnelRegionalManagerProps = ProfileSettingsProps;
+
+export const ProfileSettings: React.FC<ProfileSettingsProps> = ({ 
   data, 
   updateData, 
   formatMoney,
@@ -164,7 +167,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
   const handleAddWallet = () => {
     if (!newWalletName.trim()) return;
     const newWallet: Wallet = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: newWalletName.trim(),
       type: newWalletIsGoal ? 'GOAL' : 'STANDARD',
       targetAmount: newWalletIsGoal ? (parseFloat(newWalletTarget) || undefined) : undefined,
@@ -256,7 +259,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
     reader.readAsText(file);
   };
 
-  const availableColors: ThemeOption[] = ['indigo', 'emerald', 'rose', 'amber', 'blue'];
+  const availableColors: ThemeOption[] = ['amber', 'emerald', 'rose', 'blue', 'indigo'];
 
   // Target selected wallet object for configuration
   const selectedWallet = (data.wallets || []).find(w => w.id === selectedWalletIdToConfig) || data.wallets?.[0];
@@ -308,7 +311,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                       />
                       <div className="flex items-center gap-2">
                         <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Cancel</button>
-                        <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[#2563EB] hover:underline">Save</button>
+                        <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[var(--accent-solid)] hover:underline">Save</button>
                       </div>
                     </div>
                   ) : (
@@ -318,7 +321,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                       </span>
                       <button 
                         onClick={() => setEditingCard('profile')}
-                        className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                        className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
                       >
                         Rename
                       </button>
@@ -359,7 +362,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                       </span>
                       <button 
                         onClick={() => setEditingCard('currency')}
-                        className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                        className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
                       >
                         Change
                       </button>
@@ -379,7 +382,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                   </span>
                   <button 
                     onClick={togglePrivacyMode}
-                    className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                    className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
                   >
                     {localSettings.privacyMode ? 'Disable' : 'Enable'}
                   </button>
@@ -412,7 +415,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                       />
                       <div className="flex items-center gap-2">
                         <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)]">Cancel</button>
-                        <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[#2563EB] hover:underline">Save</button>
+                        <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[var(--accent-solid)] hover:underline">Save</button>
                       </div>
                     </div>
                   ) : (
@@ -422,7 +425,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                       </span>
                       <button 
                         onClick={() => setEditingCard('daily_target')}
-                        className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                        className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
                       >
                         Edit
                       </button>
@@ -449,7 +452,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                       />
                       <div className="flex items-center gap-2">
                         <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)]">Cancel</button>
-                        <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[#2563EB] hover:underline">Save</button>
+                        <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[var(--accent-solid)] hover:underline">Save</button>
                       </div>
                     </div>
                   ) : (
@@ -459,7 +462,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                       </span>
                       <button 
                         onClick={() => setEditingCard('monthly_target')}
-                        className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                        className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
                       >
                         Edit
                       </button>
@@ -487,7 +490,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                   </span>
                   <button 
                     onClick={() => toggleNotification('expense')}
-                    className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                    className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
                   >
                     {localSettings.expenseReminders ? 'Disable' : 'Enable'}
                   </button>
@@ -505,7 +508,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                   </span>
                   <button 
                     onClick={() => toggleNotification('debt')}
-                    className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                    className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
                   >
                     {localSettings.debtReminders ? 'Disable' : 'Enable'}
                   </button>
@@ -617,7 +620,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                         />
                         <button 
                           onClick={() => setEditingWalletCard(null)} 
-                          className="text-[12px] font-medium text-[#2563EB] hover:underline"
+                          className="text-[12px] font-medium text-[var(--accent-solid)] hover:underline"
                         >
                           Done
                         </button>
@@ -644,7 +647,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                           <button
                             type="button"
                             onClick={() => setEditingWalletCard('identity')}
-                            className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                            className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
                           >
                             Rename
                           </button>
@@ -722,7 +725,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                             <button
                               type="button"
                               onClick={() => handleUpdateWallet(selectedWallet.id, { stealthMode: !selectedWallet.stealthMode })}
-                              className="text-[12px] font-medium text-[#2563EB] hover:underline"
+                              className="text-[12px] font-medium text-[var(--accent-solid)] hover:underline"
                             >
                               {selectedWallet.stealthMode ? 'Enabled' : 'Disabled'}
                             </button>
@@ -738,14 +741,14 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                                   type="button"
                                   onClick={() => handleUpdateWallet(selectedWallet.id, { color: col })}
                                   className={`w-5 h-5 rounded-full border transition-all ${
-                                    (selectedWallet.color || 'blue') === col ? 'scale-110 border-white' : 'border-transparent opacity-60'
+                                    (selectedWallet.color || 'amber') === col ? 'scale-110 border-white' : 'border-transparent opacity-60'
                                   }`}
                                   style={{
                                     backgroundColor: 
-                                      col === 'indigo' ? '#5e5ce6' :
+                                      col === 'amber' ? '#F6821F' :
                                       col === 'emerald' ? '#10b981' :
-                                      col === 'amber' ? '#f59e0b' :
-                                      col === 'rose' ? '#f43f5e' : '#2563eb'
+                                      col === 'rose' ? '#f43f5e' :
+                                      col === 'blue' ? '#2563eb' : '#5e5ce6'
                                   }}
                                 />
                               ))}
@@ -753,7 +756,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                           </div>
 
                           <div className="pt-2 flex justify-end">
-                            <button onClick={() => setEditingWalletCard(null)} className="text-[12px] font-medium text-[#2563EB] hover:underline">Done</button>
+                            <button onClick={() => setEditingWalletCard(null)} className="text-[12px] font-medium text-[var(--accent-solid)] hover:underline">Done</button>
                           </div>
                         </div>
                       ) : (
@@ -764,7 +767,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                             <p>Savings target: <span className="text-emerald-400 font-mono font-medium">{fmtMoney(selectedWallet.targetAmount || 0, selectedWallet.currency || data.settings.currencySymbol)}</span></p>
                           )}
                           <p>Vault stealth: <span className="text-[var(--text-primary)]">{selectedWallet.stealthMode ? 'Enabled' : 'Disabled'}</span></p>
-                          <p>Color code: <span className="text-[var(--text-primary)] capitalize">{selectedWallet.color || 'Blue'}</span></p>
+                          <p>Color code: <span className="text-[var(--text-primary)] capitalize">{selectedWallet.color || 'amber'}</span></p>
                         </div>
                       )}
                     </div>
@@ -806,7 +809,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                       <button
                         type="button"
                         onClick={() => updateData({ currentWalletId: selectedWallet.id })}
-                        className="text-[13px] font-medium text-[#2563EB] hover:underline transition-all"
+                        className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
                       >
                         Enable
                       </button>
@@ -853,22 +856,36 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">Export backups or import transaction history snapshots.</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <button onClick={exportToCSV} className="p-5 rounded-[10px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all flex flex-col items-center gap-3 group text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button onClick={exportToCSV} className="p-5 rounded-[10px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all flex flex-col items-center gap-3 group text-center cursor-pointer">
                   <FileSpreadsheet size={24} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
                   <div>
                     <span className="text-[13px] font-medium text-[var(--text-primary)] block">Export Ledger CSV</span>
                     <span className="text-[11px] text-[var(--text-muted)] block mt-0.5">Spreadsheet Format</span>
                   </div>
                 </button>
-                <button onClick={exportToJSON} className="p-5 rounded-[10px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all flex flex-col items-center gap-3 group text-center">
+                <button onClick={exportToJSON} className="p-5 rounded-[10px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all flex flex-col items-center gap-3 group text-center cursor-pointer">
                   <FileJson size={24} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
                   <div>
                     <span className="text-[13px] font-medium text-[var(--text-primary)] block">Export Backup JSON</span>
                     <span className="text-[11px] text-[var(--text-muted)] block mt-0.5">Full System Snapshot</span>
                   </div>
                 </button>
-                <button onClick={() => fileInputRef.current?.click()} className="p-5 rounded-[10px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all flex flex-col items-center gap-3 group text-center">
+                <button 
+                  onClick={() => {
+                    const csv = AuditLogger.exportAsCsv();
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    saveAs(blob, `trackxpense_audit_trail_${Date.now()}.csv`);
+                  }} 
+                  className="p-5 rounded-[10px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all flex flex-col items-center gap-3 group text-center cursor-pointer"
+                >
+                  <ShieldCheck size={24} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-sky-400 transition-colors" />
+                  <div>
+                    <span className="text-[13px] font-medium text-[var(--text-primary)] block">Export Audit Trail</span>
+                    <span className="text-[11px] text-[var(--text-muted)] block mt-0.5">Forensic Event Log</span>
+                  </div>
+                </button>
+                <button onClick={() => fileInputRef.current?.click()} className="p-5 rounded-[10px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all flex flex-col items-center gap-3 group text-center cursor-pointer">
                   <Upload size={24} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-emerald-400 transition-colors" />
                   <div>
                     <span className="text-[13px] font-medium text-[var(--text-primary)] block">Import Backup File</span>
@@ -885,17 +902,17 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                 <div>
                   <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight flex items-center gap-2">
                     <Zap size={18} className="text-amber-400" />
-                    <span>RabbAi Assistant Configuration (`Llama 3.1 & Vision 3.2`)</span>
+                    <span>Smart Assistant Configuration</span>
                   </h2>
                   <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    Fast, zero-cost serverless AI for natural language transaction logging, receipt OCR, and financial coaching.
+                    Fast serverless engine for natural language transaction logging, receipt scanning, and automated categorization.
                   </p>
                 </div>
               </div>
 
               <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-5 rounded-[10px] space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-medium text-[var(--text-primary)]">Enable RabbAi Intelligence</span>
+                  <span className="text-[13px] font-medium text-[var(--text-primary)]">Enable Smart Processing</span>
                   <input
                     type="checkbox"
                     checked={localSettings.enableAiParsing !== false}
@@ -904,18 +921,18 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                       setLocalSettings(updated);
                       updateData({ settings: updated });
                     }}
-                    className="w-4 h-4 rounded border-[var(--border-default)] accent-[#2563eb] cursor-pointer"
+                    className="w-4 h-4 rounded border-[var(--border-default)] accent-[#F6821F] cursor-pointer"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[13px] font-medium text-[var(--text-primary)] block">RabbAi API Status</label>
+                  <label className="text-[13px] font-medium text-[var(--text-primary)] block">Assistant Engine Status</label>
                   <div className="flex items-center gap-2 h-[38px] bg-[var(--status-success-bg)] border border-[var(--border-default)] rounded-[8px] px-3">
                     <span className="w-2 h-2 rounded-full bg-[var(--status-success-fg)] shrink-0" />
-                    <span className="text-[12px] text-[var(--status-success-fg)] font-medium">API Key Active — managed server-side</span>
+                    <span className="text-[12px] text-[var(--status-success-fg)] font-medium">Service Active — managed server-side</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-muted)]">
-                    Powered by Groq Llama 3.1 · Up to 14,400 requests/day on free tier.
+                    High-throughput cloud engine · Active and ready for instant requests.
                   </p>
                 </div>
               </div>
@@ -959,7 +976,7 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
                   </div>
                   <div className="flex gap-3 pt-1">
                     <button onClick={() => setConfirmAction('logout')} className="flex-1 px-3.5 py-3 flex flex-col items-center justify-center gap-1.5 rounded-[8px] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-all">
-                      <LogOut size={18} strokeWidth={1.5} className="text-[#2563EB]" />
+                      <LogOut size={18} strokeWidth={1.5} className="text-[var(--accent-solid)]" />
                       <span className="text-[13px] font-medium text-[var(--text-primary)]">Log Out</span>
                     </button>
                     <button onClick={() => setConfirmAction('delete')} className="flex-1 px-3.5 py-3 flex flex-col items-center justify-center gap-1.5 rounded-[8px] bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all">
@@ -1182,3 +1199,5 @@ export const PersonnelRegionalManager: React.FC<PersonnelRegionalManagerProps> =
     </div>
   );
 };
+
+export const PersonnelRegionalManager = ProfileSettings;

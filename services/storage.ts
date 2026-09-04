@@ -1,40 +1,58 @@
 
 import { AppData, TransactionType, Category, CategoryItem } from '../types';
 
-const DB_NAME = 'ZenWalletDB';
+const DB_NAME = 'TrackXpenseDB';
 const DB_VERSION = 1;
 const STORE_NAME = 'appData';
 const DATA_KEY = 'fullState';
 
 const DEFAULT_CATEGORIES: CategoryItem[] = [
-    { id: 'cat_salary', name: Category.SALARY, type: TransactionType.INCOME, color: '#10b981', isSystem: true },
-    { id: 'cat_gig', name: Category.GIG, type: TransactionType.INCOME, color: '#3b82f6', isSystem: true },
-    { id: 'cat_tuition', name: Category.TUITION, type: TransactionType.INCOME, color: '#8b5cf6', isSystem: true },
-    { id: 'cat_loan_in', name: Category.LOAN, type: TransactionType.INCOME, color: '#f59e0b', isSystem: true },
+    { id: 'cat_salary', name: Category.SALARY, type: TransactionType.INCOME, color: '#5b9a7d', isSystem: true },
+    { id: 'cat_gig', name: Category.GIG, type: TransactionType.INCOME, color: '#6b8db5', isSystem: true },
+    { id: 'cat_tuition', name: Category.TUITION, type: TransactionType.INCOME, color: '#8b7db5', isSystem: true },
+    { id: 'cat_loan_in', name: Category.LOAN, type: TransactionType.INCOME, color: '#b5944e', isSystem: true },
     
-    { id: 'cat_break', name: Category.BREAKFAST, type: TransactionType.EXPENSE, color: '#fb923c', isSystem: true },
-    { id: 'cat_lunch', name: Category.LUNCH, type: TransactionType.EXPENSE, color: '#f97316', isSystem: true },
-    { id: 'cat_dinner', name: Category.DINNER, type: TransactionType.EXPENSE, color: '#ea580c', isSystem: true },
-    { id: 'cat_fp', name: Category.FOODPANDA, type: TransactionType.EXPENSE, color: '#ef4444', isSystem: true },
-    { id: 'cat_snack', name: Category.SNACKS, type: TransactionType.EXPENSE, color: '#fcd34d', isSystem: true },
-    { id: 'cat_loan_out', name: Category.LOAN_PAYMENT, type: TransactionType.EXPENSE, color: '#ef4444', isSystem: true },
-    { id: 'cat_trans', name: Category.TRANSPORT, type: TransactionType.EXPENSE, color: '#38bdf8', isSystem: true },
-    { id: 'cat_shop', name: Category.SHOPPING, type: TransactionType.EXPENSE, color: '#ec4899', isSystem: true },
-    { id: 'cat_bill', name: Category.BILLS, type: TransactionType.EXPENSE, color: '#eab308', isSystem: true },
-    { id: 'cat_ent', name: Category.ENTERTAINMENT, type: TransactionType.EXPENSE, color: '#a855f7', isSystem: true },
-    { id: 'cat_health', name: Category.HEALTH, type: TransactionType.EXPENSE, color: '#10b981', isSystem: true },
-    { id: 'cat_other', name: Category.OTHER, type: TransactionType.EXPENSE, color: '#94a3b8', isSystem: true },
-    { id: 'cat_transfer', name: Category.TRANSFER, type: TransactionType.EXPENSE, color: '#64748b', isSystem: true },
+    { id: 'cat_break', name: Category.BREAKFAST, type: TransactionType.EXPENSE, color: '#b58b5e', isSystem: true },
+    { id: 'cat_lunch', name: Category.LUNCH, type: TransactionType.EXPENSE, color: '#b57a4e', isSystem: true },
+    { id: 'cat_dinner', name: Category.DINNER, type: TransactionType.EXPENSE, color: '#a5694e', isSystem: true },
+    { id: 'cat_fp', name: Category.FOOD_DELIVERY, type: TransactionType.EXPENSE, color: '#a56b6b', isSystem: true },
+    { id: 'cat_snack', name: Category.SNACKS, type: TransactionType.EXPENSE, color: '#b5a55e', isSystem: true },
+    { id: 'cat_loan_out', name: Category.LOAN_PAYMENT, type: TransactionType.EXPENSE, color: '#a56b6b', isSystem: true },
+    { id: 'cat_trans', name: Category.TRANSPORT, type: TransactionType.EXPENSE, color: '#6b9ab5', isSystem: true },
+    { id: 'cat_shop', name: Category.SHOPPING, type: TransactionType.EXPENSE, color: '#a56b8b', isSystem: true },
+    { id: 'cat_bill', name: Category.BILLS, type: TransactionType.EXPENSE, color: '#a59a4e', isSystem: true },
+    { id: 'cat_ent', name: Category.ENTERTAINMENT, type: TransactionType.EXPENSE, color: '#8b6ba5', isSystem: true },
+    { id: 'cat_health', name: Category.HEALTH, type: TransactionType.EXPENSE, color: '#5b9a7d', isSystem: true },
+    { id: 'cat_other', name: Category.OTHER, type: TransactionType.EXPENSE, color: '#7a8595', isSystem: true },
+    { id: 'cat_transfer', name: Category.TRANSFER, type: TransactionType.EXPENSE, color: '#5e6b7a', isSystem: true },
 ];
 
+const LEGACY_MUTED_COLOR_MAP: Record<string, string> = {
+  '#10b981': '#5b9a7d',
+  '#3b82f6': '#6b8db5',
+  '#8b5cf6': '#8b7db5',
+  '#f59e0b': '#b5944e',
+  '#fb923c': '#b58b5e',
+  '#f97316': '#b57a4e',
+  '#ea580c': '#a5694e',
+  '#ef4444': '#a56b6b',
+  '#fcd34d': '#b5a55e',
+  '#38bdf8': '#6b9ab5',
+  '#ec4899': '#a56b8b',
+  '#eab308': '#a59a4e',
+  '#a855f7': '#8b6ba5',
+  '#94a3b8': '#7a8595',
+  '#64748b': '#5e6b7a'
+};
+
 const DEFAULT_DATA: AppData = {
-  wallets: [{ id: 'main', name: 'Main Wallet', type: 'STANDARD', color: 'indigo' }],
+  wallets: [{ id: 'main', name: 'Main Wallet', type: 'STANDARD', color: 'amber' }],
   transactions: [],
   debts: [],
   categories: DEFAULT_CATEGORIES,
   currentWalletId: 'main',
   settings: {
-    theme: 'indigo',
+    theme: 'amber',
     darkMode: true,
     notificationsEnabled: false,
     expenseReminders: false,
@@ -86,21 +104,8 @@ const openDB = (): Promise<IDBDatabase> => {
   });
 };
 
-export const sanitizeJargon = (data: AppData): AppData => {
-  const sanitized = { ...data };
-  if (sanitized.profile?.name && /sovereign/i.test(sanitized.profile.name)) {
-    sanitized.profile.name = 'User';
-  }
-  if (sanitized.wallets) {
-    sanitized.wallets = sanitized.wallets.map((w: any) => {
-      if (w.name && /sovereign/i.test(w.name)) {
-        return { ...w, name: w.name.replace(/sovereign\s*/gi, '') || 'Main Wallet' };
-      }
-      return w;
-    });
-  }
-  return sanitized;
-};
+// Legacy jargon cleansing deprecated - preserve user's genuine names
+export const sanitizeJargon = (data: AppData): AppData => data;
 
 export const getAppData = async (): Promise<AppData> => {
   try {
@@ -117,7 +122,7 @@ export const getAppData = async (): Promise<AppData> => {
         
         // Fallback to LocalStorage for migration if IndexedDB is empty
         if (!result) {
-            const lsData = localStorage.getItem('zenwallet_v4_data');
+            const lsData = localStorage.getItem('trackxpense_state') || localStorage.getItem('zenwallet_v4_data');
             if (lsData) {
                 try {
                     result = JSON.parse(lsData);
@@ -132,17 +137,33 @@ export const getAppData = async (): Promise<AppData> => {
         }
 
         // Robust merge logic
+        const rawWallets = result.wallets || DEFAULT_DATA.wallets;
+        const migratedWallets = rawWallets.map((w: any) => ({ 
+            ...w, 
+            type: w.type || 'STANDARD',
+            color: (!w.color || w.color === 'indigo') ? 'amber' : w.color
+        }));
+
+        const rawSettings = { ...DEFAULT_DATA.settings, ...result.settings };
+        const migratedSettings = {
+            ...rawSettings,
+            theme: (!rawSettings.theme || rawSettings.theme === 'indigo') ? 'amber' : rawSettings.theme
+        };
+
         const mergedData: AppData = {
           ...DEFAULT_DATA,
           ...result,
-          wallets: (result.wallets || DEFAULT_DATA.wallets).map((w: any) => ({ 
-              ...w, 
-              type: w.type || 'STANDARD' 
+          wallets: migratedWallets,
+          categories: (result.categories && result.categories.length > 0 ? result.categories : DEFAULT_CATEGORIES).map((c: any) => ({
+            ...c,
+            color: LEGACY_MUTED_COLOR_MAP[c.color] || c.color
           })),
-          categories: result.categories && result.categories.length > 0 ? result.categories : DEFAULT_CATEGORIES,
-          transactions: result.transactions || [],
+          transactions: (result.transactions || []).map((t: any, idx: number) => ({
+            ...t,
+            id: t.id ? String(t.id) : `tx_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 7)}`
+          })),
           debts: result.debts || [],
-          settings: { ...DEFAULT_DATA.settings, ...result.settings },
+          settings: migratedSettings,
           profile: { ...DEFAULT_DATA.profile, ...result.profile },
           provisions: result.provisions || [],
           lastUsedCategoryMap: result.lastUsedCategoryMap || {},
@@ -152,15 +173,11 @@ export const getAppData = async (): Promise<AppData> => {
           recurringRules: result.recurringRules || []
         };
 
-        // Cleanse legacy jargon
-        const cleansedData = sanitizeJargon(mergedData);
-
-        // If we migrated or handled incomplete data, sync it back to DB
-        if (isMigration || !result.wallets || !result.transactions || /sovereign/i.test(result.profile?.name || '') || (result.wallets || []).some((w: any) => /sovereign/i.test(w.name || ''))) {
-            saveAppData(cleansedData);
+        if (isMigration || !result.wallets || !result.transactions || result.settings?.theme === 'indigo') {
+            saveAppData(mergedData);
         }
 
-        resolve(cleansedData);
+        resolve(mergedData);
       };
     });
   } catch (error) {
@@ -172,16 +189,15 @@ export const getAppData = async (): Promise<AppData> => {
 export const saveAppData = async (data: AppData): Promise<void> => {
   // We still update localStorage for the theme-loader in index.html, 
   // but main data lives in IndexedDB
-  const sanitizedData = sanitizeJargon(data);
   try {
-      const activeWallet = sanitizedData.wallets.find(w => w.id === sanitizedData.currentWalletId);
-      const activeTheme = activeWallet?.color || 'indigo';
-      localStorage.setItem('zenwallet_v4_data', JSON.stringify({
+      const activeWallet = data.wallets.find(w => w.id === data.currentWalletId);
+      const activeTheme = (activeWallet?.color && activeWallet.color !== 'indigo') ? activeWallet.color : (data.settings?.theme && data.settings.theme !== 'indigo' ? data.settings.theme : 'amber');
+      localStorage.setItem('trackxpense_state', JSON.stringify({
           settings: {
-              ...sanitizedData.settings,
+              ...data.settings,
               theme: activeTheme
           }, // Only save settings for quick boot
-          profile: sanitizedData.profile 
+          profile: data.profile 
       }));
   } catch (e) {}
 
@@ -190,7 +206,7 @@ export const saveAppData = async (data: AppData): Promise<void> => {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.put(sanitizedData, DATA_KEY);
+      const request = store.put(data, DATA_KEY);
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve();
@@ -236,6 +252,7 @@ export const removeFromSyncQueue = async (id: number): Promise<void> => {
 
 export const clearAppData = async (): Promise<void> => {
   try {
+      localStorage.removeItem('trackxpense_state');
       localStorage.removeItem('zenwallet_v4_data');
   } catch (e) {}
   try {

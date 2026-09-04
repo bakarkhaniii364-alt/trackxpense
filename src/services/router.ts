@@ -10,7 +10,7 @@ export interface RouteState {
 // Maps paths to ViewState and subTabs
 const pathToRouteMap: Record<string, { view: ViewState; subTab?: string }> = {
   '/': { view: 'dashboard' },
-  '/rabbai': { view: 'dashboard' },
+  '/rabbai': { view: 'rabbai' },
   '/dashboard': { view: 'dashboard' },
   '/transactions': { view: 'history' },
   '/history': { view: 'history' },
@@ -38,6 +38,7 @@ const pathToRouteMap: Record<string, { view: ViewState; subTab?: string }> = {
 export function getRoutePath(view: ViewState, subTab?: string): string {
   switch (view) {
     case 'rabbai':
+      return '/rabbai';
     case 'dashboard':
       return '/';
     case 'history':
@@ -79,7 +80,7 @@ function isHashRouting(): boolean {
 
 export function parseCurrentRoute(): RouteState {
   if (typeof window === 'undefined') {
-    return { view: 'rabbai', rawPath: '/' };
+    return { view: 'dashboard', rawPath: '/' };
   }
 
   let fullPath = window.location.pathname;
@@ -131,7 +132,7 @@ export function parseCurrentRoute(): RouteState {
     return { view: 'analytics', rawPath: '/analytics' };
   }
 
-  return { view: 'rabbai', rawPath: '/' };
+  return { view: 'dashboard', rawPath: '/' };
 }
 
 type RouteListener = (route: RouteState) => void;

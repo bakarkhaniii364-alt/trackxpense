@@ -65,8 +65,8 @@ export const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
                         <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -24, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="cfSpendGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
-                                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
+                                    <stop offset="5%" stopColor="#F6821F" stopOpacity={0.25} />
+                                    <stop offset="95%" stopColor="#F6821F" stopOpacity={0.0} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid stroke="var(--border-default)" strokeDasharray="2 2" vertical={false} />
@@ -104,10 +104,10 @@ export const DashboardAnalytics: React.FC<DashboardAnalyticsProps> = ({
                             <Area
                                 type="monotone"
                                 dataKey="spent"
-                                stroke="#3b82f6"
+                                stroke="#F6821F"
                                 strokeWidth={1.5}
                                 fill="url(#cfSpendGrad)"
-                                activeDot={{ r: 4, fill: '#3b82f6', stroke: 'var(--bg-surface)', strokeWidth: 2 }}
+                                activeDot={{ r: 4, fill: '#F6821F', stroke: 'var(--bg-surface)', strokeWidth: 2 }}
                             />
                         </AreaChart>
                     </ResponsiveContainer>

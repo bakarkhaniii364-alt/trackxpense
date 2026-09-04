@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppData } from '../../types';
-import { PersonnelRegionalManager } from '../management/PersonnelRegionalManager';
-import { FinancialEnforcementManager } from '../management/FinancialEnforcementManager';
+import { ProfileSettings } from '../management/ProfileSettings';
+import { BudgetSettings } from '../management/BudgetSettings';
 
 interface ManagementProps {
     data: AppData;
@@ -22,7 +22,7 @@ export const DesktopIdentity: React.FC<ManagementProps> = ({
     initialTab,
     onTabChange 
 }) => (
-    <PersonnelRegionalManager 
+    <ProfileSettings 
         data={data} 
         updateData={updateData} 
         formatMoney={formatMoney} 
@@ -35,5 +35,5 @@ export const DesktopIdentity: React.FC<ManagementProps> = ({
 );
 
 export const DesktopControl: React.FC<ManagementProps> = ({ data, updateData, formatMoney }) => (
-    <FinancialEnforcementManager data={data} updateData={updateData} formatMoney={formatMoney} isCompact={false} />
+    <BudgetSettings data={data} updateData={updateData} formatMoney={formatMoney} isCompact={false} />
 );

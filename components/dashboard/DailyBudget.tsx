@@ -40,7 +40,7 @@ export const DailyBudget: React.FC<DailyBudgetProps> = ({
     const isApproaching = !isOverBudget && dailyProgress > 80;
 
     return (
-        <div className="rounded-[12px] sm:rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-3.5 sm:p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
+        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-full">
             <div>
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] truncate">

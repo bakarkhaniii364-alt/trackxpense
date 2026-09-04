@@ -145,15 +145,17 @@ export const getSampleData = (walletId: string): {
   };
 };
 
-export const seedSampleData = (data: AppData, updateData: (d: Partial<AppData>) => void): void => {
-  const currentWalletId = data.currentWalletId || (data.wallets && data.wallets[0]?.id) || 'main';
+export const seedSampleData = (data?: AppData, updateData?: (d: Partial<AppData>) => void): void => {
+  if (!updateData) return;
+  const safeData = data || ({} as Partial<AppData>);
+  const currentWalletId = safeData.currentWalletId || (safeData.wallets && safeData.wallets[0]?.id) || 'main';
   const samples = getSampleData(currentWalletId);
 
   // Merge sample data into existing arrays without overriding existing data
-  const updatedTransactions = [...data.transactions, ...samples.transactions];
-  const updatedDebts = [...data.debts, ...samples.debts];
-  const updatedProvisions = [...(data.provisions || []), ...samples.provisions];
-  const updatedTemplates = [...(data.templates || []), ...samples.templates];
+  const updatedTransactions = [...(safeData.transactions || []), ...samples.transactions];
+  const updatedDebts = [...(safeData.debts || []), ...samples.debts];
+  const updatedProvisions = [...(safeData.provisions || []), ...samples.provisions];
+  const updatedTemplates = [...(safeData.templates || []), ...samples.templates];
 
   updateData({
     transactions: updatedTransactions,

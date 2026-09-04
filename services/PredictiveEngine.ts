@@ -13,15 +13,9 @@ export const PredictiveEngine = {
    * Calculates the "Runway" in days based on average daily burn.
    */
   getRunwayDays: (data: AppData, currentBalance: number) => {
+    if (currentBalance <= 0) return 0;
+
     const expenses = data.transactions.filter(t => t.type === TransactionType.EXPENSE);
-    if (expenses.length === 0) return Infinity;
-
-    // Get unique days in history
-    const days = new Set(expenses.map(t => t.date.split('T')[0]));
-    const totalSpent = expenses.reduce((sum, t) => sum + t.amount, 0);
-    const avgDailyBurn = totalSpent / Math.max(days.size, 1);
-
-    if (avgDailyBurn === 0) return Infinity;
     
     // Account for recurring rules in the burn
     const monthlyRecurring = (data.recurringRules || [])
@@ -30,9 +24,20 @@ export const PredictiveEngine = {
             const factor = r.frequency === 'DAILY' ? 30 : r.frequency === 'WEEKLY' ? 4 : r.frequency === 'MONTHLY' ? 1 : 1/12;
             return sum + (r.amount * factor);
         }, 0);
-    
+
+    if (expenses.length === 0 && monthlyRecurring === 0) {
+      return 90; // Default safe estimate when balance > 0 and no burn recorded
+    }
+
+    const days = new Set(expenses.map(t => t.date.split('T')[0]));
+    const totalSpent = expenses.reduce((sum, t) => sum + t.amount, 0);
+    const avgDailyBurn = days.size > 0 ? (totalSpent / days.size) : 0;
     const totalDailyBurn = avgDailyBurn + (monthlyRecurring / 30);
-    return Math.floor(currentBalance / totalDailyBurn);
+
+    if (totalDailyBurn <= 0) return 90;
+    
+    const calculatedDays = Math.floor(currentBalance / totalDailyBurn);
+    return Math.max(0, Math.min(365, calculatedDays));
   },
 
   /**

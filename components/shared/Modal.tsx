@@ -38,18 +38,18 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
       {/* Dimmed Backdrop */}
       <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity duration-200"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-200"
         onClick={onClose}
       />
 
-      {/* Centered Modal Container (No horizontal separators) */}
+      {/* Centered Modal Container */}
       <div
         role="dialog"
         aria-modal="true"
-        className={`relative w-full ${maxWidth} bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-150 text-[var(--text-primary)] z-10 ${className}`}
+        className={`relative w-full ${maxWidth} bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-150 text-[var(--text-primary)] z-10 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header (No bottom divider) */}

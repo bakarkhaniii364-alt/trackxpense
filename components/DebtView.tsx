@@ -13,7 +13,8 @@ import {
   MagnifyingGlass as Search,
   Warning as AlertTriangle,
   HandCoins,
-  Receipt
+  Receipt,
+  DotsThree
 } from '@phosphor-icons/react';
 import { Debt, AppData, Transaction, TransactionType, Category, DebtPayment } from '../types';
 import { Haptics } from '../services/haptics';
@@ -50,7 +51,16 @@ export const DebtView: React.FC<DebtProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'ACTIVE' | 'SETTLED' | 'OWES_ME' | 'I_OWE'>('ALL');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [activeRowMenu, setActiveRowMenu] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleCloseMenu = () => setActiveRowMenu(null);
+    if (activeRowMenu) {
+      window.addEventListener('click', handleCloseMenu);
+    }
+    return () => window.removeEventListener('click', handleCloseMenu);
+  }, [activeRowMenu]);
 
   const [isMobile, setIsMobile] = useState(!propIsDesktop && typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
@@ -101,7 +111,7 @@ export const DebtView: React.FC<DebtProps> = ({
     if (!numAmount || numAmount <= 0) return;
 
     const newDebt: Debt = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       person: person.trim() || 'Unspecified',
       amount: numAmount,
       type,
@@ -131,7 +141,7 @@ export const DebtView: React.FC<DebtProps> = ({
     if (willSettle) {
       const isExpense = debt.type === 'I_OWE';
       const newTx: Transaction = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         amount: debt.amount,
         type: isExpense ? TransactionType.EXPENSE : TransactionType.INCOME,
         category: isExpense ? Category.LOAN_PAYMENT : Category.LOAN,
@@ -209,9 +219,9 @@ export const DebtView: React.FC<DebtProps> = ({
 
           <button
             onClick={() => setIsAddOpen(true)}
-            className="h-[32px] px-3.5 bg-[var(--accent-solid)] text-[var(--accent-text)] rounded-[6px] text-[12px] font-medium flex items-center gap-1.5 hover:opacity-90 active:scale-95 transition-all cursor-pointer font-sans"
+            className="btn btn--primary text-[12px] h-[32px] px-3.5 font-medium rounded-[6px] flex items-center gap-1.5 cursor-pointer"
           >
-            <Plus size={14} strokeWidth={2} />
+            <Plus size={14} strokeWidth={1.5} className="btn__icon" />
             <span>Add Record</span>
           </button>
         </div>
@@ -258,151 +268,240 @@ export const DebtView: React.FC<DebtProps> = ({
         </div>
       </div>
 
-      {/* Control Bar: Search & Filter Tabs */}
-      <div className="bg-[var(--bg-surface)] p-3 sm:p-4 rounded-[10px] border border-[var(--border-default)] space-y-3">
-        <div className="flex flex-col sm:flex-row gap-2.5">
-          <div className="flex-1 flex items-center gap-2 bg-[var(--bg-subtle)] rounded-[6px] px-3 py-1.5 border border-[var(--border-default)] focus-within:border-[var(--accent-solid)] transition-colors">
-            <Search size={14} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
-            <input
-              type="text"
-              placeholder="Search person or note..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="bg-transparent text-[12px] text-[var(--text-primary)] w-full outline-none placeholder:text-[var(--text-muted)]"
-            />
-            {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-                <X size={13} strokeWidth={1.5} />
-              </button>
-            )}
-          </div>
+      {/* Cloudflare Underline Tab Bar (No Pill Shapes, No Boxed Segmented Controls) */}
+      <div className="border-b border-[var(--border-default)] flex items-center gap-6 overflow-x-auto no-scrollbar pt-1">
+        {[
+          { id: 'ALL', label: 'All' },
+          { id: 'ACTIVE', label: 'Active' },
+          { id: 'I_OWE', label: 'I Owe' },
+          { id: 'OWES_ME', label: 'Owes Me' },
+          { id: 'SETTLED', label: 'Settled' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => { Haptics.light(); setTypeFilter(tab.id as any); }}
+            className={`pb-2.5 text-[13px] font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
+              typeFilter === tab.id
+                ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-          {/* Filter Pills */}
-          <div className="flex p-0.5 rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[11px] shrink-0 overflow-x-auto no-scrollbar">
-            {[
-              { id: 'ALL', label: 'All' },
-              { id: 'ACTIVE', label: 'Active' },
-              { id: 'I_OWE', label: 'I Owe' },
-              { id: 'OWES_ME', label: 'Owes Me' },
-              { id: 'SETTLED', label: 'Settled' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => { Haptics.light(); setTypeFilter(tab.id as any); }}
-                className={`px-3 py-1 rounded-[4px] font-medium transition-all cursor-pointer whitespace-nowrap ${
-                  typeFilter === tab.id
-                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+      {/* Flat Toolbar: Search */}
+      <div className="flex items-center justify-between gap-3 pt-1">
+        <div className="w-full sm:max-w-md flex items-center gap-2 bg-[var(--bg-surface)] rounded-[6px] px-3 h-[36px] border border-[var(--border-default)] focus-within:border-[var(--border-active)] transition-colors">
+          <Search size={14} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+          <input
+            type="text"
+            placeholder="Search person or note..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="bg-transparent text-[13px] text-[var(--text-primary)] w-full outline-none placeholder:text-[var(--text-muted)]"
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">
+              <X size={13} strokeWidth={1.5} />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Debt List / Table */}
       {filteredDebts.length === 0 ? (
-        <div className="p-12 text-center rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[12px] text-[var(--text-muted)]">
+        <div className="p-12 text-center rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[12px] text-[var(--text-muted)]">
           No records match the current filters.
         </div>
       ) : (
-        <div className="bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] overflow-hidden shadow-xs">
+        <div className="bg-[var(--bg-surface)] rounded-[8px] border border-[var(--border-default)] shadow-xs">
+          {/* Table Section Header (Cloudflare / Lumen layout) */}
+          <div className="px-4 py-3 border-b border-[var(--border-default)] flex items-center justify-between">
+            <span className="text-[13px] font-medium text-[var(--text-primary)]">
+              All records
+            </span>
+            <span className="text-[11px] text-[var(--text-muted)] font-mono">
+              {filteredDebts.length} {filteredDebts.length === 1 ? 'record' : 'records'}
+            </span>
+          </div>
           
+          {/* Cloudflare Bulk Selection Bar: only visible when entries are selected */}
+          {selectedIds.length > 0 && (
+            <div className="px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-default)] flex items-center justify-between text-[12px] animate-in fade-in duration-150">
+              <div className="flex items-center gap-3">
+                <span className="font-medium text-[var(--text-primary)] font-mono">
+                  {selectedIds.length} selected
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                >
+                  Cancel selection
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handleBatchDelete}
+                className="h-[26px] px-2.5 bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90 rounded-[4px] font-medium text-[11px] flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Trash2 size={12} strokeWidth={1.5} />
+                <span>Delete ({selectedIds.length})</span>
+              </button>
+            </div>
+          )}
+
           {/* Desktop/Tablet Table Layout */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden md:block">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-[var(--border-default)] bg-[var(--bg-subtle)]/40 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em]">
-                  <th className="px-4 py-2.5 w-10">
-                    <GlassCheckbox
-                      checked={filteredDebts.length > 0 && filteredDebts.every(d => selectedIds.includes(d.id))}
-                      onChange={() => {
-                        if (selectedIds.length === filteredDebts.length) setSelectedIds([]);
-                        else setSelectedIds(filteredDebts.map(d => d.id));
-                      }}
-                    />
-                  </th>
-                  <th className="px-4 py-2.5">Person / Counterparty</th>
-                  <th className="px-4 py-2.5">Direction</th>
-                  <th className="px-4 py-2.5 text-right">Total Amount</th>
-                  <th className="px-4 py-2.5 text-right">Remaining</th>
-                  <th className="px-4 py-2.5">Due Date</th>
-                  <th className="px-4 py-2.5 text-right">Actions</th>
+                <tr className="border-b border-[var(--border-default)] bg-[var(--bg-surface)] text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em]">
+                  {selectedIds.length > 0 && (
+                    <th className="px-4 py-2 w-10">
+                      <GlassCheckbox
+                        checked={filteredDebts.length > 0 && filteredDebts.every(d => selectedIds.includes(d.id))}
+                        onChange={() => {
+                          if (selectedIds.length === filteredDebts.length) setSelectedIds([]);
+                          else setSelectedIds(filteredDebts.map(d => d.id));
+                        }}
+                      />
+                    </th>
+                  )}
+                  <th className="px-4 py-2">Person / Counterparty</th>
+                  <th className="px-4 py-2">Direction</th>
+                  <th className="px-4 py-2 text-right">Total Amount</th>
+                  <th className="px-4 py-2 text-right">Remaining</th>
+                  <th className="px-4 py-2">Due Date</th>
+                  <th className="px-3 py-2 w-10 text-right"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-default)]">
-                {filteredDebts.map(d => {
-                  const isSelected = selectedIds.includes(d.id);
+                {filteredDebts.map((d, idx) => {
+                  const debtId = d.id ? String(d.id) : `debt_${idx}`;
+                  const isSelected = selectedIds.includes(debtId);
+                  const isMenuOpen = activeRowMenu === debtId;
                   const totalPaid = (d.payments || []).reduce((s, p) => s + p.amount, 0);
                   const remaining = Math.max(0, d.amount - totalPaid);
+                  const openUpwards = idx >= Math.max(1, filteredDebts.length - 2);
 
                   return (
-                    <tr key={d.id} className={`hover:bg-[var(--bg-surface-hover)] transition-colors ${isSelected ? 'bg-[var(--bg-subtle)]' : ''}`}>
-                      <td className="px-4 py-3">
-                        <GlassCheckbox checked={isSelected} onChange={() => toggleSelect(d.id)} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-[13px] font-medium text-[var(--text-primary)] block">
-                          {d.person}
-                        </span>
-                        {d.note && (
-                          <span className="text-[11px] text-[var(--text-muted)] line-clamp-1">
-                            {d.note}
+                    <tr key={debtId} className={`hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer ${isSelected ? 'bg-[var(--bg-subtle)]' : ''}`}>
+                      {selectedIds.length > 0 && (
+                        <td className="px-4 py-2">
+                          <GlassCheckbox checked={isSelected} onChange={() => toggleSelect(debtId)} />
+                        </td>
+                      )}
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12.5px] font-medium text-[var(--text-primary)]">
+                            {d.person}
                           </span>
-                        )}
+                          {d.note && (
+                            <span className="text-[11px] text-[var(--text-muted)] truncate max-w-[200px]">
+                              · {d.note}
+                            </span>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-[4px] ${
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <span className={`pill ${
                           d.type === 'I_OWE' 
-                            ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)]' 
-                            : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'
+                            ? 'pill--error' 
+                            : 'pill--success'
                         }`}>
                           {d.type === 'I_OWE' ? 'You Owe' : 'Owed to You'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-[13px] font-medium text-[var(--text-primary)] whitespace-nowrap">
+                      <td className="px-4 py-2 text-right font-mono text-[12.5px] font-medium text-[var(--text-primary)] whitespace-nowrap">
                         {formatMoney(d.amount, currencySymbol)}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-[13px] font-semibold text-[var(--text-primary)] whitespace-nowrap">
+                      <td className="px-4 py-2 text-right font-mono text-[12.5px] font-semibold text-[var(--text-primary)] whitespace-nowrap">
                         {d.isSettled ? (
                           <span className="text-[var(--status-success-fg)]">Settled</span>
                         ) : (
                           formatMoney(remaining, currencySymbol)
                         )}
                       </td>
-                      <td className="px-4 py-3 text-[12px] font-mono text-[var(--text-muted)] whitespace-nowrap">
+                      <td className="px-4 py-2 text-[11.5px] font-mono text-[var(--text-muted)] whitespace-nowrap">
                         {d.dueDate || 'No date'}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {!d.isSettled && (
-                            <button
-                              onClick={() => { setActiveDebtId(d.id); setIsPaymentOpen(true); }}
-                              className="h-[26px] px-2 rounded-[4px] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
-                            >
-                              Log Pay
-                            </button>
-                          )}
-                          <button
-                            onClick={() => toggleSettle(d)}
-                            className={`h-[26px] px-2 rounded-[4px] border text-[11px] font-medium cursor-pointer ${
-                              d.isSettled
-                                ? 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border-default)]'
-                                : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)] border-[var(--status-success-fg)]/20 hover:opacity-90'
-                            }`}
-                          >
-                            {d.isSettled ? 'Reopen' : 'Settle'}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(d.id)}
-                            className="w-7 h-[26px] rounded-[4px] text-[var(--text-muted)] hover:text-[var(--status-error-fg)] hover:bg-[var(--bg-subtle)] flex items-center justify-center cursor-pointer"
-                            title="Delete"
-                          >
-                            <Trash2 size={13} strokeWidth={1.5} />
-                          </button>
-                        </div>
+                      <td className="px-3 py-2 text-right whitespace-nowrap relative" onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveRowMenu(isMenuOpen ? null : debtId);
+                          }}
+                          className="w-6 h-6 rounded-[4px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] inline-flex items-center justify-center transition-colors cursor-pointer"
+                          title="More options"
+                        >
+                          <DotsThree size={16} weight="bold" />
+                        </button>
+                        {isMenuOpen && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-[40]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveRowMenu(null);
+                              }}
+                            />
+                            <div className={`absolute right-3 z-[50] w-36 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_12px_32px_rgba(0,0,0,0.65)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100 text-left select-none ${
+                              openUpwards ? 'bottom-8' : 'top-9'
+                            }`}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  toggleSelect(debtId);
+                                  setActiveRowMenu(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                              >
+                                <Check size={13} strokeWidth={1.5} />
+                                <span>{isSelected ? 'Deselect' : 'Select'}</span>
+                              </button>
+                              {!d.isSettled && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveDebtId(d.id);
+                                    setIsPaymentOpen(true);
+                                    setActiveRowMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                                >
+                                  <HandCoins size={13} strokeWidth={1.5} />
+                                  <span>Log payment</span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  toggleSettle(d);
+                                  setActiveRowMenu(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                              >
+                                <Check size={13} strokeWidth={1.5} />
+                                <span>{d.isSettled ? 'Reopen' : 'Settle'}</span>
+                              </button>
+                              <div className="my-1 border-t border-[var(--border-default)]" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleDelete(d.id);
+                                  setActiveRowMenu(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--status-error-fg)] hover:bg-[var(--status-error-bg)] cursor-pointer transition-colors"
+                              >
+                                <Trash2 size={13} strokeWidth={1.5} />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </td>
                     </tr>
                   );
@@ -413,18 +512,22 @@ export const DebtView: React.FC<DebtProps> = ({
 
           {/* Mobile Card List Layout */}
           <div className="block md:hidden divide-y divide-[var(--border-default)]">
-            {filteredDebts.map(d => {
-              const isSelected = selectedIds.includes(d.id);
+            {filteredDebts.map((d, idx) => {
+              const debtId = d.id ? String(d.id) : `debt_${idx}`;
+              const isSelected = selectedIds.includes(debtId);
+              const isMenuOpen = activeRowMenu === debtId;
               const totalPaid = (d.payments || []).reduce((s, p) => s + p.amount, 0);
               const remaining = Math.max(0, d.amount - totalPaid);
 
               return (
-                <div key={d.id} className={`p-3.5 space-y-2.5 hover:bg-[var(--bg-surface-hover)] ${isSelected ? 'bg-[var(--bg-subtle)]' : ''}`}>
+                <div key={debtId} className={`p-3.5 space-y-2.5 hover:bg-[var(--bg-surface-hover)] ${isSelected ? 'bg-[var(--bg-subtle)]' : ''}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <div onClick={e => e.stopPropagation()}>
-                        <GlassCheckbox checked={isSelected} onChange={() => toggleSelect(d.id)} />
-                      </div>
+                      {selectedIds.length > 0 && (
+                        <div onClick={e => e.stopPropagation()}>
+                          <GlassCheckbox checked={isSelected} onChange={() => toggleSelect(debtId)} />
+                        </div>
+                      )}
                       <div>
                         <span className="text-[13px] font-medium text-[var(--text-primary)] block">{d.person}</span>
                         <span className={`text-[10px] font-medium px-1.5 py-0.2 rounded-[4px] inline-block mt-0.5 ${
@@ -435,49 +538,100 @@ export const DebtView: React.FC<DebtProps> = ({
                       </div>
                     </div>
 
-                    <div className="text-right font-mono">
-                      <span className="text-[14px] font-semibold text-[var(--text-primary)] block">
-                        {d.isSettled ? <span className="text-[var(--status-success-fg)]">Settled</span> : formatMoney(remaining, currencySymbol)}
-                      </span>
-                      <span className="text-[10px] text-[var(--text-muted)]">
-                        of {formatMoney(d.amount, currencySymbol)}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <div className="text-right font-mono">
+                        <span className="text-[14px] font-semibold text-[var(--text-primary)] block">
+                          {d.isSettled ? <span className="text-[var(--status-success-fg)]">Settled</span> : formatMoney(remaining, currencySymbol)}
+                        </span>
+                        <span className="text-[10px] text-[var(--text-muted)]">
+                          of {formatMoney(d.amount, currencySymbol)}
+                        </span>
+                      </div>
+
+                      <div className="relative" onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveRowMenu(isMenuOpen ? null : debtId);
+                          }}
+                          className="w-7 h-7 rounded-[4px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] inline-flex items-center justify-center transition-colors cursor-pointer"
+                        >
+                          <DotsThree size={18} weight="bold" />
+                        </button>
+                        {isMenuOpen && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-[40]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveRowMenu(null);
+                              }}
+                            />
+                            <div className="absolute right-0 top-8 z-[50] w-36 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_12px_32px_rgba(0,0,0,0.65)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100 text-left select-none">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  toggleSelect(debtId);
+                                  setActiveRowMenu(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                              >
+                                <Check size={13} strokeWidth={1.5} />
+                                <span>{isSelected ? 'Deselect' : 'Select'}</span>
+                              </button>
+                              {!d.isSettled && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveDebtId(d.id);
+                                    setIsPaymentOpen(true);
+                                    setActiveRowMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                                >
+                                  <HandCoins size={13} strokeWidth={1.5} />
+                                  <span>Log payment</span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  toggleSettle(d);
+                                  setActiveRowMenu(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                              >
+                                <Check size={13} strokeWidth={1.5} />
+                                <span>{d.isSettled ? 'Reopen' : 'Settle'}</span>
+                              </button>
+                              <div className="my-1 border-t border-[var(--border-default)]" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleDelete(debtId);
+                                  setActiveRowMenu(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--status-error-fg)] hover:bg-[var(--status-error-bg)] cursor-pointer transition-colors"
+                              >
+                                <Trash2 size={13} strokeWidth={1.5} />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {d.note && (
-                    <p className="text-[11px] text-[var(--text-secondary)] pl-7">
+                    <p className="text-[11px] text-[var(--text-secondary)] pl-1">
                       {d.note}
                     </p>
                   )}
 
-                  <div className="flex items-center justify-between pl-7 pt-1">
-                    <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                      Due: {d.dueDate || 'N/A'}
-                    </span>
-
-                    <div className="flex items-center gap-1.5">
-                      {!d.isSettled && (
-                        <button
-                          onClick={() => { setActiveDebtId(d.id); setIsPaymentOpen(true); }}
-                          className="h-[24px] px-2 rounded-[4px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[10px] font-medium text-[var(--text-secondary)] cursor-pointer"
-                        >
-                          Log Pay
-                        </button>
-                      )}
-                      <button
-                        onClick={() => toggleSettle(d)}
-                        className="h-[24px] px-2 rounded-[4px] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] border border-[var(--status-success-fg)]/20 text-[10px] font-medium cursor-pointer"
-                      >
-                        {d.isSettled ? 'Reopen' : 'Settle'}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(d.id)}
-                        className="w-6 h-[24px] rounded-[4px] text-[var(--text-muted)] hover:text-[var(--status-error-fg)] flex items-center justify-center cursor-pointer"
-                      >
-                        <Trash2 size={12} strokeWidth={1.5} />
-                      </button>
-                    </div>
+                  <div className="flex items-center justify-between pl-1 pt-1 text-[10px] text-[var(--text-muted)] font-mono">
+                    <span>Due: {d.dueDate || 'N/A'}</span>
                   </div>
                 </div>
               );
@@ -488,31 +642,40 @@ export const DebtView: React.FC<DebtProps> = ({
       )}
 
       {/* Add Debt Modal */}
-      {isAddOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] p-5 w-full max-w-sm space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Add Liability Record</h3>
-              <button onClick={() => setIsAddOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-                <X size={16} strokeWidth={1.5} />
+      {isAddOpen && createPortal(
+        <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-150" 
+            onClick={() => setIsAddOpen(false)} 
+          />
+          <div className="relative z-10 w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 text-[var(--text-primary)]">
+            <div className="flex items-center justify-between pb-1">
+              <h3 className="text-base font-medium text-[var(--text-primary)] tracking-tight">Add Liability Record</h3>
+              <button 
+                type="button"
+                onClick={() => setIsAddOpen(false)} 
+                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
 
-            <form onSubmit={handleAddDebt} className="space-y-3 text-[12px]">
+            <form onSubmit={handleAddDebt} className="space-y-3.5 text-[12px]">
               <div>
-                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Direction</label>
-                <div className="flex p-0.5 rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)]">
+                <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Direction</label>
+                <div className="flex p-0.5 rounded-[6px] bg-[var(--field-bg)] border border-[var(--border-default)]">
                   <button
                     type="button"
                     onClick={() => setType('OWES_ME')}
-                    className={`flex-1 py-1 rounded-[4px] font-medium transition-all ${type === 'OWES_ME' ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs' : 'text-[var(--text-muted)]'}`}
+                    className={`flex-1 py-1.5 rounded-[5px] text-[12px] font-medium transition-all ${type === 'OWES_ME' ? 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                   >
                     Owed to You
                   </button>
                   <button
                     type="button"
                     onClick={() => setType('I_OWE')}
-                    className={`flex-1 py-1 rounded-[4px] font-medium transition-all ${type === 'I_OWE' ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs' : 'text-[var(--text-muted)]'}`}
+                    className={`flex-1 py-1.5 rounded-[5px] text-[12px] font-medium transition-all ${type === 'I_OWE' ? 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)] border border-[var(--border-default)] shadow-xs' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}
                   >
                     You Owe
                   </button>
@@ -520,125 +683,137 @@ export const DebtView: React.FC<DebtProps> = ({
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Counterparty Person</label>
+                <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Counterparty Person</label>
                 <input
                   type="text"
                   placeholder="e.g. Alex Smith"
                   value={person}
                   onChange={e => setPerson(e.target.value)}
-                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] focus:border-[var(--field-border-focus)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] outline-none"
+                  className="w-full h-[36px] bg-[var(--field-bg)] border border-[var(--border-default)] focus:border-[var(--accent)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 outline-none transition-colors"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Amount ({currencySymbol})</label>
+                <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Amount ({currencySymbol})</label>
                 <input
                   type="number"
                   step="0.01"
                   placeholder="0.00"
                   value={amount}
                   onChange={e => setAmount(e.target.value)}
-                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] focus:border-[var(--field-border-focus)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] font-mono outline-none"
+                  className="w-full h-[36px] bg-[var(--field-bg)] border border-[var(--border-default)] focus:border-[var(--accent)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] font-mono placeholder:text-[var(--text-muted)]/50 outline-none transition-colors"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Due Date (Optional)</label>
+                <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Due Date (Optional)</label>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={e => setDueDate(e.target.value)}
-                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] outline-none"
+                  style={{ colorScheme: 'dark' }}
+                  className="w-full h-[36px] bg-[var(--field-bg)] border border-[var(--border-default)] focus:border-[var(--accent)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] outline-none transition-colors"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Note (Optional)</label>
+                <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Note (Optional)</label>
                 <input
                   type="text"
                   placeholder="e.g. Dinner bill split"
                   value={note}
                   onChange={e => setNote(e.target.value)}
-                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] outline-none"
+                  className="w-full h-[36px] bg-[var(--field-bg)] border border-[var(--border-default)] focus:border-[var(--accent)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 outline-none transition-colors"
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
-                  className="flex-1 h-[34px] rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-secondary)] font-medium"
+                  className="btn btn--outline h-[34px] px-4 rounded-[6px] text-[12px] font-medium cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 h-[34px] rounded-[6px] bg-[var(--accent-solid)] text-[var(--accent-text)] font-medium font-sans hover:opacity-90 cursor-pointer"
+                  className="btn btn--primary h-[34px] px-4 rounded-[6px] text-[12px] font-medium cursor-pointer"
                 >
                   Save Record
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Partial Payment Modal */}
-      {isPaymentOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] p-5 w-full max-w-sm space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">Log Partial Payment</h3>
-              <button onClick={() => setIsPaymentOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-                <X size={16} strokeWidth={1.5} />
+      {isPaymentOpen && createPortal(
+        <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-150" 
+            onClick={() => setIsPaymentOpen(false)} 
+          />
+          <div className="relative z-10 w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 text-[var(--text-primary)]">
+            <div className="flex items-center justify-between pb-1">
+              <h3 className="text-base font-medium text-[var(--text-primary)] tracking-tight">Log Partial Payment</h3>
+              <button 
+                type="button"
+                onClick={() => setIsPaymentOpen(false)} 
+                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                <X size={15} strokeWidth={1.5} />
               </button>
             </div>
 
-            <form onSubmit={handleAddPartialPayment} className="space-y-3 text-[12px]">
+            <form onSubmit={handleAddPartialPayment} className="space-y-3.5 text-[12px]">
               <div>
-                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Payment Amount ({currencySymbol})</label>
+                <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Payment Amount ({currencySymbol})</label>
                 <input
                   type="number"
                   step="0.01"
                   placeholder="0.00"
                   value={paymentAmount}
                   onChange={e => setPaymentAmount(e.target.value)}
-                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] focus:border-[var(--field-border-focus)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] font-mono outline-none"
+                  className="w-full h-[36px] bg-[var(--field-bg)] border border-[var(--border-default)] focus:border-[var(--accent)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] font-mono placeholder:text-[var(--text-muted)]/50 outline-none transition-colors"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] block mb-1">Payment Note (Optional)</label>
+                <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Payment Note (Optional)</label>
                 <input
                   type="text"
                   placeholder="e.g. Bank transfer reference"
                   value={paymentNote}
                   onChange={e => setPaymentNote(e.target.value)}
-                  className="w-full h-[34px] bg-[var(--field-bg)] border border-[var(--field-border)] rounded-[6px] px-2.5 text-[12px] text-[var(--text-primary)] outline-none"
+                  className="w-full h-[36px] bg-[var(--field-bg)] border border-[var(--border-default)] focus:border-[var(--accent)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 outline-none transition-colors"
                 />
               </div>
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2.5 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsPaymentOpen(false)}
-                  className="flex-1 h-[34px] rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-secondary)] font-medium"
+                  className="btn btn--outline h-[34px] px-4 rounded-[6px] text-[12px] font-medium cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 h-[34px] rounded-[6px] bg-[var(--accent-solid)] text-[var(--accent-text)] font-medium font-sans hover:opacity-90 cursor-pointer"
+                  className="btn btn--primary h-[34px] px-4 rounded-[6px] text-[12px] font-medium cursor-pointer"
                 >
                   Record Payment
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

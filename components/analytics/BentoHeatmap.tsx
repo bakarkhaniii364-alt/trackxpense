@@ -54,9 +54,9 @@ export const BentoHeatmap: React.FC<BentoHeatmapProps> = ({ transactions }) => {
                 const intensity = count / maxCount;
                 
                 let cellBg = 'var(--bg-subtle)';
-                if (intensity > 0.6) cellBg = '#3b82f6';
-                else if (intensity > 0.3) cellBg = 'rgba(59, 130, 246, 0.5)';
-                else if (intensity > 0) cellBg = 'rgba(59, 130, 246, 0.2)';
+                if (intensity > 0.6) cellBg = '#F6821F';
+                else if (intensity > 0.3) cellBg = 'rgba(246, 130, 31, 0.5)';
+                else if (intensity > 0) cellBg = 'rgba(246, 130, 31, 0.2)';
 
                 return (
                   <div
@@ -76,9 +76,9 @@ export const BentoHeatmap: React.FC<BentoHeatmapProps> = ({ transactions }) => {
         <span>Low</span>
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-[2px] bg-[var(--bg-subtle)] border border-[var(--border-default)]" />
-          <span className="w-2 h-2 rounded-[2px] bg-[rgba(59,130,246,0.2)]" />
-          <span className="w-2 h-2 rounded-[2px] bg-[rgba(59,130,246,0.5)]" />
-          <span className="w-2 h-2 rounded-[2px] bg-[#3b82f6]" />
+          <span className="w-2 h-2 rounded-[2px] bg-[rgba(246,130,31,0.2)]" />
+          <span className="w-2 h-2 rounded-[2px] bg-[rgba(246,130,31,0.5)]" />
+          <span className="w-2 h-2 rounded-[2px] bg-[#F6821F]" />
         </div>
         <span>Peak frequency</span>
       </div>

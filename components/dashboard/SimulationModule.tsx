@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { AppData, TransactionType } from '../../types';
 import {
   X,
@@ -82,16 +83,16 @@ export const SimulationModule: React.FC<SimulationModuleProps> = ({
   const isWarning = simRunway >= 30 && simRunway < 60;
   const isHealthy = simRunway >= 60;
 
-  return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-200">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/80 backdrop-blur-xs transition-opacity" 
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
         onClick={onClose} 
       />
 
-      {/* Modal Container: 10px outer radius, crisp 1px border, SF Pro Medium */}
-      <div className="relative w-full max-w-xl bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col">
+      {/* Modal Container: 8px outer radius, crisp 1px border, solid opaque surface */}
+      <div className="relative w-full max-w-xl bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col z-10 text-[var(--text-primary)]">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
@@ -297,6 +298,7 @@ export const SimulationModule: React.FC<SimulationModuleProps> = ({
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

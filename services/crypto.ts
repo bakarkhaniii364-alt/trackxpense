@@ -4,8 +4,15 @@
  * - AES-GCM 256-bit authenticated encryption with randomized 96-bit IV
  * - PBKDF2 key derivation (SHA-256, 100,000 iterations, 128-bit cryptographically secure salt)
  * - Salted PBKDF2-SHA256 vault passcode hashing with timing-safe comparison
- * - Backward-compatible fallback for legacy POC ciphertexts
+ * - Universal runtime support (Browser, Electron, Capacitor, Node/Vitest)
  */
+
+// Universal WebCrypto resolver
+function getWebCrypto(): Crypto {
+  if (typeof globalThis !== 'undefined' && globalThis.crypto) return globalThis.crypto;
+  if (typeof window !== 'undefined' && window.crypto) return window.crypto;
+  throw new Error('Web Cryptography API is unavailable in this environment');
+}
 
 // Helper: Convert Uint8Array to Hex string
 function toHex(buffer: Uint8Array): string {
@@ -26,8 +33,9 @@ function fromHex(hex: string): Uint8Array {
 
 // Derive an AES-GCM CryptoKey from a passphrase and salt using PBKDF2
 async function deriveKey(passphrase: string, salt: Uint8Array, usage: KeyUsage[]): Promise<CryptoKey> {
+  const cryptoObj = getWebCrypto();
   const enc = new TextEncoder();
-  const keyMaterial = await window.crypto.subtle.importKey(
+  const keyMaterial = await cryptoObj.subtle.importKey(
     'raw',
     enc.encode(passphrase),
     { name: 'PBKDF2' },
@@ -35,7 +43,7 @@ async function deriveKey(passphrase: string, salt: Uint8Array, usage: KeyUsage[]
     ['deriveKey']
   );
 
-  return window.crypto.subtle.deriveKey(
+  return cryptoObj.subtle.deriveKey(
     {
       name: 'PBKDF2',
       salt: salt as any,
@@ -57,15 +65,16 @@ export const PrivacyShield = {
   encrypt: async (text: string, key: string): Promise<string> => {
     if (!key || !text) return text;
     try {
-      if (typeof window === 'undefined' || !window.crypto?.subtle) {
+      const cryptoObj = getWebCrypto();
+      if (!cryptoObj?.subtle) {
         return text;
       }
-      const salt = window.crypto.getRandomValues(new Uint8Array(16));
-      const iv = window.crypto.getRandomValues(new Uint8Array(12));
+      const salt = cryptoObj.getRandomValues(new Uint8Array(16));
+      const iv = cryptoObj.getRandomValues(new Uint8Array(12));
       const cryptoKey = await deriveKey(key, salt, ['encrypt']);
 
       const encodedText = new TextEncoder().encode(text);
-      const ciphertextBuffer = await window.crypto.subtle.encrypt(
+      const ciphertextBuffer = await cryptoObj.subtle.encrypt(
         { name: 'AES-GCM', iv },
         cryptoKey,
         encodedText
@@ -96,8 +105,9 @@ export const PrivacyShield = {
         const iv = fromHex(parts[2]);
         const ciphertext = fromHex(parts[3]);
 
+        const cryptoObj = getWebCrypto();
         const cryptoKey = await deriveKey(key, salt, ['decrypt']);
-        const decryptedBuffer = await window.crypto.subtle.decrypt(
+        const decryptedBuffer = await cryptoObj.subtle.decrypt(
           { name: 'AES-GCM', iv: iv as any },
           cryptoKey,
           ciphertext as any
@@ -138,12 +148,13 @@ export const PrivacyShield = {
  * Secures the optional device-level lock with PBKDF2-SHA256.
  */
 export async function hashVaultPasscode(passcode: string, existingSaltHex?: string): Promise<{ hash: string; salt: string }> {
+  const cryptoObj = getWebCrypto();
   const salt = existingSaltHex 
     ? fromHex(existingSaltHex) 
-    : window.crypto.getRandomValues(new Uint8Array(16));
+    : cryptoObj.getRandomValues(new Uint8Array(16));
 
   const enc = new TextEncoder();
-  const keyMaterial = await window.crypto.subtle.importKey(
+  const keyMaterial = await cryptoObj.subtle.importKey(
     'raw',
     enc.encode(passcode),
     { name: 'PBKDF2' },
@@ -151,7 +162,7 @@ export async function hashVaultPasscode(passcode: string, existingSaltHex?: stri
     ['deriveBits']
   );
 
-  const hashBits = await window.crypto.subtle.deriveBits(
+  const hashBits = await cryptoObj.subtle.deriveBits(
     {
       name: 'PBKDF2',
       salt: salt as any,
@@ -169,27 +180,32 @@ export async function hashVaultPasscode(passcode: string, existingSaltHex?: stri
 }
 
 /**
+ * Timing-safe constant-time string comparison.
+ * Prevents timing side-channel attacks by not short-circuiting on mismatch.
+ */
+function constantTimeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+/**
  * Verify input passcode against stored hash.
- * Provides instant backward-compatibility for legacy unhashed 4-digit passcodes.
  */
 export async function verifyVaultPasscode(
   inputPasscode: string, 
   storedHash: string, 
   saltHex?: string
 ): Promise<boolean> {
-  if (!inputPasscode || !storedHash) return false;
-
-  // Legacy fallback: if storedHash is a plain 4-digit PIN with no salt
-  if (!saltHex && storedHash === inputPasscode) {
-    return true;
-  }
+  if (!inputPasscode || !storedHash || !saltHex) return false;
 
   try {
-    if (!saltHex) return false;
     const { hash } = await hashVaultPasscode(inputPasscode, saltHex);
-    return hash === storedHash;
-  } catch (err) {
-    console.warn('Passcode verification failed:', err);
+    return constantTimeCompare(hash, storedHash);
+  } catch {
     return false;
   }
 }

@@ -7,35 +7,66 @@ interface WidgetProps {
 
 export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
     const calculateScore = () => {
-        let score = 0;
-
-        // Budget Adherence (40%)
-        const limits = data.settings.budgetLimits || {};
-        const breaches = Object.keys(limits).filter(cat => {
-            const limit = typeof limits[cat] === 'number' ? limits[cat] : limits[cat].limit;
-            const spend = data.transactions
-                .filter(t => t.type === TransactionType.EXPENSE && t.category === cat)
-                .reduce((sum, t) => sum + t.amount, 0);
-            return spend > limit;
-        }).length;
-        score += Math.max(0, 40 - (breaches * 10));
-
-        // Savings Rate (30%)
         const totalIncome = data.transactions.filter(t => t.type === TransactionType.INCOME).reduce((sum, t) => sum + t.amount, 0);
         const totalExpense = data.transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((sum, t) => sum + t.amount, 0);
-        const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpense) / totalIncome) * 100 : 0;
-        score += Math.min(30, savingsRate > 0 ? (savingsRate / 20) * 30 : 0);
+        const currentBalance = totalIncome - totalExpense;
+        const totalDebtOwed = (data.debts || [])
+            .filter(d => !d.isSettled && d.type === 'I_OWE')
+            .reduce((sum, d) => {
+                const paid = (d.payments || []).reduce((s, p) => s + p.amount, 0);
+                return sum + Math.max(0, d.amount - paid);
+            }, 0);
 
-        // Debt/Income (20%)
-        const totalDebt = data.debts.filter(d => !d.isSettled && d.type === 'I_OWE').reduce((sum, d) => sum + d.amount, 0);
-        const debtRatio = totalIncome > 0 ? (totalDebt / totalIncome) : 0;
-        score += Math.max(0, 20 - (debtRatio * 40));
+        // Immediate Critical Check: Uncovered debt with zero or negative liquid balance
+        if (totalDebtOwed > 0 && currentBalance <= 0) {
+            return Math.max(10, Math.round(25 - Math.min(15, totalDebtOwed / 1000)));
+        }
 
-        // Streaks (10%)
+        let score = 0;
+
+        // 1. Budget Adherence (30%)
+        const limits = data.settings.budgetLimits || {};
+        const limitKeys = Object.keys(limits);
+        if (limitKeys.length > 0) {
+            const breaches = limitKeys.filter(cat => {
+                const limit = typeof limits[cat] === 'number' ? limits[cat] : limits[cat].limit;
+                const spend = data.transactions
+                    .filter(t => t.type === TransactionType.EXPENSE && t.category === cat)
+                    .reduce((sum, t) => sum + t.amount, 0);
+                return spend > limit;
+            }).length;
+            score += Math.max(0, 30 - (breaches * 10));
+        } else {
+            score += currentBalance > 0 ? 20 : 10;
+        }
+
+        // 2. Net Liquidity & Savings Rate (30%)
+        if (totalIncome > 0) {
+            const savingsRate = ((totalIncome - totalExpense) / totalIncome) * 100;
+            if (savingsRate > 0) {
+                score += Math.min(30, (savingsRate / 25) * 30);
+            }
+        } else if (currentBalance > 0) {
+            score += 15;
+        }
+
+        // 3. Debt Solvency (30%)
+        if (totalDebtOwed === 0) {
+            score += 30; // Debt-free bonus
+        } else if (currentBalance > 0) {
+            const coverage = currentBalance / totalDebtOwed;
+            if (coverage >= 2) score += 25;
+            else if (coverage >= 1) score += 18;
+            else score += Math.round(coverage * 15);
+        } else {
+            score += 0;
+        }
+
+        // 4. Activity & Streaks (10%)
         const totalStreaks: number = (Object.values(data.streaks || {}) as Streak[]).reduce((sum: number, s) => sum + s.current, 0);
         score += Math.min(10, totalStreaks > 0 ? 10 : 0);
 
-        return Math.round(score);
+        return Math.max(0, Math.min(100, Math.round(score)));
     };
 
     const score = calculateScore();
@@ -48,7 +79,7 @@ export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
     const status = getStatus();
 
     return (
-        <div className="rounded-[12px] sm:rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-3.5 sm:p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
+        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-full">
             <div>
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] truncate">
@@ -108,9 +139,9 @@ export const SpendingHeatmap: React.FC<WidgetProps> = ({ data }) => {
             .reduce((sum, t) => sum + t.amount, 0);
         
         if (daySpend === 0) return 'bg-[var(--bg-subtle)] border-transparent';
-        if (daySpend < 30) return 'bg-blue-600/30 border-blue-500/20';
-        if (daySpend < 100) return 'bg-blue-600/60 border-blue-500/40';
-        return 'bg-blue-500 border-blue-400';
+        if (daySpend < 30) return 'bg-[rgba(246,130,31,0.25)] border-[rgba(246,130,31,0.2)]';
+        if (daySpend < 100) return 'bg-[rgba(246,130,31,0.6)] border-[rgba(246,130,31,0.4)]';
+        return 'bg-[var(--accent)] border-[var(--accent)]';
     };
 
     const noSpendDays = days.filter(d => 
@@ -154,8 +185,8 @@ export const SpendingHeatmap: React.FC<WidgetProps> = ({ data }) => {
                 <div className="flex items-center gap-1">
                     <span className="text-[10px] text-[var(--text-muted)] mr-1">Low</span>
                     <div className="w-2 h-2 rounded-[2px] bg-[var(--bg-subtle)]" />
-                    <div className="w-2 h-2 rounded-[2px] bg-blue-600/40" />
-                    <div className="w-2 h-2 rounded-[2px] bg-blue-500" />
+                    <div className="w-2 h-2 rounded-[2px] bg-[rgba(246,130,31,0.4)]" />
+                    <div className="w-2 h-2 rounded-[2px] bg-[var(--accent)]" />
                     <span className="text-[10px] text-[var(--text-muted)] ml-1">High</span>
                 </div>
             </div>

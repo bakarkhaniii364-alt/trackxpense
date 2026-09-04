@@ -58,7 +58,7 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
         <div 
             onClick={handleCardClick}
             onDoubleClick={togglePrivacy} 
-            className={`w-full h-full min-h-[175px] sm:min-h-[190px] p-5 lg:p-6 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] transition-colors select-none cursor-pointer flex flex-col justify-between overflow-hidden text-[var(--text-primary)] ${className || ''}`}
+            className={`w-full h-full min-h-[160px] sm:min-h-[175px] p-4 sm:p-5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] transition-colors select-none cursor-pointer flex flex-col justify-between overflow-hidden text-[var(--text-primary)] ${className || ''}`}
         >
             {/* Top Row: Eyebrow + Live Dot + Privacy Toggle */}
             <div className="flex items-center justify-between">

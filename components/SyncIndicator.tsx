@@ -1,40 +1,57 @@
 import React from 'react';
 import { useSyncStatus } from '../hooks/useSyncStatus';
-import {
-  Cloud,
-  CloudSlash as CloudOff,
-  ArrowsClockwise as RefreshCw
-} from '@phosphor-icons/react';
+import { ArrowClockwise } from '@phosphor-icons/react';
 
-export const SyncIndicator: React.FC = () => {
-  const { isSyncing, lastSyncedAt, pendingCount, isOnline } = useSyncStatus();
+export const SyncIndicator: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const { isSyncing, pendingCount, isOnline } = useSyncStatus();
 
   if (!isOnline) {
     return (
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400">
-        <CloudOff size={12} />
-        <span className="text-[10px] font-bold uppercase tracking-wider">Offline</span>
+      <div 
+        title="Offline: Changes are safely queued locally in IndexedDB"
+        className={`flex items-center gap-1.5 h-[28px] px-2.5 rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-muted)] text-[11px] font-mono select-none ${className}`}
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-error-fg)]" />
+        <span>Offline</span>
+        {pendingCount > 0 && (
+          <span className="text-[10px] text-[var(--status-warning-fg)]">({pendingCount} queued)</span>
+        )}
+      </div>
+    );
+  }
+
+  if (isSyncing) {
+    return (
+      <div 
+        title="Syncing changes with Supabase cloud"
+        className={`flex items-center gap-1.5 h-[28px] px-2.5 rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--status-warning-fg)] text-[11px] font-mono select-none ${className}`}
+      >
+        <ArrowClockwise size={12} className="animate-spin" strokeWidth={2} />
+        <span>Syncing</span>
+        {pendingCount > 0 && <span>({pendingCount})</span>}
+      </div>
+    );
+  }
+
+  if (pendingCount > 0) {
+    return (
+      <div 
+        title={`${pendingCount} change(s) queued for sync`}
+        className={`flex items-center gap-1.5 h-[28px] px-2.5 rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--status-warning-fg)] text-[11px] font-mono select-none ${className}`}
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-warning-fg)]" />
+        <span>{pendingCount} Queued</span>
       </div>
     );
   }
 
   return (
-    <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full transition-all duration-500 ${
-      isSyncing ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-    }`}>
-      {isSyncing ? (
-        <RefreshCw size={12} className="animate-spin" />
-      ) : (
-        <Cloud size={12} />
-      )}
-      <div className="flex flex-col items-start leading-none">
-        <span className="text-[10px] font-bold uppercase tracking-wider">
-          {isSyncing ? 'Syncing...' : 'Cloud Synced'}
-        </span>
-        {pendingCount > 0 && (
-          <span className="text-[8px] opacity-60 font-medium">{pendingCount} pending</span>
-        )}
-      </div>
+    <div 
+      title="All changes synced with cloud storage"
+      className={`flex items-center gap-1.5 h-[28px] px-2.5 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] text-[11px] font-mono select-none ${className}`}
+    >
+      <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)]" />
+      <span>Synced</span>
     </div>
   );
 };

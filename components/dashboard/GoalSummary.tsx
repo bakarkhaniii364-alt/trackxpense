@@ -35,7 +35,7 @@ export const GoalSummary: React.FC<GoalSummaryProps> = ({ goalWallets, currentWa
                         <button
                             key={w.id}
                             onClick={() => updateData({ currentWalletId: w.id })}
-                            className={`rounded-[18px] bg-[var(--bg-surface)] border ${isSelected ? 'border-[var(--accent-solid)]' : 'border-[var(--border-default)] hover:border-[var(--border-active)]'} p-5 lg:p-6 text-left transition-colors cursor-pointer flex flex-col justify-between`}
+                            className={`rounded-[8px] bg-[var(--bg-surface)] border ${isSelected ? 'border-[var(--accent-solid)]' : 'border-[var(--border-default)] hover:border-[var(--border-active)]'} p-4 sm:p-5 text-left transition-colors cursor-pointer flex flex-col justify-between`}
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div>

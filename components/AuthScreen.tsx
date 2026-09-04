@@ -1,39 +1,44 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
 import {
+  ArrowRight,
   Eye,
   EyeSlash as EyeOff,
-  ArrowRight,
-  Check
+  ArrowSquareOut,
+  ArrowLeft,
+  User,
+  Globe
 } from '@phosphor-icons/react';
+import { LandingPage } from './LandingPage';
 
 interface AuthScreenProps {
   onContinueAsGuest: () => void;
 }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onContinueAsGuest }) => {
+  const [showAuth, setShowAuth] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [step, setStep] = useState<'email' | 'password'>('email');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
 
-  const handleContinue = async (e: React.FormEvent) => {
+  const handleOpenAuth = (signUpMode: boolean) => {
+    setIsSignUp(signUpMode);
+    setShowAuth(true);
+    setError(null);
+    setInfoMsg(null);
+  };
+
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setInfoMsg(null);
 
     if (!email.trim()) {
       setError('Please enter your email address.');
-      return;
-    }
-
-    // If on email step and password isn't filled yet, move to password step smoothly
-    if (step === 'email' && !password) {
-      setStep('password');
       return;
     }
 
@@ -51,23 +56,22 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onContinueAsGuest }) => 
           password
         });
         if (signUpError) throw signUpError;
-        setInfoMsg('Confirmation link sent! Please verify your email, or log in.');
+        setInfoMsg('Account created! Please check your email inbox to confirm your account.');
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password
         });
         if (signInError) {
-          // If user doesn't exist, offer sign up
           if (signInError.message.toLowerCase().includes('invalid login credentials')) {
-            setError('Invalid credentials. If you are new, switch to "Create account".');
+            setError('Invalid email or password. New user? Click "Sign up" below.');
           } else {
             throw signInError;
           }
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication error. Please try again.');
+      setError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -76,112 +80,91 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onContinueAsGuest }) => 
   const handleGoogleSignIn = async () => {
     setError(null);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error: googleError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin
         }
       });
-      if (error) throw error;
+      if (googleError) throw googleError;
     } catch (err: any) {
-      setError(err.message || 'Google sign-in is not configured or failed.');
+      setError(err.message || 'Google authentication is currently unavailable.');
     }
   };
 
+  // If user is viewing the full product showcase first
+  if (!showAuth) {
+    return (
+      <LandingPage 
+        onContinueAsGuest={onContinueAsGuest} 
+        onOpenAuth={handleOpenAuth} 
+      />
+    );
+  }
+
+  // =========================================================================
+  // DEDICATED CLOUDFLARE 50/50 SPLIT AUTHENTICATION PAGE (dash.cloudflare.com style)
+  // =========================================================================
   return (
-    <div className="min-h-screen w-full bg-[#09090B] text-white flex flex-col lg:flex-row overflow-x-hidden selection:bg-zinc-700 selection:text-white select-none">
+    <div className="min-h-screen w-full bg-[#000000] text-white font-sans flex flex-col lg:flex-row overflow-x-hidden selection:bg-[#F6821F] selection:text-white select-none">
       
-      {/* ============================================================ */}
-      {/* LEFT CONTAINER (Brand / Editorial & Angled Skeleton Cards) */}
-      {/* ============================================================ */}
-      <div className="w-full lg:w-1/2 min-h-[420px] lg:min-h-screen bg-[#0B0B0E] p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden border-b lg:border-b-0 lg:border-r border-[#1F1F24]">
+      {/* ------------------------------------------------------------- */}
+      {/* LEFT CONTAINER (Auth Action Canvas - Black Background)        */}
+      {/* ------------------------------------------------------------- */}
+      <div className="w-full lg:w-1/2 min-h-screen bg-[#0C0C0E] p-6 sm:p-10 lg:p-14 flex flex-col justify-between relative border-b lg:border-b-0 lg:border-r border-[#1F1F24]">
         
-        {/* Angled Card Grid Background (Exact Lumen / High-Density Motif) */}
-        <div 
-          className="absolute inset-0 pointer-events-none opacity-[0.07] overflow-hidden" 
-          aria-hidden="true"
-        >
-          <div className="absolute -top-24 -left-24 w-[160%] h-[160%] transform -rotate-12 grid grid-cols-3 gap-6">
-            {[...Array(12)].map((_, i) => (
-              <div
-                key={i}
-                className="h-44 rounded-xl border border-white/20 bg-gradient-to-b from-white/10 to-transparent p-4 space-y-3"
-              >
-                <div className="h-3 w-1/3 bg-white/20 rounded" />
-                <div className="h-2 w-3/4 bg-white/10 rounded" />
-                <div className="h-2 w-1/2 bg-white/10 rounded" />
-                <div className="pt-4 flex justify-between items-end">
-                  <div className="h-4 w-12 bg-white/15 rounded" />
-                  <div className="h-3 w-8 bg-white/10 rounded" />
-                </div>
-              </div>
-            ))}
+        {/* Top-Left: Logo & Home Link */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <img 
+              src="/icon.png" 
+              alt="TrackXpense Logo" 
+              className="w-7 h-7 rounded-[6px] object-contain shrink-0" 
+            />
+            <span className="text-[16px] font-semibold tracking-tight text-white">
+              TrackXpense
+            </span>
           </div>
+
+          <button
+            onClick={() => setShowAuth(false)}
+            className="text-[12px] font-medium text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <ArrowLeft size={13} strokeWidth={1.5} />
+            <span>Product Showcase</span>
+          </button>
         </div>
 
-        {/* Top-Left Logo */}
-        <div className="relative z-10 flex items-center gap-3">
-          <img 
-            src="/icon.png" 
-            alt="TrackXpense Logo" 
-            className="w-7 h-7 rounded-[6px] object-contain shrink-0" 
-          />
-          <span className="text-[17px] font-semibold tracking-tight text-white">
-            TrackXpense
-          </span>
-        </div>
-
-        {/* Center Editorial Headline & Subtitle */}
-        <div className="relative z-10 max-w-lg my-auto py-12">
-          <h1 className="text-3xl sm:text-4xl lg:text-[46px] font-normal tracking-tight text-white leading-[1.18] font-['Newsreader',_Georgia,_serif]">
-            Clarity over every dollar and financial milestone.
-          </h1>
-          <p className="text-[15px] text-[#8A8D93] leading-relaxed mt-6 font-normal">
-            Track daily expenses, set realistic budgets, monitor liabilities, and sync across your devices with zero ads or tracking.
-          </p>
-        </div>
-
-        {/* Bottom Left Copyright */}
-        <div className="relative z-10 text-[11px] text-[#5F6169] font-mono tracking-wider">
-          © 2026 TRACKXPENSE
-        </div>
-      </div>
-
-      {/* ============================================================ */}
-      {/* RIGHT CONTAINER (Action Form & Auth Flow) */}
-      {/* ============================================================ */}
-      <div className="w-full lg:w-1/2 min-h-[500px] lg:min-h-screen bg-[#09090B] p-6 sm:p-12 lg:p-16 flex flex-col justify-between items-center relative">
-        
-        {/* Top Spacer for perfect vertical centering */}
-        <div className="hidden lg:block h-6 w-full" />
-
-        {/* Centered Form Box */}
-        <div className="w-full max-w-[380px] my-auto py-8">
+        {/* Center: Auth Form Container */}
+        <div className="my-auto py-8 w-full max-w-[360px] mx-auto space-y-6">
           
-          {/* Form Heading */}
-          <h2 className="text-2xl sm:text-[28px] font-normal text-white text-center mb-8 font-['Newsreader',_Georgia,_serif] tracking-tight">
-            {isSignUp ? 'Create your account' : 'Log in or create an account'}
-          </h2>
+          <div className="space-y-1 text-center">
+            <h1 className="text-2xl sm:text-[26px] font-semibold text-white tracking-tight">
+              {isSignUp ? 'Create your account' : 'Sign in to TrackXpense'}
+            </h1>
+            <p className="text-[12px] text-zinc-400 font-normal">
+              {isSignUp ? 'Set up cloud sync for your personal finances' : 'Access your encrypted ledger and budgets'}
+            </p>
+          </div>
 
-          {/* Feedback Messages */}
+          {/* Feedback Alerts */}
           {error && (
-            <div className="mb-4 p-3 rounded-[8px] bg-red-500/10 border border-red-500/20 text-[12px] text-red-400 text-center animate-in fade-in">
+            <div className="p-3 rounded-[6px] bg-red-500/10 border border-red-500/20 text-[12px] text-red-400 text-center animate-in fade-in">
               {error}
             </div>
           )}
 
           {infoMsg && (
-            <div className="mb-4 p-3 rounded-[8px] bg-emerald-500/10 border border-emerald-500/20 text-[12px] text-emerald-400 text-center animate-in fade-in">
+            <div className="p-3 rounded-[6px] bg-emerald-500/10 border border-emerald-500/20 text-[12px] text-emerald-400 text-center animate-in fade-in">
               {infoMsg}
             </div>
           )}
 
-          {/* Main Auth Form */}
-          <form onSubmit={handleContinue} className="space-y-4">
+          {/* Form */}
+          <form onSubmit={handleAuth} className="space-y-3.5">
             
-            {/* Email Field */}
             <div>
-              <label className="text-[13px] text-[#D4D4D8] font-medium block mb-2">
+              <label className="text-[12px] text-zinc-300 font-medium block mb-1.5">
                 Email address
               </label>
               <input
@@ -189,75 +172,72 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onContinueAsGuest }) => 
                 placeholder="name@example.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                className="w-full bg-[#121215] border border-[#27272A] rounded-[8px] px-3.5 py-3 text-[14px] text-white placeholder-[#5F6169] focus:border-zinc-400 focus:outline-none transition-colors"
+                className="w-full h-[40px] px-3.5 rounded-[6px] bg-[#141417] border border-[#27272A] focus:border-[#F6821F] text-[13px] text-white placeholder-zinc-500 outline-none transition-colors"
                 required
                 autoComplete="email"
               />
             </div>
 
-            {/* Password Field (shown immediately if on password step, or toggled) */}
-            {step === 'password' && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-[13px] text-[#D4D4D8] font-medium">
-                    Password
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsSignUp(!isSignUp)}
-                    className="text-[11px] text-zinc-400 hover:text-white underline cursor-pointer"
-                  >
-                    {isSignUp ? 'Already have an account? Log in' : 'Need an account? Sign up'}
-                  </button>
-                </div>
-                <div className="relative flex items-center">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full bg-[#121215] border border-[#27272A] rounded-[8px] px-3.5 py-3 pr-10 text-[14px] text-white placeholder-[#5F6169] focus:border-zinc-400 focus:outline-none transition-colors"
-                    required
-                    minLength={6}
-                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 text-zinc-500 hover:text-zinc-300 cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[12px] text-zinc-300 font-medium">
+                  Password
+                </label>
+                {!isSignUp && (
+                  <span className="text-[11px] text-zinc-400 hover:text-white cursor-pointer">
+                    Forgot password?
+                  </span>
+                )}
               </div>
-            )}
+              <div className="relative flex items-center">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full h-[40px] px-3.5 pr-10 rounded-[6px] bg-[#141417] border border-[#27272A] focus:border-[#F6821F] text-[13px] text-white placeholder-zinc-500 outline-none transition-colors"
+                  required
+                  minLength={6}
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff size={15} strokeWidth={1.5} /> : <Eye size={15} strokeWidth={1.5} />}
+                </button>
+              </div>
+            </div>
 
-            {/* Continue Primary Button */}
+            {/* Cloudflare Style Primary Action Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 rounded-full bg-[#D4D4D8] hover:bg-white text-black font-semibold text-[14px] transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.99]"
+              className="w-full h-[40px] mt-1 rounded-[6px] bg-[#F6821F] hover:bg-[#E3993D] active:scale-[0.99] text-[#0C0C0E] font-semibold text-[13px] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-none"
             >
-              {loading ? 'Continuing...' : 'Continue'}
+              {loading ? (
+                <span>Please wait...</span>
+              ) : (
+                <span>{isSignUp ? 'Create account' : 'Continue with email'}</span>
+              )}
             </button>
           </form>
 
           {/* Divider */}
-          <div className="relative flex items-center justify-center my-6">
-            <div className="w-full border-t border-[#1F1F24]" />
-            <span className="px-3 bg-[#09090B] text-[12px] text-[#5F6169] font-mono absolute">
+          <div className="relative flex items-center justify-center my-3">
+            <div className="w-full border-t border-[#222226]" />
+            <span className="px-3 bg-[#0C0C0E] text-[11px] text-zinc-500 font-mono uppercase absolute">
               or
             </span>
           </div>
 
-          {/* Continue with Google Button */}
+          {/* Continue with Google */}
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            className="w-full py-2.5 rounded-full bg-[#141417] hover:bg-[#1A1A1E] border border-[#27272A] text-[#E4E4E7] font-medium text-[13px] flex items-center justify-center gap-2.5 transition-colors cursor-pointer"
+            className="w-full h-[40px] rounded-[6px] bg-[#141417] hover:bg-[#1A1A1E] border border-[#27272A] text-zinc-200 font-medium text-[13px] flex items-center justify-center gap-2.5 transition-colors cursor-pointer"
           >
-            {/* Google Colorful G Icon */}
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path
                 fill="#4285F4"
@@ -279,36 +259,144 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onContinueAsGuest }) => 
             <span>Continue with Google</span>
           </button>
 
-          {/* Legal Terms Note */}
-          <p className="text-[11px] text-[#71717A] text-center leading-relaxed mt-6">
-            By continuing, you agree to the{' '}
-            <span className="text-zinc-400 underline cursor-pointer hover:text-white">Terms of Service</span> and{' '}
-            <span className="text-zinc-400 underline cursor-pointer hover:text-white">Privacy Policy</span>.
-          </p>
-
-          {/* Continue without signing in link */}
-          <div className="text-center mt-8">
-            <button
-              type="button"
-              onClick={onContinueAsGuest}
-              className="text-[13px] font-medium text-zinc-400 hover:text-white transition-colors cursor-pointer"
-            >
-              Continue without signing in
-            </button>
+          {/* Toggle Sign in / Sign up Mode */}
+          <div className="text-center text-[12px] text-zinc-400 pt-1">
+            {isSignUp ? (
+              <span>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setIsSignUp(false); setError(null); }}
+                  className="text-[#F6821F] hover:underline font-medium cursor-pointer"
+                >
+                  Sign in
+                </button>
+              </span>
+            ) : (
+              <span>
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setIsSignUp(true); setError(null); }}
+                  className="text-[#F6821F] hover:underline font-medium cursor-pointer"
+                >
+                  Sign up
+                </button>
+              </span>
+            )}
           </div>
+
+          {/* Terms text matching Cloudflare */}
+          <p className="text-[11px] text-zinc-500 text-center leading-relaxed pt-2">
+            By continuing, I agree to TrackXpense's{' '}
+            <span className="text-zinc-400 underline cursor-pointer hover:text-white">terms</span>,{' '}
+            <span className="text-zinc-400 underline cursor-pointer hover:text-white">privacy policy</span>, and{' '}
+            <span className="text-zinc-400 underline cursor-pointer hover:text-white">cookie policy</span>.
+          </p>
 
         </div>
 
-        {/* Bottom-Right Footer Links */}
-        <div className="w-full flex items-center justify-between text-[11px] text-[#5F6169] pt-4">
-          <div className="flex items-center gap-4">
-            <span className="hover:text-zinc-300 transition-colors cursor-pointer">Privacy</span>
-            <span className="hover:text-zinc-300 transition-colors cursor-pointer">Terms</span>
-            <span className="hover:text-zinc-300 transition-colors cursor-pointer">Help</span>
+        {/* Bottom-Left: Cookie Preferences Badge */}
+        <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-4">
+          <button 
+            onClick={onContinueAsGuest}
+            className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>Continue without signing in (Guest Mode)</span>
+          </button>
+          <span>© 2026 TrackXpense</span>
+        </div>
+
+      </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* RIGHT CONTAINER (Cloudflare Orange Showcase with Dot Sphere) */}
+      {/* ------------------------------------------------------------- */}
+      <div className="w-full lg:w-1/2 min-h-[480px] lg:min-h-screen bg-gradient-to-br from-[#F6821F] via-[#EB6818] to-[#E35A12] p-8 sm:p-12 lg:p-16 flex flex-col justify-between relative overflow-hidden text-white">
+        
+        {/* Authentic Cloudflare Particle Dot Sphere Graphic */}
+        <div 
+          className="absolute -right-24 top-1/2 -translate-y-1/2 w-[550px] h-[550px] opacity-80 pointer-events-none"
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 400 400" className="w-full h-full">
+            <defs>
+              <radialGradient id="cfDotGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
+                <stop offset="70%" stopColor="#FFFFFF" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            {/* Generate concentric dot matrix matching Cloudflare connect globe */}
+            {[...Array(24)].map((_, ring) => {
+              const count = 12 + ring * 4;
+              const radius = 20 + ring * 7.5;
+              return [...Array(count)].map((__, idx) => {
+                const angle = (idx / count) * 2 * Math.PI;
+                const cx = 200 + radius * Math.cos(angle);
+                const cy = 200 + radius * Math.sin(angle);
+                const opacity = Math.sin(angle + ring) * 0.4 + 0.5;
+                const size = (ring % 3 === 0) ? 2.2 : 1.4;
+                if (cx < 100) return null; // Mask left edge
+                return (
+                  <circle
+                    key={`${ring}-${idx}`}
+                    cx={cx}
+                    cy={cy}
+                    r={size}
+                    fill="white"
+                    opacity={opacity * 0.75}
+                  />
+                );
+              });
+            })}
+          </svg>
+        </div>
+
+        {/* Top-Right: Language & Sign Up Pill Button */}
+        <div className="relative z-10 flex items-center justify-end gap-4 text-[12px]">
+          <div className="flex items-center gap-1 text-white/80 font-medium">
+            <Globe size={14} strokeWidth={1.5} />
+            <span>English</span>
           </div>
-          <div className="font-mono text-[11px] text-[#71717A]">
-            Built by <span className="text-zinc-300 font-medium">bakarkhaniii</span>
+
+          <button
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="h-[32px] px-4 rounded-[6px] bg-[#000000] hover:bg-zinc-900 text-white text-[12px] font-medium transition-colors cursor-pointer"
+          >
+            {isSignUp ? 'Sign in' : 'Sign up'}
+          </button>
+        </div>
+
+        {/* Center: Editorial Feature Content */}
+        <div className="relative z-10 my-auto py-12 max-w-md space-y-4">
+          <span className="text-[12px] font-mono uppercase tracking-[0.08em] text-white/80 block">
+            TRACKXPENSE CONNECT 2026
+          </span>
+
+          <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-bold text-white tracking-tight leading-[1.15]">
+            Where your finances stay truly private.
+          </h2>
+
+          <p className="text-[14px] sm:text-[15px] text-white/90 leading-relaxed font-normal">
+            Track daily expenses with instant zero-lag logging, set realistic monthly budgets, and sync automatically across all your devices.
+          </p>
+
+          <div className="pt-3">
+            <button
+              onClick={onContinueAsGuest}
+              className="h-[40px] px-5 rounded-[6px] bg-[#000000] hover:bg-zinc-900 text-white text-[13px] font-medium transition-colors flex items-center gap-2 cursor-pointer shadow-lg active:scale-95"
+            >
+              <ArrowSquareOut size={15} strokeWidth={1.5} />
+              <span>Explore as Guest (Instant Access)</span>
+            </button>
           </div>
+        </div>
+
+        {/* Bottom-Right: Subtle Subtext */}
+        <div className="relative z-10 text-[11px] text-white/70 font-mono">
+          BUILT FOR PRIVACY, SPEED, AND SIMPLICITY
         </div>
 
       </div>

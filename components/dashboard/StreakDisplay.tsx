@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppData, Streak } from '../../types';
+import { NoDataWave } from '../shared/NoDataWave';
 
 interface StreakDisplayProps {
     data: AppData;
@@ -16,7 +17,7 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({ data }) => {
     const consistencyScore = streaks.length > 0 ? Math.round((maintainedCategories / totalCategories) * 100) : 100;
 
     return (
-        <div className="rounded-[12px] sm:rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-3.5 sm:p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
+        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-full">
             <div>
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] truncate">
@@ -62,9 +63,7 @@ export const StreakDisplay: React.FC<StreakDisplayProps> = ({ data }) => {
                         ))}
                     </div>
                 ) : (
-                    <div className="py-3 text-[12px] text-[var(--text-muted)]">
-                        No active category breaches recorded.
-                    </div>
+                    <NoDataWave height={75} />
                 )}
             </div>
 

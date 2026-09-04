@@ -1,12 +1,13 @@
 import React from 'react';
 import { Transaction, TransactionType, CategoryItem } from '../../types';
+import { NoDataWave } from '../shared/NoDataWave';
 
 interface SankeyChartProps {
-    transactions: Transaction[];
-    categories: CategoryItem[];
+    transactions?: Transaction[];
+    categories?: CategoryItem[];
 }
 
-export const SankeyChart: React.FC<SankeyChartProps> = ({ transactions, categories }) => {
+export const SankeyChart: React.FC<SankeyChartProps> = ({ transactions = [], categories = [] }) => {
     const incomeCats: Record<string, number> = {};
     const expenseCats: Record<string, number> = {};
     let totalIncome = 0;
@@ -28,7 +29,17 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({ transactions, categori
     const sortedExpenses = Object.entries(expenseCats).sort((a,b) => b[1] - a[1]);
 
     if (totalIncome === 0 && totalExpense === 0) {
-        return <div className="h-64 flex items-center justify-center text-muted">No data to display flow</div>;
+        return (
+            <div className="bg-[var(--bg-surface)] rounded-[8px] p-6 border border-[var(--border-default)]">
+                <div className="flex items-center justify-between pb-4">
+                    <span className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em]">
+                        CASH FLOW ANALYSIS
+                    </span>
+                    <span className="text-[11px] font-mono text-[var(--text-muted)]">0.00</span>
+                </div>
+                <NoDataWave height={180} />
+            </div>
+        );
     }
 
     const width = 320;
@@ -46,10 +57,11 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({ transactions, categori
 
     const links: React.ReactElement[] = [];
     const nodes: React.ReactElement[] = [];
+    const safeCategories = categories || [];
 
     sortedIncomes.forEach(([name, amount]) => {
         const nodeHeight = amount * scale;
-        const color = categories.find(c => c.name === name)?.color || '#10b981';
+        const color = safeCategories.find(c => c && c.name === name)?.color || '#10b981';
         nodes.push(
             <g key={`l-${name}`}>
                 <rect x={leftX} y={leftY} width={barWidth} height={nodeHeight} fill={color} rx={4} />
@@ -75,7 +87,7 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({ transactions, categori
 
     sortedExpenses.forEach(([name, amount]) => {
         const nodeHeight = amount * scale;
-        const color = categories.find(c => c.name === name)?.color || '#ef4444';
+        const color = safeCategories.find(c => c && c.name === name)?.color || '#ef4444';
         nodes.push(
             <g key={`r-${name}`}>
                 <rect x={rightX} y={linkRightY} width={barWidth} height={nodeHeight} fill={color} rx={4} />

@@ -19,7 +19,7 @@ interface CategoryTabProps {
 }
 
 const DEFAULT_COLORS = [
-  '#3b82f6', // Blue
+  '#F6821F', // Cloudflare Orange
   '#22c55e', // Green
   '#f59e0b', // Amber
   '#ef4444', // Red
@@ -214,7 +214,7 @@ export const CategoryTab: React.FC<CategoryTabProps> = ({
                     </div>
                     <div className="h-1.5 w-full bg-[var(--bg-surface)] rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-[#3b82f6] transition-all duration-500"
+                        className="h-full rounded-full bg-[var(--accent-solid)] transition-all duration-500"
                         style={{ width: `${Math.min(pair.totalShare, 100)}%` }}
                       />
                     </div>

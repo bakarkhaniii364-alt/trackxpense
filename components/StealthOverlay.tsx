@@ -10,7 +10,7 @@ import {
 
 export const StealthOverlay: React.FC = () => {
     return (
-        <div className="fixed inset-0 z-[10000] bg-[#f2f2f7] flex flex-col animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[var(--z-stealth,9999)] bg-[#f2f2f7] flex flex-col animate-in fade-in duration-300">
             {/* Fake OS Status Bar Spacing */}
             <div className="h-safe pt-2 bg-white" />
             

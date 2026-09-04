@@ -11,7 +11,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ quickActions, data, 
     if (quickActions.length === 0) return null;
 
     return (
-        <div className="rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 transition-colors">
+        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 transition-colors">
             <div className="flex items-center justify-between mb-3">
                 <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
                     Quick Log

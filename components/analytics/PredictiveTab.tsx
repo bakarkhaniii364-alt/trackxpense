@@ -138,8 +138,8 @@ export const PredictiveTab: React.FC<PredictiveTabProps> = ({
             <AreaChart data={trajectoryData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="trajGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="#F6821F" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#F6821F" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
               <CartesianGrid stroke="var(--border-default)" strokeDasharray="2 2" vertical={false} />
@@ -159,10 +159,10 @@ export const PredictiveTab: React.FC<PredictiveTabProps> = ({
               <Area
                 type="monotone"
                 dataKey="balance"
-                stroke="#3b82f6"
+                stroke="#F6821F"
                 strokeWidth={1.5}
                 fill="url(#trajGrad)"
-                activeDot={{ r: 4, fill: '#3b82f6' }}
+                activeDot={{ r: 4, fill: '#F6821F' }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -212,7 +212,7 @@ export const PredictiveTab: React.FC<PredictiveTabProps> = ({
 
               {/* Detected Recurring Bills / Subscriptions */}
               <div className="p-3 rounded-[8px] bg-[var(--bg-subtle)] border border-[var(--border-default)] flex items-start gap-3">
-                <Repeat size={16} strokeWidth={1.5} className="text-[#3b82f6] shrink-0 mt-0.5" />
+                <Repeat size={16} strokeWidth={1.5} className="text-[var(--accent)] shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <div className="flex items-center justify-between text-[12px]">
                     <span className="font-medium text-[var(--text-primary)]">Subscription Candidates</span>

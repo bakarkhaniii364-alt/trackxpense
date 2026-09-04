@@ -328,102 +328,120 @@ export const CloudflareDateRangePicker: React.FC<CloudflareDateRangePickerProps>
 
       {/* Cloudflare Custom Date Range Popover */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-[490px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] shadow-2xl p-4 z-[9999] animate-in fade-in zoom-in-95 duration-150 text-[12px]">
-          
-          {/* Top Custom Range Natural Language Input */}
-          <div className="mb-3">
-            <input
-              type="text"
-              value={customSearch}
-              onChange={(e) => setCustomSearch(e.target.value)}
-              placeholder="Custom range: 3h, 3 hours, 3 months, 30d..."
-              className="w-full bg-[var(--field-bg)] border border-[var(--field-border)] focus:border-[var(--field-border-focus)] rounded-[6px] px-3 py-1.5 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-colors"
-            />
-          </div>
-
-          {/* Middle 2-Column: Calendar Grid (Left) + Quick Presets List (Right) */}
-          <div className="grid grid-cols-12 gap-4 pb-3 border-b border-[var(--border-default)]">
+        <>
+          {/* Mobile backdrop to easily dismiss */}
+          <div 
+            className="fixed inset-0 bg-black/60 z-[9998] sm:hidden" 
+            onClick={() => setIsOpen(false)} 
+          />
+          <div className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-16 sm:top-full mt-2 w-auto sm:w-[490px] max-w-[calc(100vw-24px)] max-h-[85vh] overflow-y-auto bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] shadow-2xl p-3.5 sm:p-4 z-[9999] animate-in fade-in zoom-in-95 duration-150 text-[12px]">
             
-            {/* Left: Interactive Calendar (7 Cols) */}
-            <div className="col-span-7 space-y-2 border-r border-[var(--border-default)] pr-3">
-              {/* Month Navigation */}
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-[13px] text-[var(--text-primary)]">
-                  {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                </span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={handlePrevMonth}
-                    className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] rounded-[4px] cursor-pointer"
-                  >
-                    <CaretLeft size={13} strokeWidth={1.5} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleNextMonth}
-                    className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] rounded-[4px] cursor-pointer"
-                  >
-                    <CaretRight size={13} strokeWidth={1.5} />
-                  </button>
+            {/* Header for mobile with close button */}
+            <div className="flex items-center justify-between pb-2 mb-2 sm:hidden border-b border-[var(--border-default)]">
+              <span className="font-medium text-[13px] text-[var(--text-primary)]">Select Time Range</span>
+              <button 
+                type="button" 
+                onClick={() => setIsOpen(false)} 
+                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
+                <X size={15} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            {/* Top Custom Range Natural Language Input */}
+            <div className="mb-3">
+              <input
+                type="text"
+                value={customSearch}
+                onChange={(e) => setCustomSearch(e.target.value)}
+                placeholder="Custom range: 3h, 3 hours, 3 months, 30d..."
+                className="w-full bg-[var(--field-bg)] border border-[var(--field-border)] focus:border-[var(--field-border-focus)] rounded-[6px] px-3 py-1.5 text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-colors"
+              />
+            </div>
+
+            {/* Middle 2-Column: Calendar Grid (Left) + Quick Presets List (Right) */}
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4 pb-3 border-b border-[var(--border-default)]">
+              
+              {/* Left: Interactive Calendar */}
+              <div className="sm:col-span-7 space-y-2 sm:border-r border-[var(--border-default)] sm:pr-3">
+                {/* Month Navigation */}
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-[13px] text-[var(--text-primary)]">
+                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handlePrevMonth}
+                      className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] rounded-[4px] cursor-pointer"
+                    >
+                      <CaretLeft size={13} strokeWidth={1.5} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNextMonth}
+                      className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] rounded-[4px] cursor-pointer"
+                    >
+                      <CaretRight size={13} strokeWidth={1.5} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Day of Week Headers */}
+                <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-[var(--text-muted)] font-medium">
+                  {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                    <div key={d} className="py-0.5">{d}</div>
+                  ))}
+                </div>
+
+                {/* Day Cells Grid */}
+                <div className="grid grid-cols-7 gap-1 text-center">
+                  {calendarDays.map((item, idx) => {
+                    const inRange = isDateInRange(item.date);
+                    const isBoundary = isStartOrEndDate(item.date);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleDayClick(item.date)}
+                        className={`h-7 w-7 text-[11.5px] rounded-[4px] font-medium flex items-center justify-center transition-colors cursor-pointer ${
+                          !item.isCurrentMonth ? 'text-[var(--text-muted)] opacity-40' : 'text-[var(--text-primary)]'
+                        } ${
+                          isBoundary
+                            ? 'bg-[var(--text-primary)] text-[var(--accent-text)] font-semibold'
+                            : inRange
+                              ? 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)]'
+                              : 'hover:bg-[var(--bg-surface-hover)]'
+                        }`}
+                      >
+                        {item.dayNum}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Day of Week Headers */}
-              <div className="grid grid-cols-7 gap-1 text-center text-[10px] text-[var(--text-muted)] font-medium">
-                {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-                  <div key={d} className="py-0.5">{d}</div>
-                ))}
-              </div>
-
-              {/* Day Cells Grid */}
-              <div className="grid grid-cols-7 gap-1 text-center">
-                {calendarDays.map((item, idx) => {
-                  const inRange = isDateInRange(item.date);
-                  const isBoundary = isStartOrEndDate(item.date);
+              {/* Right: Cloudflare Quick Presets */}
+              <div className="sm:col-span-5 grid grid-cols-2 sm:grid-cols-1 gap-1 sm:space-y-0.5 sm:gap-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--border-default)]">
+                {presets.map(p => {
+                  const isActive = selectedPreset === p.key;
                   return (
                     <button
-                      key={idx}
+                      key={p.key}
                       type="button"
-                      onClick={() => handleDayClick(item.date)}
-                      className={`h-7 w-7 text-[11.5px] rounded-[4px] font-medium flex items-center justify-center transition-colors cursor-pointer ${
-                        !item.isCurrentMonth ? 'text-[var(--text-muted)] opacity-40' : 'text-[var(--text-primary)]'
-                      } ${
-                        isBoundary
-                          ? 'bg-[var(--text-primary)] text-[var(--accent-text)] font-semibold'
-                          : inRange
-                            ? 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)]'
-                            : 'hover:bg-[var(--bg-surface-hover)]'
+                      onClick={() => handleSelectPreset(p)}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-[6px] text-[12px] transition-colors cursor-pointer ${
+                        isActive
+                          ? 'bg-[var(--bg-surface-hover)] font-medium text-[var(--text-primary)]'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]/60'
                       }`}
                     >
-                      {item.dayNum}
+                      {p.label}
                     </button>
                   );
                 })}
               </div>
             </div>
-
-            {/* Right: Cloudflare Quick Presets (5 Cols) */}
-            <div className="col-span-5 space-y-0.5">
-              {presets.map(p => {
-                const isActive = selectedPreset === p.key;
-                return (
-                  <button
-                    key={p.key}
-                    type="button"
-                    onClick={() => handleSelectPreset(p)}
-                    className={`w-full text-left px-2.5 py-1.5 rounded-[6px] text-[12px] transition-colors cursor-pointer ${
-                      isActive
-                        ? 'bg-[var(--bg-surface-hover)] font-medium text-[var(--text-primary)]'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]/60'
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
           {/* Start and End Inputs */}
           <div className="grid grid-cols-2 gap-3 py-3 border-b border-[var(--border-default)]">
@@ -477,7 +495,8 @@ export const CloudflareDateRangePicker: React.FC<CloudflareDateRangePickerProps>
           </div>
 
         </div>
-      )}
+      </>
+    )}
 
     </div>
   );

@@ -19,7 +19,8 @@ import {
   UserCircle,
   SignOut,
   Trash,
-  X
+  X,
+  Sparkle
 } from '@phosphor-icons/react';
 import { AppData } from '../types';
 import { Haptics } from '../services/haptics';
@@ -111,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="absolute inset-0 bg-black/75 backdrop-blur-xs" onClick={() => setConfirmAction(null)} />
       <div className="relative bg-[var(--bg-surface)] p-6 rounded-[12px] w-full max-w-[320px] border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)]">
         <div className="flex flex-col items-center text-center">
-            <div className={`mb-3 ${action === 'delete' ? 'text-rose-500' : 'text-[#2563EB]'}`}>
+            <div className={`mb-3 ${action === 'delete' ? 'text-rose-500' : 'text-[var(--accent)]'}`}>
                 {action === 'delete' ? <Trash size={24} weight="regular" /> : <SignOut size={24} weight="regular" />}
             </div>
             <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">{action === 'delete' ? 'Delete Account?' : 'Log Out?'}</h3>
@@ -169,13 +170,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
 
-          {!isCollapsed && (
+          {isStatic ? (
+            !isCollapsed && (
+              <button
+                onClick={() => setIsCollapsed(true)}
+                title="Collapse sidebar"
+                className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
+              >
+                <SidebarIcon size={16} weight="regular" />
+              </button>
+            )
+          ) : (
             <button
-              onClick={() => setIsCollapsed(true)}
-              title="Collapse sidebar"
+              onClick={onClose}
+              title="Close drawer"
               className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors shrink-0 cursor-pointer"
             >
-              <SidebarIcon size={16} weight="regular" />
+              <X size={16} strokeWidth={1.5} />
             </button>
           )}
         </div>
@@ -185,6 +196,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={() => {
               if (onOpenCommandPalette) onOpenCommandPalette();
+              if (!isStatic) onClose();
             }}
             title="Quick search (Ctrl+K)"
             className={`w-full h-[32px] flex items-center gap-2.5 rounded-[6px] text-[12px] transition-all overflow-hidden ${
@@ -208,6 +220,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div ref={mainMenuContainerRef} className="space-y-1 relative">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: SquaresFour, btnRef: dashboardRef },
+              ...(isStatic ? [{ id: 'rabbai', label: 'RabbAi Assistant', icon: Sparkle }] : []),
               { id: 'history', label: 'Transactions', icon: Pulse, btnRef: historyRef },
               { id: 'analytics', label: 'Analytics', icon: TrendUp, btnRef: analyticsRef },
               { id: 'debts', label: 'Debts & Loans', icon: HandCoins, btnRef: debtsRef },

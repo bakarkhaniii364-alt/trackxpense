@@ -322,8 +322,8 @@ export const CashFlowTab: React.FC<CashFlowTabProps> = ({
               <AreaChart data={cumulativeData} margin={{ top: 10, right: 0, left: -24, bottom: 0 }}>
                 <defs>
                   <linearGradient id="cumNetGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#F6821F" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#F6821F" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="var(--border-default)" strokeDasharray="2 2" vertical={false} />
@@ -343,10 +343,10 @@ export const CashFlowTab: React.FC<CashFlowTabProps> = ({
                 <Area
                   type="monotone"
                   dataKey="cumulativeNet"
-                  stroke="#3b82f6"
+                  stroke="#F6821F"
                   strokeWidth={1.5}
                   fill="url(#cumNetGrad)"
-                  activeDot={{ r: 4, fill: '#3b82f6' }}
+                  activeDot={{ r: 4, fill: '#F6821F' }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -391,11 +391,11 @@ export const CashFlowTab: React.FC<CashFlowTabProps> = ({
                   
                   let cellBg = 'var(--bg-subtle)';
                   if (intensity > 0.66) {
-                    cellBg = '#3b82f6';
+                    cellBg = '#F6821F';
                   } else if (intensity > 0.33) {
-                    cellBg = 'rgba(59, 130, 246, 0.6)';
+                    cellBg = 'rgba(246, 130, 31, 0.6)';
                   } else if (intensity > 0) {
-                    cellBg = 'rgba(59, 130, 246, 0.25)';
+                    cellBg = 'rgba(246, 130, 31, 0.25)';
                   }
 
                   return (
@@ -415,9 +415,9 @@ export const CashFlowTab: React.FC<CashFlowTabProps> = ({
             <span>Low frequency</span>
             <div className="flex items-center gap-1">
               <span className="w-2.5 h-2.5 rounded-[2px] bg-[var(--bg-subtle)] border border-[var(--border-default)]" />
-              <span className="w-2.5 h-2.5 rounded-[2px] bg-[rgba(59,130,246,0.25)]" />
-              <span className="w-2.5 h-2.5 rounded-[2px] bg-[rgba(59,130,246,0.6)]" />
-              <span className="w-2.5 h-2.5 rounded-[2px] bg-[#3b82f6]" />
+              <span className="w-2.5 h-2.5 rounded-[2px] bg-[rgba(246,130,31,0.25)]" />
+              <span className="w-2.5 h-2.5 rounded-[2px] bg-[rgba(246,130,31,0.6)]" />
+              <span className="w-2.5 h-2.5 rounded-[2px] bg-[#F6821F]" />
             </div>
             <span>High frequency</span>
           </div>

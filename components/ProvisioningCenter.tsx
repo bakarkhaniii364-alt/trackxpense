@@ -80,7 +80,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
                             {formatMoney(totalProvisioned, data.settings.currencySymbol)}
                         </p>
                     </div>
-                    <div className="px-3 py-1.5 rounded-[6px] bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[12px] font-medium">
+                    <div className="pill pill--accent text-[11px] py-1 px-2.5">
                         {data.provisions.length} scheduled
                     </div>
                 </div>
@@ -104,7 +104,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
                                     <div className="flex items-center gap-2 pt-1 text-[11px] text-[var(--text-muted)]">
                                         <Clock size={12} />
                                         <span>{new Date(p.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                        <span className={`px-1.5 py-0.5 rounded-[4px] font-medium text-[10px] ${daysLeft <= 3 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)]'}`}>
+                                        <span className={`pill text-[10px] py-0.5 px-2 ${daysLeft <= 3 ? 'pill--warning' : 'pill--expense'}`}>
                                             {daysLeft <= 0 ? 'Due' : `${daysLeft}d left`}
                                         </span>
                                     </div>

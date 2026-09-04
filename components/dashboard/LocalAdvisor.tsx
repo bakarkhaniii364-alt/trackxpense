@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { AppData, TransactionType } from '../../types';
 import { PredictiveEngine } from '../../services/PredictiveEngine';
+import { NoDataWave } from '../shared/NoDataWave';
 
 interface LocalAdvisorProps {
     data: AppData;
@@ -145,7 +146,7 @@ export const LocalAdvisor: React.FC<LocalAdvisorProps> = ({ data, formatMoney })
     }, [data, formatMoney, currency]);
 
     return (
-        <div className="rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
+        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-full">
             <div>
                 <div className="flex items-center justify-between mb-4">
                     <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
@@ -157,23 +158,27 @@ export const LocalAdvisor: React.FC<LocalAdvisorProps> = ({ data, formatMoney })
                     </div>
                 </div>
 
-                {/* Direct text items with no nested card boxes */}
-                <div className="space-y-3.5 divide-y divide-[var(--border-default)]">
-                    {insights.map((item, idx) => (
-                        <div key={idx} className={`flex items-start gap-2.5 ${idx > 0 ? 'pt-3.5' : ''}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
-                                item.type === 'alert' 
-                                    ? 'bg-[var(--status-error-fg)]' 
-                                    : item.type === 'warning' 
-                                        ? 'bg-[var(--status-warning-fg)]' 
-                                        : 'bg-[var(--status-success-fg)]'
-                            }`} />
-                            <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed font-normal">
-                                {item.text}
-                            </p>
-                        </div>
-                    ))}
-                </div>
+                {/* Direct text items with no nested card boxes or NoDataWave */}
+                {data.transactions.length > 0 ? (
+                    <div className="space-y-3.5 divide-y divide-[var(--border-default)]">
+                        {insights.map((item, idx) => (
+                            <div key={idx} className={`flex items-start gap-2.5 ${idx > 0 ? 'pt-3.5' : ''}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
+                                    item.type === 'alert' 
+                                        ? 'bg-[var(--status-error-fg)]' 
+                                        : item.type === 'warning' 
+                                            ? 'bg-[var(--status-warning-fg)]' 
+                                            : 'bg-[var(--status-success-fg)]'
+                                }`} />
+                                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed font-normal">
+                                    {item.text}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <NoDataWave height={110} />
+                )}
             </div>
 
             <div className="pt-3 mt-4 border-t border-[var(--border-default)] flex items-center justify-between text-[11px] text-[var(--text-muted)]">

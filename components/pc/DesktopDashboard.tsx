@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -10,8 +10,24 @@ import {
   X,
   Sparkle,
   Lightning,
-  ClockCounterClockwise
+  ClockCounterClockwise,
+  DotsThree,
+  SlidersHorizontal,
+  ChartLineUp,
+  MagnifyingGlass as Search,
+  Wallet as WalletIcon,
+  Check,
+  SquaresFour as LayoutGrid,
+  Pulse as Activity,
+  TrendUp as TrendingUp,
+  HandCoins,
+  Sliders,
+  Calendar,
+  Ghost,
+  UserCircle,
+  Prohibit as Ban
 } from '@phosphor-icons/react';
+import { parseTransactionWithAI, AIParsedTransaction } from '../../services/aiService';
 import { Transaction, TransactionType, AppData, Wallet, Category } from '../../types';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { PredictiveEngine } from '../../services/PredictiveEngine';
@@ -20,13 +36,10 @@ import { DailyBudget } from '../dashboard/DailyBudget';
 import { FinancialHealthScore } from '../dashboard/WorkstationWidgets';
 import { StreakDisplay } from '../dashboard/StreakDisplay';
 import { LocalAdvisor } from '../dashboard/LocalAdvisor';
-import { GoalSummary } from '../dashboard/GoalSummary';
-import { QuickActions } from '../dashboard/QuickActions';
-import { TemplatePresets } from '../dashboard/TemplatePresets';
-import { RecentLedger } from '../dashboard/RecentLedger';
 import { BudgetAlerts } from '../dashboard/BudgetAlerts';
 import { SimulationModule } from '../dashboard/SimulationModule';
 import { CloudflareDateRangePicker, DateRange } from '../shared/CloudflareDateRangePicker';
+import { NoDataWave } from '../shared/NoDataWave';
 import { sendRabbAiTextMessage, sendRabbAiImageMessage, RabbAiMessage } from '../../services/rabbAiService';
 import { Haptics } from '../../services/haptics';
 
@@ -39,6 +52,7 @@ interface DesktopDashboardProps {
   onEditTransaction: (t: Transaction) => void;
   onDeleteTemplate: (id: string) => void;
   onAddTransaction?: (t: any) => void;
+  onOpenRabbAi?: (query: { text: string; image?: string }) => void;
 }
 
 type Timeframe = '7d' | '30d' | 'month';
@@ -51,7 +65,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
   onAddTransactionRequest, 
   onEditTransaction, 
   onDeleteTemplate,
-  onAddTransaction 
+  onAddTransaction,
+  onOpenRabbAi
 }) => {
   const [dateRange, setDateRange] = useState<DateRange>(() => {
     const end = new Date();
@@ -79,8 +94,63 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     loggedId?: string;
   } | null>(null);
 
+  const [activeMenu, setActiveMenu] = useState<'status' | 'actions' | 'recents' | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Smart Search Box State
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Close search suggestions when clicking outside
+  useEffect(() => {
+    const handleSearchClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleSearchClickOutside);
+    document.addEventListener('touchstart', handleSearchClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleSearchClickOutside);
+      document.removeEventListener('touchstart', handleSearchClickOutside);
+    };
+  }, []);
+
+  // Global Ctrl+K / Cmd+K listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        setIsSearchFocused(true);
+      }
+      if (e.key === 'Escape') {
+        setIsSearchFocused(false);
+        searchInputRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setActiveMenu(null);
+      }
+    };
+    if (activeMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [activeMenu]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
 
   const currency = data.settings.currencySymbol;
@@ -189,7 +259,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     for (const cat of sortedCategories) { if (actions.length < 2 && cat !== timeSuggestion) actions.push(cat); }
     actions.push(timeSuggestion);
     for (const cat of sortedCategories) { if (actions.length < 4 && !actions.includes(cat)) actions.push(cat); }
-    const defaults = [Category.TRANSPORT, Category.SHOPPING, Category.BILLS, Category.FOODPANDA];
+    const defaults = [Category.TRANSPORT, Category.SHOPPING, Category.BILLS, Category.FOOD_DELIVERY];
     for (const def of defaults) { if (actions.length < 4 && !actions.includes(def)) actions.push(def); }
     return actions.slice(0, 4);
   }, [walletTransactions]);
@@ -233,14 +303,10 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
   const maxChartValue = Math.max(...chartData.map(d => d.spent || 0), 10);
 
   // Handle Command Bar Text Change
-  const handleCommandChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleCommandChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const val = e.target.value;
     if (val.length > 4000) return;
     setCommandText(val);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(Math.max(textareaRef.current.scrollHeight, 38), 200)}px`;
-    }
   };
 
   // Image Upload for Receipt
@@ -282,10 +348,6 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
         }
         if (transcript) {
           setCommandText(prev => prev ? `${prev} ${transcript}` : transcript);
-          if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
-          }
         }
       };
       recognition.onerror = () => setIsListening(false);
@@ -298,7 +360,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     }
   };
 
-  // Execute Command or RabbAi Query
+  // Execute Command or Query
   const handleSendCommand = async () => {
     if (isListening) {
       recognitionRef.current?.stop();
@@ -312,7 +374,14 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     Haptics.light();
     setCommandText('');
     setSelectedReceipt(null);
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    setIsSearchFocused(false);
+
+    // Route to full RabbAi conversation window
+    if (onOpenRabbAi) {
+      onOpenRabbAi({ text, image: receipt || undefined });
+      return;
+    }
+
     setIsAiLoading(true);
 
     try {
@@ -388,15 +457,15 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       {/* CLOUDFLARE HERO SECTION: Title (NO pills) + Universal Centered Bar        */}
       {/* Orchestrated Entrance: Compose box pops first, title slides UP, rest DOWN */}
       {/* ========================================================================= */}
-      <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center pt-8 md:pt-12 pb-1 space-y-5">
+      <div className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center pt-4 md:pt-12 pb-1 space-y-4 md:space-y-5">
         
         {/* Clean, Direct Heading (Transitions UP on reload) */}
-        <h1 className="animate-hero-text-up text-[26px] md:text-[30px] font-medium text-[var(--text-primary)] tracking-[-0.012em] text-center">
+        <h1 className="animate-hero-text-up text-[22px] sm:text-[26px] md:text-[30px] font-medium text-[var(--text-primary)] tracking-[-0.012em] text-center">
           Spent anything today, {userName}?
         </h1>
 
-        {/* Universal RabbAi Search & Command Box (Wider & Thinner, Shows first) */}
-        <div className="animate-hero-compose w-full space-y-2">
+        {/* Smart Search & Command Box with Suggestions */}
+        <div ref={searchBoxRef} className="animate-hero-compose w-full space-y-2 relative">
           
           {/* Selected Receipt Image Preview */}
           {selectedReceipt && (
@@ -411,80 +480,233 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
             </div>
           )}
 
-          {/* Thinner & Wider Compose Box Container with Shining Trail of Light */}
+          {/* Thinner & Sleek Smart Search Container with Shining Beam */}
           <div className="shining-beam-wrapper">
-            <div className="shining-beam-inner py-2 px-3.5 transition-colors">
-              {/* Textarea Input (input-reset, zero internal border) */}
-              <textarea
-                ref={textareaRef}
-                rows={1}
+            <div className="shining-beam-inner py-1.5 px-3 transition-colors flex items-center gap-2">
+              
+              {/* Search Icon */}
+              <Search size={16} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
+
+              {/* Single-Line Smart Search Input */}
+              <input
+                ref={searchInputRef}
+                type="text"
                 value={commandText}
                 onChange={handleCommandChange}
+                onFocus={() => setIsSearchFocused(true)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === 'Enter') {
                     e.preventDefault();
-                    handleSendCommand();
+                    if (commandText.trim() || selectedReceipt) {
+                      handleSendCommand();
+                    }
+                  } else if (e.key === 'Escape') {
+                    setIsSearchFocused(false);
+                    searchInputRef.current?.blur();
                   }
                 }}
-                placeholder="Ask RabbAi, log an expense ('$15 for Lunch with Cash'), or search..."
-                className="input-reset w-full bg-transparent border-0 outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none leading-relaxed overflow-y-auto max-h-[160px] py-0.5"
+                placeholder="Search or jump to... (e.g. '$15 for lunch', or press Ctrl+K)"
+                className="input-reset flex-1 bg-transparent border-0 outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] leading-normal py-1"
                 style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
               />
 
-              {/* Toolbar Controls inside Compose Box (compact, all 6px radius, no divider line) */}
-              <div className="flex items-center justify-between pt-1">
-                
-                {/* Left: Attach Receipt Button */}
+              {/* Right Toolbar Controls */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Attach Receipt Button */}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="h-[24px] px-2 rounded-[6px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors flex items-center gap-1.5 text-[11.5px] cursor-pointer"
+                  className="h-[26px] px-2 rounded-[6px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors flex items-center gap-1.5 text-[11.5px] cursor-pointer"
                   title="Attach receipt image"
                 >
                   <Paperclip size={13} strokeWidth={1.5} />
-                  <span>Attach receipt</span>
+                  <span className="hidden sm:inline">Receipt</span>
                 </button>
 
-                {/* Right: Functional Voice Mic & Send Button */}
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={toggleListening}
-                    className={`h-[24px] w-[24px] rounded-[6px] flex items-center justify-center transition-all cursor-pointer ${
-                      isListening
-                        ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/40'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
-                    }`}
-                    title={isListening ? 'Listening... click to stop' : 'Click to speak'}
-                  >
-                    <Microphone size={14} strokeWidth={1.5} />
-                  </button>
+                {/* Functional Voice Mic */}
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={`h-[26px] w-[26px] rounded-[6px] flex items-center justify-center transition-all cursor-pointer ${
+                    isListening
+                      ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/40'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                  }`}
+                  title={isListening ? 'Listening... click to stop' : 'Click to speak'}
+                >
+                  <Microphone size={14} strokeWidth={1.5} />
+                </button>
 
+                {/* Keyboard Shortcut Pill or Clear */}
+                {commandText ? (
                   <button
                     type="button"
-                    onClick={handleSendCommand}
-                    disabled={(!commandText.trim() && !selectedReceipt) || isAiLoading}
-                    className="btn btn--primary h-[24px] px-2.5 text-[11.5px] rounded-[6px] flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                    title="Submit command"
+                    onClick={() => { setCommandText(''); setIsSearchFocused(false); }}
+                    className="h-[22px] px-1.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded bg-[var(--bg-subtle)] border border-[var(--border-default)] cursor-pointer"
                   >
-                    <span>Log</span>
-                    <ArrowUp size={12} weight="bold" />
+                    Esc
                   </button>
-                </div>
+                ) : (
+                  <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-muted)] select-none">
+                    Ctrl K
+                  </kbd>
+                )}
+
+                {/* Send / Log Button */}
+                <button
+                  type="button"
+                  onClick={handleSendCommand}
+                  disabled={(!commandText.trim() && !selectedReceipt) || isAiLoading}
+                  className="btn btn--primary h-[26px] px-2.5 text-[11.5px] rounded-[6px] flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                  title="Submit command"
+                >
+                  <span>Log</span>
+                  <ArrowUp size={12} weight="bold" />
+                </button>
               </div>
             </div>
           </div>
 
-          {/* AI Execution Feedback Card */}
+          {/* Anchored Suggestions Dropdown Menu */}
+          {isSearchFocused && (
+            <div className="absolute left-0 right-0 top-full mt-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-[0_16px_36px_rgba(0,0,0,0.45)] z-50 overflow-hidden text-[12.5px] animate-in fade-in zoom-in-95 duration-100 divide-y divide-[var(--border-default)]">
+              <div className="max-h-[340px] overflow-y-auto divide-y divide-[var(--border-default)]">
+                
+                {/* 1. Actions / Dynamic Query */}
+                {commandText.trim() && (
+                  <div className="p-1">
+                    <div className="px-2.5 py-1 text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
+                      Actions
+                    </div>
+                    <div
+                      onClick={handleSendCommand}
+                      className="flex items-center justify-between px-2.5 py-2 rounded-[6px] hover:bg-[var(--bg-surface-hover)] cursor-pointer text-[var(--text-primary)] transition-colors"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <ArrowUp size={14} className="text-[var(--accent)] shrink-0" weight="bold" />
+                        <span className="truncate">
+                          Execute command: <span className="text-[var(--text-primary)] font-medium">"{commandText.trim()}"</span>
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-[var(--text-muted)] font-mono shrink-0">↵ Enter</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Navigation Suggestions */}
+                <div className="p-1">
+                  <div className="px-2.5 py-1 text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
+                    Navigation
+                  </div>
+                  <div className="space-y-0.5">
+                    {[
+                      { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutGrid, action: () => { setView('dashboard'); setIsSearchFocused(false); } },
+                      { id: 'history', label: 'Transactions & Ledger', icon: Activity, action: () => { setView('history'); setIsSearchFocused(false); } },
+                      { id: 'analytics', label: 'Financial Analytics', icon: TrendingUp, action: () => { setView('analytics'); setIsSearchFocused(false); } },
+                      { id: 'debts', label: 'Debts & Loans', icon: HandCoins, action: () => { setView('debts'); setIsSearchFocused(false); } },
+                      { id: 'control', label: 'Budgets & Categories', icon: Sliders, action: () => { setView('control'); setIsSearchFocused(false); } },
+                      { id: 'bills', label: 'Upcoming Bills', icon: Calendar, action: () => { setView('bills'); setIsSearchFocused(false); } },
+                      { id: 'stealth', label: 'Stealth Vault', icon: Ghost, action: () => { setView('stealth'); setIsSearchFocused(false); } },
+                      { id: 'settings', label: 'Profile & Settings', icon: UserCircle, action: () => { setView('settings'); setIsSearchFocused(false); } },
+                    ]
+                      .filter(item => !commandText.trim() || item.label.toLowerCase().includes(commandText.toLowerCase()))
+                      .slice(0, commandText.trim() ? 6 : 5)
+                      .map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={item.action}
+                            className="flex items-center justify-between px-2.5 py-1.5 rounded-[6px] hover:bg-[var(--bg-surface-hover)] cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors group"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <Icon size={15} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0 transition-colors" />
+                              <span className="truncate">{item.label}</span>
+                            </div>
+                            <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0" />
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+
+                {/* 3. Wallets */}
+                <div className="p-1">
+                  <div className="px-2.5 py-1 text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
+                    Wallets
+                  </div>
+                  <div className="space-y-0.5">
+                    {data.wallets
+                      .filter((w: Wallet) => !commandText.trim() || w.name.toLowerCase().includes(commandText.toLowerCase()))
+                      .map((w: Wallet) => {
+                        const isActive = w.id === data.currentWalletId;
+                        const wBal = data.transactions
+                          .filter(t => t.walletId === w.id)
+                          .reduce((sum, t) => sum + (t.type === TransactionType.INCOME ? t.amount : -t.amount), 0);
+                        return (
+                          <div
+                            key={w.id}
+                            onClick={() => {
+                              updateData({ currentWalletId: w.id });
+                              setIsSearchFocused(false);
+                            }}
+                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-[6px] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors group ${
+                              isActive ? 'bg-[var(--bg-surface-hover)]/70 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <WalletIcon size={15} strokeWidth={1.5} className={isActive ? 'text-[var(--accent)] shrink-0' : 'text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0 transition-colors'} />
+                              <span className="truncate">{w.name}</span>
+                              {isActive && (
+                                <span className="pill pill--accent text-[10px] py-0.5 px-2">
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="font-mono text-[11.5px] text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">
+                                {formatMoney(wBal, currency)}
+                              </span>
+                              {isActive && <Check size={12} weight="bold" className="text-[var(--accent)]" />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Suggestions Footer Navigation Hints */}
+              <div className="px-3 py-2 bg-[var(--bg-subtle)]/40 flex items-center justify-between text-[11px] text-[var(--text-muted)] select-none">
+                <div className="flex items-center gap-3">
+                  <span>
+                    <kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] font-mono text-[9.5px]">↑</kbd>{' '}
+                    <kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] font-mono text-[9.5px]">↓</kbd> navigate
+                  </span>
+                  <span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] font-mono text-[9.5px]">↵</kbd> select
+                  </span>
+                  <span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] font-mono text-[9.5px]">Esc</kbd> close
+                  </span>
+                </div>
+                <div className="font-mono text-[10.5px]">
+                  {data.wallets.length} {data.wallets.length === 1 ? 'wallet' : 'wallets'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Feedback Card */}
           {isAiLoading && (
-            <div className="p-2.5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center gap-2 text-[12px] text-[var(--text-secondary)] animate-in fade-in">
+            <div className="p-2.5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center gap-2 text-[12px] text-[var(--text-secondary)] animate-in fade-in">
               <Sparkle size={14} className="text-[var(--accent)] animate-spin" />
-              <span>RabbAi is analyzing and updating your ledger...</span>
+              <span>Processing and updating your ledger...</span>
             </div>
           )}
 
           {aiFeedback && !isAiLoading && (
-            <div className="p-3 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] space-y-2 animate-in fade-in">
+            <div className="p-3 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] space-y-2 animate-in fade-in">
               <div className="flex items-start justify-between">
                 <div className="text-[12.5px] text-[var(--text-primary)] leading-relaxed">
                   {aiFeedback.text}
@@ -529,174 +751,368 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       {/* ========================================================================= */}
       {/* LOWER CONTENT: Transitions DOWN on reload                                 */}
       {/* ========================================================================= */}
-      <div className="animate-hero-bottom-down space-y-10">
+      <div className="animate-hero-bottom-down space-y-7">
         
-        {/* CLOUDFLARE 3-COLUMN LOOK: Wallets | Actions | Recents List */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        {/* CLOUDFLARE 3-COLUMN LOOK: Status | Actions | Recents List */}
+        {/* Free-standing, no outside cards, with 3-dot context menus on each header */}
+        <div ref={menuRef} className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start">
         
-        {/* Column 1: Wallets (hairline rows + dotted ghost button under) */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-[13px] text-[var(--text-secondary)] font-normal px-0.5">
-            <div 
-              onClick={() => setView('control')}
-              className="flex items-center gap-1 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-            >
-              <span>Wallets</span>
-              <CaretRight size={12} strokeWidth={1.5} />
+          {/* Column 1: Current Status */}
+          <div className="space-y-2.5 relative">
+            <div className="flex items-center justify-between text-[13px] text-[var(--text-secondary)] font-normal px-0.5">
+              <div 
+                onClick={() => setView('analytics')}
+                className="flex items-center gap-1 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              >
+                <span>Status</span>
+                <CaretRight size={12} strokeWidth={1.5} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveMenu(activeMenu === 'status' ? null : 'status')}
+                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] rounded-[4px] transition-colors cursor-pointer"
+                title="Status options"
+              >
+                <DotsThree size={16} weight="bold" />
+              </button>
             </div>
-            <span className="text-[12px] text-[var(--text-muted)] cursor-default">•••</span>
-          </div>
 
-          <div className="divide-y divide-[var(--border-default)]">
-            {data.wallets.map(w => {
-              const isCurrent = w.id === data.currentWalletId;
-              const wTxs = data.transactions.filter(t => t.walletId === w.id);
-              const wBal = wTxs.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0)
-                - wTxs.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
-              return (
-                <div
-                  key={w.id}
-                  onClick={() => updateData({ currentWalletId: w.id })}
-                  className={`flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors ${
-                    isCurrent ? 'bg-[var(--bg-surface-hover)]/30 font-medium' : ''
-                  }`}
+            {/* Status Context Menu */}
+            {activeMenu === 'status' && (
+              <div className="absolute right-0 top-7 z-50 w-52 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.6)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  type="button"
+                  onClick={() => { setView('analytics'); setActiveMenu(null); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${isCurrent ? 'bg-[var(--status-success-fg)]' : 'bg-[var(--text-muted)]'}`} />
-                    <span className={`truncate ${isCurrent ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
-                      {w.name}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-mono text-[11.5px] text-[var(--text-primary)]">
-                      {formatMoney(wBal, currency)}
-                    </span>
-                    <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Dotted stroke ghost button under wallet list */}
-          <button
-            onClick={() => setView('control')}
-            className="w-full mt-2 py-2 px-3 rounded-[6px] border border-dashed border-[var(--border-default)] hover:border-[var(--border-active)] hover:bg-[var(--bg-surface-hover)] text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <Plus size={13} strokeWidth={1.5} />
-            <span>Add wallet</span>
-          </button>
-        </div>
-
-        {/* Column 2: Actions (hairline rows one under another like recents) */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-[13px] text-[var(--text-secondary)] font-normal px-0.5">
-            <div 
-              onClick={() => onAddTransactionRequest(TransactionType.EXPENSE)}
-              className="flex items-center gap-1 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-            >
-              <span>Actions</span>
-              <CaretRight size={12} strokeWidth={1.5} />
-            </div>
-            <span className="text-[12px] text-[var(--text-muted)] cursor-default">•••</span>
-          </div>
-
-          <div className="divide-y divide-[var(--border-default)]">
-            <div
-              onClick={() => onAddTransactionRequest(TransactionType.EXPENSE)}
-              className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                <Plus size={14} className="text-[var(--status-error-fg)] shrink-0" strokeWidth={1.5} />
-                <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate">
-                  Log an expense
-                </span>
-              </div>
-              <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0" />
-            </div>
-
-            <div
-              onClick={() => onAddTransactionRequest(TransactionType.INCOME)}
-              className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                <ArrowUpRight size={14} className="text-[var(--status-success-fg)] shrink-0" strokeWidth={1.5} />
-                <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate">
-                  Log income
-                </span>
-              </div>
-              <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0" />
-            </div>
-
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                <Paperclip size={14} className="text-[var(--accent)] shrink-0" strokeWidth={1.5} />
-                <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate">
-                  Scan receipt
-                </span>
-              </div>
-              <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0" />
-            </div>
-
-            <div
-              onClick={() => setIsSimOpen(true)}
-              className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                <Lightning size={14} className="text-[var(--status-warning-fg)] shrink-0" strokeWidth={1.5} />
-                <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate">
-                  Simulate scenario
-                </span>
-              </div>
-              <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0" />
-            </div>
-          </div>
-        </div>
-
-        {/* Column 3: Recents List (Cloudflare Hairline List) */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-[13px] text-[var(--text-secondary)] font-normal px-0.5">
-            <span>Recents</span>
-            <span className="text-[12px] text-[var(--text-muted)] cursor-default">•••</span>
-          </div>
-
-          <div className="divide-y divide-[var(--border-default)]">
-            {recentFiveTransactions.length > 0 ? (
-              recentFiveTransactions.map(tx => {
-                const isExp = tx.type === TransactionType.EXPENSE;
-                return (
-                  <div
-                    key={tx.id}
-                    onClick={() => onEditTransaction(tx)}
-                    className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                      <ClockCounterClockwise size={14} className="text-[var(--text-muted)] shrink-0" strokeWidth={1.5} />
-                      <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate font-normal">
-                        {tx.category} / <span className="text-[var(--text-primary)] font-medium">{tx.note || 'Expense'}</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`font-mono text-[11.5px] font-medium ${isExp ? 'text-[var(--text-primary)]' : 'text-[var(--status-success-fg)]'}`}>
-                        {isExp ? '-' : '+'}{formatMoney(tx.amount, currency)}
-                      </span>
-                      <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="py-6 text-center text-[12px] text-[var(--text-muted)]">
-                No recent activity.
+                  <ChartLineUp size={13} strokeWidth={1.5} />
+                  <span>View full analytics</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setView('control'); setActiveMenu(null); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
+                >
+                  <SlidersHorizontal size={13} strokeWidth={1.5} />
+                  <span>Manage budget caps</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setView('control'); setActiveMenu(null); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
+                >
+                  <WalletIcon size={13} strokeWidth={1.5} />
+                  <span>Manage wallets</span>
+                </button>
               </div>
             )}
-          </div>
-        </div>
 
-      </div>
+            {/* Hairline Status Rows */}
+            <div className="divide-y divide-[var(--border-default)]">
+              {/* Row 1: Active Wallet Balance */}
+              <div 
+                onClick={() => setView('control')}
+                className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <WalletIcon size={14} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors shrink-0" />
+                  <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate font-normal">
+                    {currentWallet?.name || 'Main Wallet'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-mono text-[11.5px] text-[var(--text-primary)] font-medium">
+                    {formatMoney(balance, currency)}
+                  </span>
+                  <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
+                </div>
+              </div>
+
+              {/* Row 2: Daily Budget Status */}
+              <div 
+                onClick={() => setView('control')}
+                className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <span className={`w-2 h-2 rounded-full shrink-0 ${isOverBudget ? 'bg-[var(--status-error-fg)]' : 'bg-[var(--status-success-fg)]'}`} />
+                  <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate font-normal">
+                    Daily Budget
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`font-mono text-[11.5px] font-medium ${isOverBudget ? 'text-[var(--status-error-fg)]' : 'text-[var(--text-secondary)]'}`}>
+                    {dailyLimit > 0 ? (isOverBudget ? 'Exceeded' : `${Math.round(dailyProgress)}% used`) : 'No limit'}
+                  </span>
+                  <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
+                </div>
+              </div>
+
+              {/* Row 3: 30-Day Runway */}
+              <div 
+                onClick={() => setView('analytics')}
+                className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <span className="w-2 h-2 rounded-full shrink-0 bg-sky-400" />
+                  <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate font-normal">
+                    Runway Outlook
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-mono text-[11.5px] text-[var(--text-secondary)]">
+                    {balance <= 0 ? '0d runway' : (!isFinite(runwayDays) || runwayDays >= 365) ? '365+d runway' : `${runwayDays}d runway`}
+                  </span>
+                  <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
+                </div>
+              </div>
+
+              {/* Row 4: Future Liabilities */}
+              <div 
+                onClick={() => setView('provisions')}
+                className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <span className="w-2 h-2 rounded-full shrink-0 bg-amber-400" />
+                  <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate font-normal">
+                    Upcoming 30d
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-mono text-[11.5px] text-[var(--text-secondary)]">
+                    {formatMoney(futureLiability, currency)}
+                  </span>
+                  <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
+                </div>
+              </div>
+            </div>
+
+            {/* Cloudflare-style ghost bordered button */}
+            <button
+              onClick={() => setView('control')}
+              className="w-full mt-2 py-2 px-3 rounded-[6px] border border-[var(--border-default)] hover:border-[var(--border-active)] hover:bg-[var(--bg-surface-hover)] text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <SlidersHorizontal size={13} strokeWidth={1.5} />
+              <span>Configure budget</span>
+            </button>
+          </div>
+
+          {/* Column 2: Actions */}
+          <div className="space-y-2.5 relative">
+            <div className="flex items-center justify-between text-[13px] text-[var(--text-secondary)] font-normal px-0.5">
+              <div 
+                onClick={() => onAddTransactionRequest(TransactionType.EXPENSE)}
+                className="flex items-center gap-1 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              >
+                <span>Actions</span>
+                <CaretRight size={12} strokeWidth={1.5} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveMenu(activeMenu === 'actions' ? null : 'actions')}
+                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] rounded-[4px] transition-colors cursor-pointer"
+                title="Action options"
+              >
+                <DotsThree size={16} weight="bold" />
+              </button>
+            </div>
+
+            {/* Actions Context Menu */}
+            {activeMenu === 'actions' && (
+              <div className="absolute right-0 top-7 z-50 w-52 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.6)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  type="button"
+                  onClick={() => { onAddTransactionRequest(TransactionType.EXPENSE); setActiveMenu(null); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
+                >
+                  <Plus size={13} strokeWidth={1.5} className="text-[var(--status-error-fg)]" />
+                  <span>Log new expense</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { onAddTransactionRequest(TransactionType.INCOME); setActiveMenu(null); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
+                >
+                  <ArrowUpRight size={13} strokeWidth={1.5} className="text-[var(--status-success-fg)]" />
+                  <span>Log new income</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { fileInputRef.current?.click(); setActiveMenu(null); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
+                >
+                  <Paperclip size={13} strokeWidth={1.5} className="text-[var(--accent)]" />
+                  <span>Attach receipt image</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsSimOpen(true); setActiveMenu(null); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
+                >
+                  <Lightning size={13} strokeWidth={1.5} className="text-[var(--status-warning-fg)]" />
+                  <span>Simulate scenario</span>
+                </button>
+              </div>
+            )}
+
+            {/* Hairline Action Rows */}
+            <div className="divide-y divide-[var(--border-default)]">
+              <div
+                onClick={() => onAddTransactionRequest(TransactionType.EXPENSE)}
+                className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <Plus size={14} className="text-[var(--status-error-fg)] shrink-0" strokeWidth={1.5} />
+                  <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate font-normal">
+                    Log an expense
+                  </span>
+                </div>
+                <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0" />
+              </div>
+
+              <div
+                onClick={() => onAddTransactionRequest(TransactionType.INCOME)}
+                className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <ArrowUpRight size={14} className="text-[var(--status-success-fg)] shrink-0" strokeWidth={1.5} />
+                  <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate font-normal">
+                    Log income
+                  </span>
+                </div>
+                <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0" />
+              </div>
+
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <Paperclip size={14} className="text-[var(--accent)] shrink-0" strokeWidth={1.5} />
+                  <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate font-normal">
+                    Scan receipt
+                  </span>
+                </div>
+                <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0" />
+              </div>
+
+              <div
+                onClick={() => setIsSimOpen(true)}
+                className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                  <Lightning size={14} className="text-[var(--status-warning-fg)] shrink-0" strokeWidth={1.5} />
+                  <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate font-normal">
+                    Simulate scenario
+                  </span>
+                </div>
+                <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0" />
+              </div>
+            </div>
+
+            {/* Cloudflare-style ghost bordered button */}
+            <button
+              onClick={() => onAddTransactionRequest(TransactionType.EXPENSE)}
+              className="w-full mt-2 py-2 px-3 rounded-[6px] border border-[var(--border-default)] hover:border-[var(--border-active)] hover:bg-[var(--bg-surface-hover)] text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Plus size={13} strokeWidth={1.5} />
+              <span>Record transaction</span>
+            </button>
+          </div>
+
+          {/* Column 3: Recents (Income & Expense) */}
+          <div className="space-y-2.5 relative">
+            <div className="flex items-center justify-between text-[13px] text-[var(--text-secondary)] font-normal px-0.5">
+              <div 
+                onClick={() => setView('history')}
+                className="flex items-center gap-1 hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              >
+                <span>Recents</span>
+                <CaretRight size={12} strokeWidth={1.5} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveMenu(activeMenu === 'recents' ? null : 'recents')}
+                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] rounded-[4px] transition-colors cursor-pointer"
+                title="Recents options"
+              >
+                <DotsThree size={16} weight="bold" />
+              </button>
+            </div>
+
+            {/* Recents Context Menu */}
+            {activeMenu === 'recents' && (
+              <div className="absolute right-0 top-7 z-50 w-52 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.6)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  type="button"
+                  onClick={() => { setView('history'); setActiveMenu(null); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
+                >
+                  <ClockCounterClockwise size={13} strokeWidth={1.5} />
+                  <span>View full history</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { onAddTransactionRequest(TransactionType.EXPENSE); setActiveMenu(null); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
+                >
+                  <Plus size={13} strokeWidth={1.5} />
+                  <span>Log expense</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { onAddTransactionRequest(TransactionType.INCOME); setActiveMenu(null); }}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
+                >
+                  <ArrowUpRight size={13} strokeWidth={1.5} />
+                  <span>Log income</span>
+                </button>
+              </div>
+            )}
+
+            {/* Hairline Recent Transactions (Income and Expense) */}
+            <div className="divide-y divide-[var(--border-default)]">
+              {recentFiveTransactions.length > 0 ? (
+                recentFiveTransactions.map(tx => {
+                  const isExp = tx.type === TransactionType.EXPENSE;
+                  return (
+                    <div
+                      key={tx.id}
+                      onClick={() => onEditTransaction(tx)}
+                      className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                        <ClockCounterClockwise size={14} className="text-[var(--text-muted)] shrink-0" strokeWidth={1.5} />
+                        <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate font-normal">
+                          {tx.category} / <span className="text-[var(--text-primary)] font-medium">{tx.note || (isExp ? 'Expense' : 'Income')}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`font-mono text-[11.5px] font-medium ${isExp ? 'text-[var(--text-primary)]' : 'text-[var(--status-success-fg)]'}`}>
+                          {isExp ? '-' : '+'}{formatMoney(tx.amount, currency)}
+                        </span>
+                        <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0" />
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-6 text-center text-[12px] text-[var(--text-muted)]">
+                  No recent activity.
+                </div>
+              )}
+            </div>
+
+            {/* Cloudflare-style ghost bordered button */}
+            <button
+              onClick={() => setView('history')}
+              className="w-full mt-2 py-2 px-3 rounded-[6px] border border-[var(--border-default)] hover:border-[var(--border-active)] hover:bg-[var(--bg-surface-hover)] text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <ClockCounterClockwise size={13} strokeWidth={1.5} />
+              <span>View all transactions</span>
+            </button>
+          </div>
+
+        </div>
 
       {/* ========================================================================= */}
       {/* SECTION DIVIDER & HEADER: Analytics Overview with Cloudflare Range Picker */}
@@ -725,11 +1141,14 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* BENTO TIER 1: Balance Hero + Spending Sparkline (2 Cards)                  */}
+      {/* COMPACT BENTO CARD DECK: Tight, disciplined Cloudflare 12-14px spacing     */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
-        {/* Balance Hero (Left) */}
-        <div className="w-full flex">
+      <div className="space-y-3 sm:space-y-3.5">
+
+        {/* BENTO TIER 1: Balance Hero + Spending Sparkline (2 Cards) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-3.5">
+          {/* Balance Hero (Left) */}
+          <div className="w-full flex">
           <BalanceHero 
             balance={balance} 
             adjustedBalance={adjustedBalance} 
@@ -746,7 +1165,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
         </div>
 
         {/* Total Spending Volume & Trend (Right) */}
-        <div className="w-full rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
+        <div className="w-full rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-full">
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
@@ -778,58 +1197,62 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
             </div>
           </div>
 
-          {/* Clean Recharts Area/Sparkline */}
+          {/* Clean Recharts Area/Sparkline or Cloudflare No Data Wave */}
           <div className="h-[145px] w-full mt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -24, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="cfTopSpendGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="var(--border-default)" strokeDasharray="2 2" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  stroke="var(--text-muted)" 
-                  fontSize={11} 
-                  tickLine={false} 
-                  axisLine={false}
-                  dy={5}
-                />
-                <YAxis 
-                  stroke="var(--text-muted)" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false}
-                  tickFormatter={(v) => `${v}`}
-                  domain={[0, Math.ceil(maxChartValue * 1.15)]}
-                  orientation="right"
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-strong)',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    color: 'var(--text-primary)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                    padding: '6px 10px'
-                  }}
-                  itemStyle={{ color: 'var(--text-primary)' }}
-                  labelStyle={{ color: 'var(--text-secondary)', marginBottom: '2px', fontSize: '10px' }}
-                  formatter={(val: any) => [formatMoney(Number(val) || 0, currency), 'Spent']}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="spent"
-                  stroke="#3b82f6"
-                  strokeWidth={1.5}
-                  fill="url(#cfTopSpendGrad)"
-                  activeDot={{ r: 4, fill: '#3b82f6', stroke: 'var(--bg-surface)', strokeWidth: 2 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {timeframeExpense > 0 && chartData.some(d => (d.spent || 0) > 0) ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -24, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="cfTopSpendGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#F6821F" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#F6821F" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--border-default)" strokeDasharray="2 2" vertical={false} />
+                  <XAxis 
+                    dataKey="name" 
+                    stroke="var(--text-muted)" 
+                    fontSize={11} 
+                    tickLine={false} 
+                    axisLine={false}
+                    dy={5}
+                  />
+                  <YAxis 
+                    stroke="var(--text-muted)" 
+                    fontSize={10} 
+                    tickLine={false} 
+                    axisLine={false}
+                    tickFormatter={(v) => `${v}`}
+                    domain={[0, Math.ceil(maxChartValue * 1.15)]}
+                    orientation="right"
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-strong)',
+                      borderRadius: '8px',
+                      fontSize: '12px',
+                      color: 'var(--text-primary)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+                      padding: '6px 10px'
+                    }}
+                    itemStyle={{ color: 'var(--text-primary)' }}
+                    labelStyle={{ color: 'var(--text-secondary)', marginBottom: '2px', fontSize: '10px' }}
+                    formatter={(val: any) => [formatMoney(Number(val) || 0, currency), 'Spent']}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="spent"
+                    stroke="#F6821F"
+                    strokeWidth={1.5}
+                    fill="url(#cfTopSpendGrad)"
+                    activeDot={{ r: 4, fill: '#F6821F', stroke: 'var(--bg-surface)', strokeWidth: 2 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <NoDataWave height={145} />
+            )}
           </div>
         </div>
       </div>
@@ -837,7 +1260,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       {/* ========================================================================= */}
       {/* BENTO TIER 2: 4-Metric Grid                                               */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
         {/* 1. Daily Budget Cap */}
         <DailyBudget 
           dailySpent={dailySpent} 
@@ -853,14 +1276,14 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
         <FinancialHealthScore data={data} />
 
         {/* 3. 30-Day Outlook & Liabilities */}
-        <div className="rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 flex flex-col justify-between transition-colors h-full">
+        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-full">
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] truncate">
                 30-Day Outlook
               </span>
-              <span className="text-[11px] font-medium text-[var(--text-secondary)] font-mono">
-                {runwayDays}d runway
+              <span className="text-[11px] font-medium text-[var(--text-secondary)] font-mono shrink-0">
+                {balance <= 0 ? '0d runway' : (!isFinite(runwayDays) || runwayDays >= 365) ? '365+d runway' : `${runwayDays}d runway`}
               </span>
             </div>
 
@@ -878,13 +1301,13 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
             <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden mb-2.5">
               <div 
                 className="h-full bg-[var(--status-warning-fg)] rounded-full transition-all duration-700" 
-                style={{ width: `${Math.min(100, balance > 0 ? (futureLiability / balance) * 100 : 0)}%` }} 
+                style={{ width: `${Math.min(100, balance > 0 ? (futureLiability / balance) * 100 : (futureLiability > 0 ? 100 : 0))}%` }} 
               />
             </div>
             <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
               <span>Balance impact</span>
               <span className="font-mono text-[var(--text-primary)] font-medium">
-                {balance > 0 ? Math.round((futureLiability / balance) * 100) : 0}%
+                {balance > 0 ? Math.round((futureLiability / balance) * 100) : (futureLiability > 0 ? 100 : 0)}%
               </span>
             </div>
           </div>
@@ -897,9 +1320,9 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       {/* ========================================================================= */}
       {/* BENTO TIER 3: Category Allocation & Local Intelligence (2 Columns)        */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-3.5">
         {/* Category Allocation */}
-        <div className="w-full rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 flex flex-col justify-between transition-colors">
+        <div className="w-full rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors">
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
@@ -943,9 +1366,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                 </div>
               ))
             ) : (
-              <div className="py-6 text-center text-[12px] text-[var(--text-muted)]">
-                No spending breakdown data available.
-              </div>
+              <NoDataWave height={120} />
             )}
           </div>
         </div>
@@ -956,43 +1377,12 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* BENTO TIER 4: Savings Goals & Quick Entry / Templates                     */}
-      {/* ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
-        {/* Savings Goals */}
-        <div className={goalWallets.length > 0 && currentWallet?.type !== 'GOAL' ? 'w-full' : 'col-span-full'}>
-          <GoalSummary goalWallets={goalWallets} currentWallet={currentWallet} data={data} updateData={updateData} />
-          {goalWallets.length === 0 && (
-            <QuickActions quickActions={quickActions} data={data} onAddTransactionRequest={onAddTransactionRequest} />
-          )}
-        </div>
-
-        {/* Quick Actions & Templates */}
-        {goalWallets.length > 0 && currentWallet?.type !== 'GOAL' && (
-          <div className="w-full flex flex-col gap-4 lg:gap-5">
-            <QuickActions quickActions={quickActions} data={data} onAddTransactionRequest={onAddTransactionRequest} />
-            <TemplatePresets data={data} onAddTransactionRequest={onAddTransactionRequest} onDeleteTemplate={onDeleteTemplate} />
-          </div>
-        )}
       </div>
 
       {/* Budget Alerts if any */}
       {budgetAlerts.length > 0 && (
         <BudgetAlerts budgetAlerts={budgetAlerts} data={data} formatMoney={formatMoney} />
       )}
-
-      {/* ========================================================================= */}
-      {/* BENTO TIER 5: Recent Transactions Ledger Table                             */}
-      {/* ========================================================================= */}
-      <RecentLedger 
-        walletTransactions={walletTransactions} 
-        data={data} 
-        updateData={updateData}
-        setView={setView} 
-        onEditTransaction={onEditTransaction} 
-        formatMoney={formatMoney} 
-      />
       </div>
 
       {/* Simulator Module */}

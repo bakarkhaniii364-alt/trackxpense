@@ -217,16 +217,21 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
             {/* Backdrop */}
             <div 
-                className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity" 
+                className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
                 onClick={() => { Haptics.light(); onClose(); }} 
             />
             
-            {/* Universal Modal Container (No horizontal separator lines) */}
-            <div className="relative z-50 bg-[var(--bg-surface)] border border-[var(--border-default)] w-full max-w-[460px] rounded-[12px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200 overflow-hidden">
+            {/* Universal Modal Container */}
+            <div 
+                role="dialog" 
+                aria-modal="true" 
+                aria-labelledby="add-tx-modal-title"
+                className="relative z-50 bg-[var(--bg-surface)] border border-[var(--border-default)] w-full max-w-[460px] rounded-[8px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200 text-[var(--text-primary)]"
+            >
 
                 {/* Header: Title, Type Switcher & Close (No border-b separator) */}
                 <div className="flex items-center justify-between">
-                    <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                    <h3 id="add-tx-modal-title" className="text-base font-semibold text-[var(--text-primary)]">
                         {isEditing ? 'Edit Transaction' : 'Add Transaction'}
                     </h3>
 
@@ -322,7 +327,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                     <button 
                                         type="button"
                                         onClick={() => setIsSplit(!isSplit)}
-                                        className="text-[11px] font-medium text-[#2563EB] hover:underline"
+                                        className="text-[11px] font-medium text-[var(--accent)] hover:underline"
                                     >
                                         {isSplit ? 'Single Category' : 'Split Category'}
                                     </button>
@@ -363,7 +368,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                     <button 
                                         type="button"
                                         onClick={addSplit}
-                                        className="text-[12px] font-medium text-[#2563EB] hover:underline pt-1 block"
+                                        className="text-[12px] font-medium text-[var(--accent)] hover:underline pt-1 block"
                                     >
                                         + Add Split Category
                                     </button>
@@ -389,7 +394,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     {/* Stealth Ghost Mode Toggle */}
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <EyeOff size={15} strokeWidth={1.5} className={isPrivate ? 'text-[#2563EB]' : 'text-[var(--text-muted)]'} />
+                            <EyeOff size={15} strokeWidth={1.5} className={isPrivate ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} />
                             <span className="text-[13px] font-medium text-[var(--text-primary)]">Vault Stealth (Ghost Mode)</span>
                         </div>
                         <button 
@@ -408,7 +413,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <Save size={15} strokeWidth={1.5} className={isTemplate ? 'text-[#2563EB]' : 'text-[var(--text-muted)]'} />
+                                    <Save size={15} strokeWidth={1.5} className={isTemplate ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} />
                                     <span className="text-[13px] font-medium text-[var(--text-primary)]">Save as Preset Template</span>
                                 </div>
                                 <button 

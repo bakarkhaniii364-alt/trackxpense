@@ -126,7 +126,7 @@ export const AnalyticsKpiStrip: React.FC<AnalyticsKpiStripProps> = ({
           <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
             Estimated Runway
           </span>
-          <ShieldCheck size={16} strokeWidth={1.5} className="text-[#3b82f6]" />
+          <ShieldCheck size={16} strokeWidth={1.5} className="text-[var(--accent)]" />
         </div>
         <div className="mt-3">
           <div className="text-xl lg:text-2xl font-medium text-[var(--text-primary)] tracking-tight">

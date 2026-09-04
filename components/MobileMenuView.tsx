@@ -25,7 +25,8 @@ import {
   Upload,
   Check,
   Bell,
-  Warning as AlertTriangle
+  Warning as AlertTriangle,
+  Sparkle
 } from '@phosphor-icons/react';
 import { ViewState, AppData, ThemeOption, Streak } from '../types';
 import { Haptics } from '../services/haptics';
@@ -193,22 +194,22 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#09090b] text-main overflow-hidden">
+    <div className="flex flex-col h-full bg-[var(--bg-page)] text-[var(--text-primary)] overflow-hidden">
       {/* Sub-view Header - Only shown when navigating into a sub-page */}
       {activeSubView !== 'root' && (
-        <div className="flex-none pt-2 pb-2 px-4 border-b border-main/5 flex items-center justify-between">
+        <div className="flex-none pt-2 pb-2 px-4 border-b border-[var(--border-default)] bg-[var(--bg-surface)] flex items-center justify-between">
           <button
             onClick={() => {
               Haptics.light();
               setActiveSubView('root');
             }}
-            className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary/80 active:scale-95 transition-all"
+            className="flex items-center gap-1 text-[12px] font-medium text-[var(--text-primary)] hover:text-[var(--text-secondary)] min-h-[36px] min-w-[44px] cursor-pointer"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={16} strokeWidth={1.5} />
             <span>Back</span>
           </button>
 
-          <h2 className="text-xs font-bold text-main tracking-tight uppercase">
+          <h2 className="text-[12px] font-medium text-[var(--text-primary)] tracking-tight uppercase">
             {activeSubView === 'profile' && 'Edit Profile'}
             {activeSubView === 'appearance' && 'Appearance'}
             {activeSubView === 'backup' && 'Backup & Restore'}
@@ -221,21 +222,21 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
       )}
 
       {/* Dynamic Slide Container Stack */}
-      <div className="flex-1 relative overflow-hidden bg-[#09090b]">
+      <div className="flex-1 relative overflow-hidden bg-[var(--bg-page)]">
         {/* 1. ROOT VIEW */}
         <div
-          className={`absolute inset-0 flex flex-col overflow-y-auto no-scrollbar px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))] space-y-5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+          className={`absolute inset-0 flex flex-col overflow-y-auto no-scrollbar px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))] space-y-4 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
             activeSubView === 'root' ? 'translate-x-0 opacity-100' : '-translate-x-12 opacity-0 pointer-events-none'
           }`}
         >
           {/* Clean Technical Profile Card */}
-          <div className="rounded-[12px] bg-[var(--bg-surface)] border border-[var(--border-default)] p-4 flex items-center justify-between">
+          <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-primary)] font-semibold text-sm shrink-0">
+              <div className="w-10 h-10 rounded-full bg-[var(--bg-subtle)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-primary)] font-medium text-[13px] shrink-0">
                 {data.profile.name ? data.profile.name.charAt(0).toUpperCase() : 'U'}
               </div>
               <div>
-                <h3 className="text-[14px] font-semibold text-[var(--text-primary)] leading-tight">
+                <h3 className="text-[14px] font-medium text-[var(--text-primary)] leading-tight">
                   {data.profile.name || 'User'}
                 </h3>
                 <span className="text-[11px] text-[var(--text-muted)] mt-0.5 block">
@@ -249,7 +250,7 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                 Haptics.light();
                 setActiveSubView('profile');
               }}
-              className="btn btn--outline h-[30px] px-3 text-[11px] font-medium"
+              className="btn btn--outline h-[32px] px-3 text-[11px] font-medium"
             >
               Edit Profile
             </button>
@@ -258,23 +259,23 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 gap-2.5">
             {/* Wallet Balance Capsule */}
-            <div className="p-3 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex flex-col justify-between">
+            <div className="p-3 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex flex-col justify-between">
               <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
-                <WalletIcon size={13} strokeWidth={1.5} className="text-[var(--accent-solid)]" />
-                <span className="text-[9px] font-semibold uppercase tracking-wider truncate">Active Wallet</span>
+                <WalletIcon size={14} strokeWidth={1.5} className="text-[var(--ds-accent)]" />
+                <span className="text-[10px] font-medium uppercase tracking-[0.06em] truncate">Active Wallet</span>
               </div>
-              <span className="text-sm font-semibold font-mono text-[var(--text-primary)] tracking-tight mt-1.5 truncate">
+              <span className="text-[13px] font-medium font-mono text-[var(--text-primary)] tracking-tight mt-1.5 truncate">
                 {data.settings.privacyMode ? '••••' : formatMoney(currentBalance, walletSymbol)}
               </span>
             </div>
 
             {/* Consistency Streak Capsule */}
-            <div className="p-3 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex flex-col justify-between">
+            <div className="p-3 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex flex-col justify-between">
               <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
-                <Flame size={13} strokeWidth={1.5} className="text-amber-500" />
-                <span className="text-[9px] font-semibold uppercase tracking-wider truncate">Daily Streak</span>
+                <Flame size={14} strokeWidth={1.5} className="text-[var(--status-warning-fg)]" />
+                <span className="text-[10px] font-medium uppercase tracking-[0.06em] truncate">Daily Streak</span>
               </div>
-              <span className="text-sm font-semibold font-mono text-[var(--text-primary)] tracking-tight mt-1.5">
+              <span className="text-[13px] font-medium font-mono text-[var(--text-primary)] tracking-tight mt-1.5">
                 {maxStreak > 0 ? `${maxStreak} Days` : '0 Days'}
               </span>
             </div>
@@ -285,6 +286,12 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
             <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[var(--text-muted)] px-1">Insights & Planning</p>
             <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] divide-y divide-[var(--border-default)] overflow-hidden">
               {[
+                {
+                  id: 'rabbai' as ViewState,
+                  label: 'RabbAi Assistant',
+                  desc: 'Conversational AI, receipt scanning & commands',
+                  icon: Sparkle,
+                },
                 {
                   id: 'analytics' as ViewState,
                   label: 'Analytics & Trends',
@@ -404,24 +411,24 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
             activeSubView === 'profile' ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'
           }`}
         >
-          <div className="p-4 rounded-2xl bg-card/15 border border-main/5 space-y-4">
+          <div className="p-4 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[9px] uppercase font-bold text-muted/50 tracking-[0.15em]">Display Name</label>
+              <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em]">Display Name</label>
               <input
                 type="text"
                 value={localName}
                 onChange={(e) => setLocalName(e.target.value)}
                 placeholder="Enter display name..."
-                className="w-full bg-[#09090b]/80 rounded-xl px-3.5 py-2.5 text-xs text-main border border-main/5 focus:border-primary/40 outline-none transition-all font-semibold"
+                className="w-full bg-[var(--bg-page)] rounded-[6px] px-3 py-2 text-[13px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[var(--border-active)] outline-none transition-colors font-medium"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[9px] uppercase font-bold text-muted/50 tracking-[0.15em]">
+              <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em]">
                 Monthly Spending Limit
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted/30 font-bold text-[10px] font-mono">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-medium text-[11px] font-mono">
                   {walletSymbol}
                 </span>
                 <input
@@ -429,17 +436,17 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                   value={localMonthlyGoal || ''}
                   onChange={(e) => setLocalMonthlyGoal(parseFloat(e.target.value) || 0)}
                   placeholder="No limit..."
-                  className="w-full bg-[#09090b]/80 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-main border border-main/5 focus:border-primary/40 outline-none transition-all font-semibold animate-none"
+                  className="w-full bg-[var(--bg-page)] rounded-[6px] pl-8 pr-3 py-2 text-[13px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[var(--border-active)] outline-none transition-colors font-medium font-mono"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[9px] uppercase font-bold text-muted/50 tracking-[0.15em]">
+              <label className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em]">
                 Daily Spending Cap
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted/30 font-bold text-[10px] font-mono">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] font-medium text-[11px] font-mono">
                   {walletSymbol}
                 </span>
                 <input
@@ -447,7 +454,7 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                   value={localDailyGoal || ''}
                   onChange={(e) => setLocalDailyGoal(parseFloat(e.target.value) || 0)}
                   placeholder="No limit..."
-                  className="w-full bg-[#09090b]/80 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-main border border-main/5 focus:border-primary/40 outline-none transition-all font-semibold animate-none"
+                  className="w-full bg-[var(--bg-page)] rounded-[6px] pl-8 pr-3 py-2 text-[13px] text-[var(--text-primary)] border border-[var(--border-default)] focus:border-[var(--border-active)] outline-none transition-colors font-medium font-mono"
                 />
               </div>
             </div>
@@ -469,36 +476,36 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                 setTimeout(() => setProfileSaved(false), 2000);
               }
             }}
-            className="btn btn--primary w-full h-[40px] text-[13px] flex items-center justify-center gap-2"
+            className="btn btn--primary w-full h-[40px] text-[13px] font-medium flex items-center justify-center gap-2 cursor-pointer"
           >
             {profileSaved ? (
               <>
                 <Check size={15} strokeWidth={2} />
-                <span>Changes Saved Successfully</span>
+                <span>Changes Saved</span>
               </>
             ) : (
-              <span>Save Profile Changes</span>
+              <span>Save Changes</span>
             )}
           </button>
         </div>
 
         {/* 3. APPEARANCE PANEL */}
         <div
-          className={`absolute inset-0 flex flex-col overflow-y-auto no-scrollbar px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))] space-y-5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+          className={`absolute inset-0 flex flex-col overflow-y-auto no-scrollbar px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))] space-y-4 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
             activeSubView === 'appearance' ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'
           }`}
         >
-          {/* Dark Mode toggle (Theme Picker removed from settings) */}
-          <div className="p-4 rounded-2xl bg-card/15 border border-main/5 flex items-center justify-between">
+          {/* Dark Mode toggle */}
+          <div className="p-4 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               {data.settings.darkMode ? (
-                <Moon size={16} className="text-primary" />
+                <Moon size={16} strokeWidth={1.5} className="text-[var(--ds-accent)]" />
               ) : (
-                <Sun size={16} className="text-amber-500" />
+                <Sun size={16} strokeWidth={1.5} className="text-[var(--status-warning-fg)]" />
               )}
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-main leading-tight">Dark Mode Interface</span>
-                <span className="text-[9px] text-muted/50 font-normal">Switch between light and dark visuals</span>
+                <span className="text-[13px] font-medium text-[var(--text-primary)] leading-tight">Dark Theme</span>
+                <span className="text-[11px] text-[var(--text-muted)] mt-0.5">Toggle between pitch black and crisp light modes</span>
               </div>
             </div>
             <button
@@ -508,14 +515,14 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                   updateData({ settings: { ...data.settings, darkMode: !data.settings.darkMode } });
                 }
               }}
-              className={`w-9 h-5 rounded-full relative transition-all duration-300 border ${
+              className={`w-9 h-5 rounded-full relative transition-colors border cursor-pointer ${
                 data.settings.darkMode
-                  ? 'bg-primary border-primary/20 shadow-[0_0_12px_rgba(var(--color-primary),0.35)]'
-                  : 'bg-main/5 border-main/10'
+                  ? 'bg-[var(--accent-solid)] border-[var(--accent-solid)]'
+                  : 'bg-[var(--bg-subtle)] border-[var(--border-default)]'
               }`}
             >
               <div
-                className={`absolute top-[2px] w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${
+                className={`absolute top-[2px] w-3.5 h-3.5 rounded-full bg-[var(--accent-text)] transition-all ${
                   data.settings.darkMode ? 'left-[18px]' : 'left-[2px]'
                 }`}
               />
@@ -523,10 +530,10 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
           </div>
 
           {/* Currency picker */}
-          <div className="p-4 rounded-2xl bg-card/15 border border-main/5 space-y-3.5">
+          <div className="p-4 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] space-y-3">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted/40">Default Currency</span>
-              <p className="text-[9px] text-muted/50 mt-0.5">Choose your primary ledger currency symbol.</p>
+              <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">Default Currency</span>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Choose your primary ledger currency symbol.</p>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
@@ -541,14 +548,14 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                         updateData({ settings: { ...data.settings, currencySymbol: curr.symbol } });
                       }
                     }}
-                    className={`py-2 rounded-xl flex flex-col items-center justify-center border transition-all ${
+                    className={`py-2 rounded-[6px] flex flex-col items-center justify-center border transition-colors cursor-pointer min-h-[44px] ${
                       isSelected
-                        ? 'bg-primary/10 border-primary/30 text-primary font-bold shadow-sm'
-                        : 'bg-[#09090b]/80 border-main/5 text-muted hover:text-main'
+                        ? 'bg-[var(--accent-solid)] border-[var(--accent-solid)] text-[var(--accent-text)] font-medium'
+                        : 'bg-[var(--bg-surface)] border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{curr.value}</span>
-                    <span className="text-xs font-bold opacity-60 mt-0.5">{curr.symbol}</span>
+                    <span className="text-[11px] font-medium uppercase">{curr.value}</span>
+                    <span className="text-[12px] font-mono mt-0.5">{curr.symbol}</span>
                   </button>
                 );
               })}
@@ -562,70 +569,64 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
             activeSubView === 'backup' ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'
           }`}
         >
-          <div className="p-4 rounded-2xl bg-card/15 border border-main/5 space-y-4">
+          <div className="p-4 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] space-y-3">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted/40">Data Management</span>
-              <p className="text-[9px] text-muted/50 mt-0.5">
-                Securely export, import, or synchronise your transaction ledger files.
+              <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">Data Management</span>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                Export or import your transaction ledger files.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2">
               {/* CSV Export */}
               <button
                 onClick={exportToCSV}
-                className="w-full p-3.5 rounded-xl bg-[#09090b]/80 hover:bg-[#09090b] border border-main/5 transition-all flex items-center justify-between group active:scale-[0.99]"
+                className="w-full p-3 rounded-[6px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-colors flex items-center justify-between group cursor-pointer min-h-[48px]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-                    <FileSpreadsheet size={16} />
-                  </div>
+                  <FileSpreadsheet size={18} strokeWidth={1.5} className="text-[var(--text-secondary)] shrink-0" />
                   <div className="text-left">
-                    <span className="text-xs font-bold text-main leading-tight block">Export Ledger (CSV)</span>
-                    <span className="text-[8px] text-muted/50 font-normal uppercase tracking-wider">
+                    <span className="text-[13px] font-medium text-[var(--text-primary)] block">Export Ledger (CSV)</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">
                       Spreadsheet compatible format
                     </span>
                   </div>
                 </div>
-                <ChevronRight size={14} className="text-muted/30" />
+                <ChevronRight size={14} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:translate-x-0.5 transition-transform" />
               </button>
 
               {/* JSON Export */}
               <button
                 onClick={exportToJSON}
-                className="w-full p-3.5 rounded-xl bg-[#09090b]/80 hover:bg-[#09090b] border border-main/5 transition-all flex items-center justify-between group active:scale-[0.99]"
+                className="w-full p-3 rounded-[6px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-colors flex items-center justify-between group cursor-pointer min-h-[48px]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center">
-                    <FileJson size={16} />
-                  </div>
+                  <FileJson size={18} strokeWidth={1.5} className="text-[var(--text-secondary)] shrink-0" />
                   <div className="text-left">
-                    <span className="text-xs font-bold text-main leading-tight block">Export Backup (JSON)</span>
-                    <span className="text-[8px] text-muted/50 font-normal uppercase tracking-wider">
+                    <span className="text-[13px] font-medium text-[var(--text-primary)] block">Export Backup (JSON)</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">
                       Full system backup profile
                     </span>
                   </div>
                 </div>
-                <ChevronRight size={14} className="text-muted/30" />
+                <ChevronRight size={14} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:translate-x-0.5 transition-transform" />
               </button>
 
               {/* JSON Import */}
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full p-3.5 rounded-xl bg-[#09090b]/80 hover:bg-[#09090b] border border-main/5 transition-all flex items-center justify-between group active:scale-[0.99]"
+                className="w-full p-3 rounded-[6px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] transition-colors flex items-center justify-between group cursor-pointer min-h-[48px]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                    <Upload size={16} />
-                  </div>
+                  <Upload size={18} strokeWidth={1.5} className="text-[var(--text-secondary)] shrink-0" />
                   <div className="text-left">
-                    <span className="text-xs font-bold text-main leading-tight block">Import JSON Backup</span>
-                    <span className="text-[8px] text-muted/50 font-normal uppercase tracking-wider">
+                    <span className="text-[13px] font-medium text-[var(--text-primary)] block">Import JSON Backup</span>
+                    <span className="text-[11px] text-[var(--text-muted)]">
                       Smart deduplication active
                     </span>
                   </div>
                 </div>
-                <ChevronRight size={14} className="text-muted/30" />
+                <ChevronRight size={14} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:translate-x-0.5 transition-transform" />
                 <input type="file" ref={fileInputRef} onChange={handleImport} accept=".json" className="hidden" />
               </button>
             </div>
@@ -634,21 +635,21 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
 
         {/* 5. SECURITY & ALERTS PANEL */}
         <div
-          className={`absolute inset-0 flex flex-col overflow-y-auto no-scrollbar px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))] space-y-5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+          className={`absolute inset-0 flex flex-col overflow-y-auto no-scrollbar px-4 pt-4 pb-[calc(76px+env(safe-area-inset-bottom))] space-y-4 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
             activeSubView === 'security' ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'
           }`}
         >
-          <div className="p-4 rounded-2xl bg-card/15 border border-main/5 space-y-4">
+          <div className="p-4 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] space-y-3">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted/40">
+              <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
                 Notification Alerts
               </span>
-              <p className="text-[9px] text-muted/50 mt-0.5">
-                Configure automated alert reminders to keep your balance synced.
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                Automated reminders to keep your transactions synced.
               </p>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {[
                 {
                   id: 'expense' as const,
@@ -668,32 +669,24 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                 <button
                   key={sub.id}
                   onClick={() => handleToggleReminder(sub.id)}
-                  className="w-full p-3 bg-[#09090b]/80 rounded-xl border border-main/5 flex items-center justify-between group hover:border-primary/30 transition-all active:scale-[0.99]"
+                  className="w-full p-3 bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] rounded-[6px] border border-[var(--border-default)] flex items-center justify-between transition-colors min-h-[48px] cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-colors ${
-                        sub.active
-                          ? 'bg-primary/10 border-primary/20 text-primary'
-                          : 'bg-main/5 border-main/5 text-muted/40'
-                      }`}
-                    >
-                      <sub.icon size={14} />
-                    </div>
+                    <sub.icon size={16} strokeWidth={1.5} className="text-[var(--text-secondary)] shrink-0" />
                     <div className="text-left">
-                      <span className="text-xs font-bold text-main leading-tight block">{sub.label}</span>
-                      <span className="text-[8px] text-muted/50 font-normal uppercase tracking-wider">{sub.desc}</span>
+                      <span className="text-[13px] font-medium text-[var(--text-primary)] block leading-tight">{sub.label}</span>
+                      <span className="text-[11px] text-[var(--text-muted)]">{sub.desc}</span>
                     </div>
                   </div>
                   <div
-                    className={`w-9 h-5 rounded-full relative transition-colors ${
+                    className={`w-9 h-5 rounded-full relative transition-colors border ${
                       sub.active
-                        ? 'bg-primary border-primary/20 shadow-[0_0_12px_rgba(var(--color-primary),0.35)]'
-                        : 'bg-main/5 border-main/10'
+                        ? 'bg-[var(--accent-solid)] border-[var(--accent-solid)]'
+                        : 'bg-[var(--bg-subtle)] border-[var(--border-default)]'
                     }`}
                   >
                     <div
-                      className={`absolute top-[2px] w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300 ${
+                      className={`absolute top-[2px] w-3.5 h-3.5 rounded-full bg-[var(--accent-text)] transition-all ${
                         sub.active ? 'left-[18px]' : 'left-[2px]'
                       }`}
                     />
@@ -703,13 +696,13 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-card/15 border border-main/5 space-y-3.5">
+          <div className="p-4 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] space-y-3">
             <div>
-              <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.15em]">Danger Zone</span>
-              <p className="text-[9px] text-muted/50 mt-0.5">Irreversible actions regarding your account state.</p>
+              <span className="text-[10px] font-medium text-[var(--status-error-fg)] uppercase tracking-[0.06em]">Danger Zone</span>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Account actions and session termination.</p>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               {onLogout && (
                 <button
                   onClick={() => {
@@ -718,10 +711,10 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                       onLogout();
                     }
                   }}
-                  className="btn btn--secondary flex-1 h-[44px] flex flex-col items-center justify-center gap-1"
+                  className="btn btn--secondary flex-1 h-[44px] flex items-center justify-center gap-2 cursor-pointer text-[12px] font-medium"
                 >
                   <LogOut size={16} strokeWidth={1.5} />
-                  <span className="text-[11px] font-medium">Log Out</span>
+                  <span>Log Out</span>
                 </button>
               )}
               <button
@@ -732,10 +725,10 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
                     if (onLogout) onLogout();
                   }
                 }}
-                className="btn btn--danger flex-1 h-[44px] flex flex-col items-center justify-center gap-1"
+                className="btn-destructive flex-1 h-[44px] flex items-center justify-center gap-2 cursor-pointer text-[12px] font-medium"
               >
                 <Trash2 size={16} strokeWidth={1.5} />
-                <span className="text-[11px] font-medium">Delete Account</span>
+                <span>Delete Account</span>
               </button>
             </div>
           </div>
@@ -747,48 +740,45 @@ export const MobileMenuView: React.FC<MobileMenuViewProps> = ({
             activeSubView === 'privacy' ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'
           }`}
         >
-          <div className="p-4 rounded-2xl bg-card/15 border border-main/5 space-y-4">
+          <div className="p-4 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] space-y-3">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted/40">
+              <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
                 Trust & Privacy
               </span>
-              <p className="text-[9px] text-muted/50 mt-0.5">
-                We design tools that respect your intelligence and data rights.
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                Privacy-first local architecture.
               </p>
             </div>
 
-            <div className="space-y-3.5">
-              <div className="p-4 rounded-xl bg-[#09090b]/80 border border-main/5">
-                <p className="text-[9px] font-black text-primary uppercase tracking-[0.15em] mb-1">
+            <div className="space-y-2">
+              <div className="p-3 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)]">
+                <p className="text-[10px] font-medium text-[var(--ds-accent)] uppercase tracking-[0.06em] mb-1">
                   Rule #1: Complete Anonymity
                 </p>
-                <p className="text-[10px] text-muted leading-relaxed font-medium">
-                  We don't track your identity. Your ledger records are saved as isolated secure rows. No personalized
-                  advertisement tracking, ever.
+                <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
+                  We don't track your identity. Your ledger records are saved as isolated secure rows without personalized ad trackers.
                 </p>
               </div>
-              <div className="p-4 rounded-xl bg-[#09090b]/80 border border-main/5">
-                <p className="text-[9px] font-black text-primary uppercase tracking-[0.15em] mb-1">
+              <div className="p-3 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)]">
+                <p className="text-[10px] font-medium text-[var(--ds-accent)] uppercase tracking-[0.06em] mb-1">
                   Rule #2: Real-time Control
                 </p>
-                <p className="text-[10px] text-muted leading-relaxed font-medium">
-                  Any data you clear is permanently expunged. Export options are free, complete, and require no premium
-                  tier.
+                <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
+                  Any data you clear is permanently expunged. Export options are free, complete, and unrestricted.
                 </p>
               </div>
-              <div className="p-4 rounded-xl bg-[#09090b]/80 border border-main/5">
-                <p className="text-[9px] font-black text-primary uppercase tracking-[0.15em] mb-1">
+              <div className="p-3 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)]">
+                <p className="text-[10px] font-medium text-[var(--ds-accent)] uppercase tracking-[0.06em] mb-1">
                   Rule #3: Locally Encrypted Bits
                 </p>
-                <p className="text-[10px] text-muted leading-relaxed font-medium">
-                  All computations, predictive spend trends, and streak tracking occur securely on your device, not
-                  remote trackers.
+                <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
+                  All computations, predictive spend trends, and streak tracking occur securely on your device.
                 </p>
               </div>
             </div>
 
-            <p className="text-[8px] text-muted/30 text-center uppercase font-black tracking-widest pt-2">
-              TrackXpense v4.0.0 • Privacy Zero-Bullshit
+            <p className="text-[10px] font-mono text-[var(--text-muted)] text-center uppercase tracking-[0.08em] pt-1">
+              TrackXpense v4.0.0 · Local-First
             </p>
           </div>
         </div>

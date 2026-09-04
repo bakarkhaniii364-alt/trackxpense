@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { NavBar } from './components/NavBar';
-import { MobileMenuView } from './components/MobileMenuView';
 import { Transaction, ViewState, TransactionType, AppData, Wallet, WalletType, Debt, TransactionTemplate, DebtPayment, Category, CategoryItem, ThemeOption } from './types';
 import { PredictiveEngine } from './services/PredictiveEngine';
 import * as StorageService from './services/storage';
 import { DashboardView } from './components/DashboardView';
-import { HistoryView } from './components/HistoryView';
-import { DebtView } from './components/DebtView';
-import { AnalyticsView } from './components/AnalyticsView';
 import { AddTransactionModal } from './components/AddTransactionModal';
 import { DesktopDashboard } from './components/pc/DesktopDashboard';
-import { DesktopHistory } from './components/pc/DesktopHistory';
-import { DesktopAnalytics } from './components/pc/DesktopAnalytics';
-import { DesktopDebt } from './components/pc/DesktopDebt';
-import { DesktopIdentity, DesktopControl } from './components/pc/DesktopManagement';
-import { ProvisioningCenter } from './components/ProvisioningCenter';
-import { SubscriptionManager } from './components/SubscriptionManager';
+import { ErrorBoundary } from './components/shared/ErrorBoundary';
+import { VaultLock } from './components/VaultLock';
+import { loadRabbAiConversations, saveRabbAiConversations, RabbAiConversation } from './services/rabbAiService';
+
+// Route Code-Splitting with React.lazy
+const RabbAiView = React.lazy(() => import('./components/views/RabbAiView').then(m => ({ default: m.RabbAiView })));
+const HistoryView = React.lazy(() => import('./components/HistoryView').then(m => ({ default: m.HistoryView })));
+const DebtView = React.lazy(() => import('./components/DebtView').then(m => ({ default: m.DebtView })));
+const AnalyticsView = React.lazy(() => import('./components/AnalyticsView').then(m => ({ default: m.AnalyticsView })));
+const DesktopIdentity = React.lazy(() => import('./components/pc/DesktopManagement').then(m => ({ default: m.DesktopIdentity })));
+const DesktopControl = React.lazy(() => import('./components/pc/DesktopManagement').then(m => ({ default: m.DesktopControl })));
+const ProvisioningCenter = React.lazy(() => import('./components/ProvisioningCenter').then(m => ({ default: m.ProvisioningCenter })));
+const SubscriptionManager = React.lazy(() => import('./components/SubscriptionManager').then(m => ({ default: m.SubscriptionManager })));
 import { OnboardingModal } from './components/OnboardingModal';
 import { StealthOverlay } from './components/StealthOverlay';
 import { CommandPalette } from './components/CommandPalette';
@@ -30,7 +32,7 @@ import {
   Plus, Pulse as Activity, WarningCircle as AlertCircle,
   CaretLeft as ChevronLeft, CaretRight as ChevronRight,
   SquaresFour as LayoutGrid, TrendUp as TrendingUp, ArrowDownRight, HandCoins, Sliders, Calendar, Ghost, UserCircle, MagnifyingGlass as Search, Info,
-  Eye, EyeSlash as EyeOff, Sparkle
+  Eye, EyeSlash as EyeOff, Sparkle, List, ClockCounterClockwise, Wallet as WalletIcon, Key
 } from '@phosphor-icons/react';
 import { parseCurrentRoute, subscribeToRoutes, navigateTo } from './src/services/router';
 import { CategoryIcon } from './components/shared/CategoryIcon';
@@ -41,52 +43,13 @@ import { AuthScreen } from './components/AuthScreen';
 import { syncEngine } from './services/SyncEngine';
 import { ExchangeRateService } from './services/ExchangeRateService';
 import { AuditLogger } from './services/auditLog';
+import { validateAmount, sanitizeNote } from './utils/validation';
 
-const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose: () => void, onConfirm: () => void }) => {
-    if (!isOpen) return null;
-    return createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity" onClick={onClose} />
-            <div className="relative bg-[var(--bg-surface)] w-full max-w-xs rounded-[12px] p-6 border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 duration-150">
-                <div className="flex flex-col items-center text-center">
-                    <div className="w-10 h-10 rounded-[8px] bg-[var(--status-error-bg)] text-[var(--status-error-fg)] flex items-center justify-center mb-3">
-                        <Trash2 size={20} className="stroke-[1.5px]" />
-                    </div>
-                    <h3 className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">Delete Item?</h3>
-                    <p className="text-[13px] text-[var(--text-secondary)] mb-5">This action cannot be undone.</p>
-                    <div className="flex gap-2 w-full">
-                        <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
-                        <button onClick={onConfirm} className="btn-destructive flex-1">Delete</button>
-                    </div>
-                </div>
-            </div>
-        </div>,
-        document.body
-    );
-};
-
-const UnsavedChangesModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose: () => void, onConfirm: () => void }) => {
-    if (!isOpen) return null;
-    return createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity" onClick={onClose} />
-            <div className="relative bg-[var(--bg-surface)] w-full max-w-xs rounded-[12px] p-6 border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 duration-150">
-                <div className="flex flex-col items-center text-center">
-                    <div className="w-10 h-10 rounded-[8px] bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)] flex items-center justify-center mb-3">
-                        <AlertCircle size={20} className="stroke-[1.5px]" />
-                    </div>
-                    <h3 className="text-[15px] font-semibold text-[var(--text-primary)] mb-1">Unsaved Changes</h3>
-                    <p className="text-[13px] text-[var(--text-secondary)] mb-5">You have unsaved modifications. Do you want to discard them and proceed?</p>
-                    <div className="flex flex-col gap-2 w-full">
-                        <button onClick={onConfirm} className="btn-primary w-full">Discard & Continue</button>
-                        <button onClick={onClose} className="btn-secondary w-full">Stay & Save</button>
-                    </div>
-                </div>
-            </div>
-        </div>,
-        document.body
-    );
-};
+import { DeleteConfirmationModal, UnsavedChangesModal } from './components/shared/ConfirmModals';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useRecurringEngine } from './hooks/useRecurringEngine';
+import { useNetWorth } from './hooks/useNetWorth';
+import { useStreaks } from './hooks/useStreaks';
 
 export default function App() {
   const { user, loading: authLoading, continueAsGuest, isAuthenticated, signOut } = useAuth();
@@ -103,10 +66,13 @@ export default function App() {
   
   const [data, setData] = useState<AppData | null>(null);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-  const [selectedWalletColor, setSelectedWalletColor] = useState<ThemeOption>('indigo');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{isOpen: boolean, id: string | null}>({isOpen: false, id: null});
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    id: string | null;
+    itemDetails?: { title?: string; amount?: string | number; category?: string; date?: string };
+  }>({ isOpen: false, id: null });
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 
   const [isDirty, setIsDirty] = useState(false);
@@ -122,9 +88,103 @@ export default function App() {
   const [newWalletCurrency, setNewWalletCurrency] = useState('$');
   const [newWalletIsGoal, setNewWalletIsGoal] = useState(false);
   const [newWalletTarget, setNewWalletTarget] = useState<number>(0);
-  const [newWalletColor, setNewWalletColor] = useState<ThemeOption>('indigo');
-  const [privacyMasterKey, setPrivacyMasterKey] = useState<string>('');
+  const [newWalletColor, setNewWalletColor] = useState<ThemeOption>('amber');
   const [isStealthActive, setIsStealthActive] = useState(false);
+  const [undoToast, setUndoToast] = useState<{ tx: Transaction; expiresAt: number } | null>(null);
+
+  // RabbAi Conversation & Query State
+  const [conversations, setConversations] = useState<RabbAiConversation[]>(() => loadRabbAiConversations());
+  const [activeConvId, setActiveConvId] = useState<string>(() => {
+    const loaded = loadRabbAiConversations();
+    return loaded[0]?.id || '';
+  });
+  const [rabbaiPendingQuery, setRabbaiPendingQuery] = useState<{ text: string; image?: string } | null>(null);
+  const [isRabbaiConvDropdownOpen, setIsRabbaiConvDropdownOpen] = useState(false);
+  const rabbaiDropdownRef = useRef<HTMLDivElement>(null);
+  const rabbaiDesktopDropdownRef = useRef<HTMLDivElement>(null);
+
+  const activeRabbAiConv = conversations.find(c => c.id === activeConvId) || conversations[0];
+
+  const handleCreateNewRabbAiConversation = () => {
+    Haptics.light();
+    const newConv: RabbAiConversation = {
+      id: `conv_${Date.now()}`,
+      title: 'New conversation',
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    const updated = [newConv, ...conversations];
+    setConversations(updated);
+    saveRabbAiConversations(updated);
+    setActiveConvId(newConv.id);
+    setIsRabbaiConvDropdownOpen(false);
+  };
+
+  const handleDeleteRabbAiConversation = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    Haptics.light();
+    const filtered = conversations.filter(c => c.id !== id);
+    if (filtered.length === 0) {
+      const fresh: RabbAiConversation = {
+        id: `conv_${Date.now()}`,
+        title: 'New conversation',
+        messages: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setConversations([fresh]);
+      saveRabbAiConversations([fresh]);
+      setActiveConvId(fresh.id);
+    } else {
+      setConversations(filtered);
+      saveRabbAiConversations(filtered);
+      if (activeConvId === id) {
+        setActiveConvId(filtered[0].id);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        (!rabbaiDropdownRef.current || !rabbaiDropdownRef.current.contains(target)) &&
+        (!rabbaiDesktopDropdownRef.current || !rabbaiDesktopDropdownRef.current.contains(target))
+      ) {
+        setIsRabbaiConvDropdownOpen(false);
+      }
+    };
+    if (isRabbaiConvDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isRabbaiConvDropdownOpen]);
+
+  // Notification Toast State
+  const [notificationToast, setNotificationToast] = useState<{ message: string; type?: 'error' | 'success' | 'info' } | null>(null);
+
+  const showToast = (message: string, type: 'error' | 'success' | 'info' = 'error') => {
+    setNotificationToast({ message, type });
+    Haptics.warning();
+  };
+
+  useEffect(() => {
+    if (!notificationToast) return;
+    const timer = setTimeout(() => setNotificationToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [notificationToast]);
+
+  useEffect(() => {
+    if (!undoToast) return;
+    const remaining = undoToast.expiresAt - Date.now();
+    if (remaining <= 0) {
+      setUndoToast(null);
+      return;
+    }
+    const timer = setTimeout(() => setUndoToast(null), remaining);
+    return () => clearTimeout(timer);
+  }, [undoToast]);
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
@@ -187,7 +247,11 @@ export default function App() {
         for (const rule of (localData.recurringRules || [])) {
           await syncEngine.push('subscriptions', 'INSERT', rule);
         }
-        // 7. Update profile and settings
+        // 7. Add all categories to sync queue
+        for (const cat of localData.categories) {
+          await syncEngine.push('categories', 'INSERT', cat);
+        }
+        // 8. Update profile and settings
         await syncEngine.push('users', 'UPDATE', { ...localData.profile, id: user.id });
         await syncEngine.push('settings', 'UPDATE', { ...localData.settings, user_id: user.id });
 
@@ -237,6 +301,7 @@ export default function App() {
     // Update browser title
     const titles: Record<string, string> = {
       dashboard: 'Dashboard',
+      rabbai: 'RabbAi Assistant',
       history: 'History',
       analytics: 'Analytics',
       debts: 'Debts',
@@ -253,61 +318,23 @@ export default function App() {
   }, [view, activeSubTab]);
 
   // Global Keyboard Shortcuts
-  useEffect(() => {
-    const handleShortcuts = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
-      
-      if ((e.metaKey || e.ctrlKey) && key === 'k') {
-        e.preventDefault();
-        setIsCommandPaletteOpen(prev => !prev);
-        return;
-      }
-      
-      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName);
-      if (isInput || !isDesktop) return;
-      
-      if (key === 'n') { e.preventDefault(); setIsAddOpen(true); }
-      if (key === 'd') { e.preventDefault(); setView('dashboard'); }
-      if (key === 'h') { e.preventDefault(); setView('history'); }
-      if (key === 'a') { e.preventDefault(); setView('analytics'); }
-      if (key === 'l') { e.preventDefault(); setView('debts'); }
-    };
-    window.addEventListener('keydown', handleShortcuts);
-    return () => window.removeEventListener('keydown', handleShortcuts);
-  }, [isDesktop]);
-
-  // Global Stealth & Panic Listeners
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-        if (data?.settings.stealthModeEnabled && e.key === (data.settings.stealthHotkey || 'Escape')) {
-            setIsStealthActive(prev => !prev);
-            if (!isStealthActive) Haptics.warning();
-        }
-    };
-
-    let touchPoints: Touch[] = [];
-    const handleTouchStart = (e: TouchEvent) => {
-        if (e.touches.length === 4) {
-            setIsStealthActive(prev => !prev);
-            if (!isStealthActive) Haptics.warning();
-        }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('touchstart', handleTouchStart);
-    return () => {
-        window.removeEventListener('keydown', handleKeyDown);
-        window.removeEventListener('touchstart', handleTouchStart);
-    };
-  }, [data, isStealthActive]);
+  // Global Navigation Hotkeys & Stealth Panic Listeners
+  useKeyboardShortcuts({
+    isDesktop,
+    stealthModeEnabled: data?.settings.stealthModeEnabled,
+    stealthHotkey: data?.settings.stealthHotkey,
+    isStealthActive,
+    setIsStealthActive,
+    onOpenAdd: () => setIsAddOpen(true),
+    onNavigate: (newView) => requestViewChange(newView),
+    onToggleCommandPalette: () => setIsCommandPaletteOpen(prev => !prev)
+  });
 
   useEffect(() => {
     if (data) {
       StorageService.saveAppData(data);
-      const activeWallet = data.wallets.find(w => w.id === data.currentWalletId);
-      const activeTheme = activeWallet?.color || 'indigo';
       const classes = [
-        `theme-${activeTheme}`,
+        'theme-orange',
         data.settings.darkMode ? '' : 'light-mode',
         isDesktop ? 'desktop-ui' : ''
       ].filter(Boolean).join(' ');
@@ -315,164 +342,26 @@ export default function App() {
     }
   }, [data, isDesktop]);
 
-  // Net Worth Snapshot Logic
-  useEffect(() => {
-    if (!data || !data.settings.hasOnboarded) return;
-    
-    const today = new Date().toISOString().split('T')[0];
-    const lastSnapshot = data.balanceHistory[0];
-    
-    if (!lastSnapshot || lastSnapshot.date !== today) {
-        // Calculate total balance across all wallets
-        const totalIncome = data.transactions.filter(t => t.type === TransactionType.INCOME).reduce((sum, t) => sum + t.amount, 0);
-        const totalExpense = data.transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((sum, t) => sum + t.amount, 0);
-        const netWorth = totalIncome - totalExpense;
-        
-        const newSnapshot = { date: today, amount: netWorth };
-        updateData({ balanceHistory: [newSnapshot, ...data.balanceHistory].slice(0, 30) });
+  const hasEntityChanged = (prevObj: any, nextObj: any): boolean => {
+    if (prevObj === nextObj) return false;
+    if (!prevObj || !nextObj) return true;
+    if (prevObj.updated_at && nextObj.updated_at) {
+      return prevObj.updated_at !== nextObj.updated_at;
     }
-  }, [data?.settings.hasOnboarded, data?.transactions.length]);
-
-  // Recurring Transaction Engine
-  useEffect(() => {
-    if (!data || !data.settings.hasOnboarded) return;
-    
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    let newTransactions = [...data.transactions];
-    let updatedRules = [...(data.recurringRules || [])];
-    let hasChanges = false;
-
-    updatedRules = updatedRules.map(rule => {
-        if (!rule.isActive) return rule;
-        
-        let nextDue = new Date(rule.nextDueDate);
-        let currentRule = { ...rule };
-        
-        while (nextDue <= now) {
-            const txId = `recurring_${rule.id}_${nextDue.getTime()}`;
-            const alreadyExists = data.transactions.some(t => t.id === txId);
-            
-            if (!alreadyExists) {
-              const newTx: Transaction = {
-                  id: txId,
-                  amount: rule.amount,
-                  type: rule.type,
-                  category: rule.category,
-                  date: nextDue.toISOString(),
-                  note: `[Recurring] ${rule.note || rule.name}`,
-                  walletId: rule.walletId,
-                  isSubscription: true
-              };
-              newTransactions = [newTx, ...newTransactions];
-              hasChanges = true;
-            }
-            
-            // Advance nextDueDate
-            if (rule.frequency === 'DAILY') nextDue.setDate(nextDue.getDate() + 1);
-            else if (rule.frequency === 'WEEKLY') nextDue.setDate(nextDue.getDate() + 7);
-            else if (rule.frequency === 'MONTHLY') nextDue.setMonth(nextDue.getMonth() + 1);
-            else if (rule.frequency === 'YEARLY') nextDue.setFullYear(nextDue.getFullYear() + 1);
-            
-            currentRule.nextDueDate = nextDue.toISOString().split('T')[0];
-            currentRule.updated_at = new Date().toISOString();
-
+    const prevKeys = Object.keys(prevObj);
+    const nextKeys = Object.keys(nextObj);
+    if (prevKeys.length !== nextKeys.length) return true;
+    for (const k of prevKeys) {
+      if (prevObj[k] !== nextObj[k]) {
+        if (typeof prevObj[k] === 'object' && prevObj[k] !== null) {
+          if (JSON.stringify(prevObj[k]) !== JSON.stringify(nextObj[k])) return true;
+        } else {
+          return true;
         }
-        return currentRule;
-    });
-
-    if (hasChanges) {
-        updateData({ 
-            transactions: newTransactions,
-            recurringRules: updatedRules
-        });
-        Haptics.success();
+      }
     }
-  }, [data?.settings.hasOnboarded]);
-
-  // Spending Streaks Logic
-  useEffect(() => {
-    if (!data || !data.settings.hasOnboarded) return;
-    
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const limits = data.settings.budgetLimits || {};
-    const currentStreaks = { ...(data.streaks || {}) };
-    let hasChanges = false;
-
-    Object.keys(limits).forEach(category => {
-        const limitData = limits[category];
-        const limit = typeof limitData === 'number' ? limitData : limitData.limit;
-        if (limit <= 0) return;
-
-        const streak = currentStreaks[category] || { current: 0, max: 0, lastUpdate: '' };
-        
-        // If we haven't checked today yet
-        if (streak.lastUpdate !== todayStr) {
-            // Check yesterday's performance to see if we continue or break
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yStr = yesterday.toISOString().split('T')[0];
-            
-            const yesterdaySpend = data.transactions
-                .filter(t => t.type === TransactionType.EXPENSE && t.category === category && t.date.startsWith(yStr))
-                .reduce((sum, t) => sum + t.amount, 0);
-
-            if (yesterdaySpend <= limit) {
-                // Good behavior! Increment or maintain
-                // If it's the first time, start at 1
-                streak.current = (streak.current || 0) + 1;
-                if (streak.current > streak.max) streak.max = streak.current;
-            } else {
-                // Breach! Reset
-                streak.current = 0;
-            }
-            
-            streak.lastUpdate = todayStr;
-            currentStreaks[category] = streak;
-            hasChanges = true;
-        }
-    });
-
-    if (hasChanges) {
-        updateData({ streaks: currentStreaks });
-    }
-  }, [data?.settings.hasOnboarded, data?.transactions.length]);
-
-  useEffect(() => {
-     if (!isAuthenticated) {
-         setView('dashboard');
-         navigateTo('dashboard');
-     }
-  }, [isAuthenticated]);
-
-  // Handle modal-specific back button behavior
-  useEffect(() => {
-     const onPopState = (e: PopStateEvent) => {
-        let handled = false;
-        
-        if (isSidebarOpen) { setIsSidebarOpen(false); handled = true; } 
-        else if (isWalletModalOpen) { setIsWalletModalOpen(false); handled = true; } 
-        else if (isAddOpen) { setIsAddOpen(false); setEditingTx(null); handled = true; } 
-        else if (deleteConfirmation.isOpen) { setDeleteConfirmation({ isOpen: false, id: null }); handled = true; } 
-        else if (isUnsavedModalOpen) { setIsUnsavedModalOpen(false); handled = true; }
-        else if (view === 'menu') {
-            const currentHash = window.location.hash.replace('#', '');
-            const subViews = ['analytics', 'provisions', 'subscriptions', 'control', 'identity'];
-            if (!subViews.includes(currentHash)) {
-                setView('dashboard');
-                handled = true;
-            }
-        }
-
-        if (handled) {
-            window.history.pushState(null, '', window.location.href);
-        }
-     };
-
-     window.addEventListener('popstate', onPopState);
-     return () => window.removeEventListener('popstate', onPopState);
-  }, [isSidebarOpen, isWalletModalOpen, isAddOpen, deleteConfirmation, isUnsavedModalOpen, view]);
+    return false;
+  };
 
   const updateData = (newData: Partial<AppData>) => {
     setData(prev => {
@@ -487,7 +376,7 @@ export default function App() {
             const prevW = prevMap.get(w.id);
             if (!prevW) {
               syncEngine.push('wallets', 'INSERT', w);
-            } else if (JSON.stringify(prevW) !== JSON.stringify(w)) {
+            } else if (hasEntityChanged(prevW, w)) {
               syncEngine.push('wallets', 'UPDATE', w);
             }
           });
@@ -506,7 +395,7 @@ export default function App() {
             const prevT = prevMap.get(t.id);
             if (!prevT) {
               syncEngine.push('transactions', 'INSERT', t);
-            } else if (JSON.stringify(prevT) !== JSON.stringify(t)) {
+            } else if (hasEntityChanged(prevT, t)) {
               syncEngine.push('transactions', 'UPDATE', t);
             }
           });
@@ -525,7 +414,7 @@ export default function App() {
             const prevD = prevMap.get(d.id);
             if (!prevD) {
               syncEngine.push('debts', 'INSERT', d);
-            } else if (JSON.stringify(prevD) !== JSON.stringify(d)) {
+            } else if (hasEntityChanged(prevD, d)) {
               syncEngine.push('debts', 'UPDATE', d);
             }
           });
@@ -544,7 +433,7 @@ export default function App() {
             const prevR = prevMap.get(r.id);
             if (!prevR) {
               syncEngine.push('subscriptions', 'INSERT', r);
-            } else if (JSON.stringify(prevR) !== JSON.stringify(r)) {
+            } else if (hasEntityChanged(prevR, r)) {
               syncEngine.push('subscriptions', 'UPDATE', r);
             }
           });
@@ -563,7 +452,7 @@ export default function App() {
             const prevP = prevMap.get(p.id);
             if (!prevP) {
               syncEngine.push('provisions', 'INSERT', p);
-            } else if (JSON.stringify(prevP) !== JSON.stringify(p)) {
+            } else if (hasEntityChanged(prevP, p)) {
               syncEngine.push('provisions', 'UPDATE', p);
             }
           });
@@ -582,7 +471,7 @@ export default function App() {
             const prevT = prevMap.get(t.id);
             if (!prevT) {
               syncEngine.push('templates', 'INSERT', t);
-            } else if (JSON.stringify(prevT) !== JSON.stringify(t)) {
+            } else if (hasEntityChanged(prevT, t)) {
               syncEngine.push('templates', 'UPDATE', t);
             }
           });
@@ -621,11 +510,74 @@ export default function App() {
         if (newData.profile && JSON.stringify(prev.profile) !== JSON.stringify(newData.profile)) {
           syncEngine.push('users', 'UPDATE', newData.profile);
         }
+
+        // 10. Categories diff
+        if (newData.categories && newData.categories !== prev.categories) {
+          const prevMap = new Map(prev.categories.map(c => [c.id, c]));
+          const nextMap = new Map(newData.categories.map(c => [c.id, c]));
+          newData.categories.forEach(c => {
+            const prevC = prevMap.get(c.id);
+            if (!prevC) {
+              syncEngine.push('categories', 'INSERT', c);
+            } else if (hasEntityChanged(prevC, c)) {
+              syncEngine.push('categories', 'UPDATE', c);
+            }
+          });
+          prev.categories.forEach(c => {
+            if (!nextMap.has(c.id)) {
+              syncEngine.push('categories', 'DELETE', c);
+            }
+          });
+        }
       }
 
       return { ...prev, ...newData };
     });
   };
+
+  // Net Worth Snapshot Logic with Multi-Currency Normalization
+  useNetWorth({ data, updateData });
+
+  // Recurring Transaction Engine with Visibility & Heartbeat Interval
+  useRecurringEngine({ data, updateData });
+
+  // Spending Streaks Engine
+  useStreaks({ data, updateData });
+
+  useEffect(() => {
+     if (!isAuthenticated) {
+         setView('dashboard');
+         navigateTo('dashboard');
+     }
+  }, [isAuthenticated]);
+
+  // Handle modal-specific back button behavior
+  useEffect(() => {
+     const onPopState = (e: PopStateEvent) => {
+        let handled = false;
+        
+        if (isSidebarOpen) { setIsSidebarOpen(false); handled = true; } 
+        else if (isWalletModalOpen) { setIsWalletModalOpen(false); handled = true; } 
+        else if (isAddOpen) { setIsAddOpen(false); setEditingTx(null); handled = true; } 
+        else if (deleteConfirmation.isOpen) { setDeleteConfirmation({ isOpen: false, id: null }); handled = true; } 
+        else if (isUnsavedModalOpen) { setIsUnsavedModalOpen(false); handled = true; }
+        else if (view === 'menu') {
+            const currentHash = window.location.hash.replace('#', '');
+            const subViews = ['analytics', 'provisions', 'subscriptions', 'control', 'identity'];
+            if (!subViews.includes(currentHash)) {
+                setView('dashboard');
+                handled = true;
+            }
+        }
+
+        if (handled) {
+            window.history.pushState(null, '', window.location.href);
+        }
+     };
+
+     window.addEventListener('popstate', onPopState);
+     return () => window.removeEventListener('popstate', onPopState);
+  }, [isSidebarOpen, isWalletModalOpen, isAddOpen, deleteConfirmation, isUnsavedModalOpen, view]);
 
   const handleOnboardingComplete = (name: string, balance: number, dailyGoal: number) => {
       if (!data) return;
@@ -655,7 +607,7 @@ export default function App() {
 
   const handleAddWallet = (name: string, type: WalletType, target: number, currency?: string, color?: ThemeOption) => {
     if (!data) return;
-    const newWallet: Wallet = { id: Date.now().toString(), name, type, targetAmount: target, currency, color, updated_at: new Date().toISOString() };
+    const newWallet: Wallet = { id: crypto.randomUUID(), name, type, targetAmount: target, currency, color, updated_at: new Date().toISOString() };
     updateData({ wallets: [...data.wallets, newWallet], currentWalletId: newWallet.id });
     setIsWalletModalOpen(false);
   };
@@ -670,7 +622,7 @@ export default function App() {
 
   const handleAiAddCategory = (cat: Omit<import('./types').CategoryItem, 'id'>) => {
     if (!data) return;
-    const newCat: import('./types').CategoryItem = { ...cat, id: `cat_${Date.now()}`, isSystem: false };
+    const newCat: import('./types').CategoryItem = { ...cat, id: `cat_${crypto.randomUUID()}`, isSystem: false };
     updateData({ categories: [...(data.categories || []), newCat] });
   };
 
@@ -696,7 +648,19 @@ export default function App() {
   const handleAddTransaction = (t: Transaction) => {
     if (!data) return;
     
-    const newTx = { ...t, updated_at: new Date().toISOString() };
+    const valid = validateAmount(t.amount);
+    if (!valid.isValid) {
+      showToast(valid.error || 'Invalid amount');
+      return;
+    }
+
+    const newTx: Transaction = { 
+      ...t, 
+      id: t.id ? String(t.id) : `tx_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      amount: valid.sanitizedAmount, 
+      note: sanitizeNote(t.note), 
+      updated_at: new Date().toISOString() 
+    };
 
     // Auto-create category if it does not exist in categories list
     let updatedCategories = data.categories || [];
@@ -707,7 +671,7 @@ export default function App() {
       );
       if (!catExists) {
         const newCategoryItem: CategoryItem = {
-          id: `cat_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          id: `cat_${crypto.randomUUID()}`,
           name: normalizedCategory,
           type: t.type === TransactionType.INCOME ? TransactionType.INCOME : TransactionType.EXPENSE,
           icon: 'Tag',
@@ -729,6 +693,7 @@ export default function App() {
         categories: updatedCategories,
         lastUsedCategoryMap: newMap
     });
+    AuditLogger.log('TX_CREATE', newTx.id, `Created ${newTx.type} of ${newTx.amount} (${newTx.category})`, user?.id);
     
     setIsAddOpen(false);
     Haptics.success();
@@ -736,7 +701,13 @@ export default function App() {
 
   const handleSaveTemplate = (template: Omit<TransactionTemplate, 'id'>) => {
       if (!data) return;
-      const newTemplate = { ...template, id: Date.now().toString(), updated_at: new Date().toISOString() };
+      const valid = validateAmount(template.amount);
+      const newTemplate = { 
+        ...template, 
+        amount: valid.isValid ? valid.sanitizedAmount : template.amount, 
+        id: crypto.randomUUID(), 
+        updated_at: new Date().toISOString() 
+      };
       updateData({ templates: [newTemplate, ...data.templates] });
   };
 
@@ -748,7 +719,12 @@ export default function App() {
 
   const handleDebtPayment = (debtId: string, payment: Omit<DebtPayment, 'id'>) => {
       if (!data) return;
-      const newPayment = { ...payment, id: Date.now().toString() };
+      const valid = validateAmount(payment.amount);
+      if (!valid.isValid) {
+        showToast(valid.error || 'Invalid payment amount');
+        return;
+      }
+      const newPayment = { ...payment, amount: valid.sanitizedAmount, id: crypto.randomUUID() };
       const updatedDebts = data.debts.map(d => {
           if (d.id === debtId) {
               const updatedDebt = { 
@@ -768,7 +744,17 @@ export default function App() {
   
   const handleEditTransaction = (updatedTx: Transaction) => {
       if (!data) return;
-      const tx = { ...updatedTx, updated_at: new Date().toISOString() };
+      const valid = validateAmount(updatedTx.amount);
+      if (!valid.isValid) {
+        showToast(valid.error || 'Invalid amount');
+        return;
+      }
+      const tx = { 
+        ...updatedTx, 
+        amount: valid.sanitizedAmount, 
+        note: sanitizeNote(updatedTx.note), 
+        updated_at: new Date().toISOString() 
+      };
       const updatedTransactions = data.transactions.map(t => t.id === tx.id ? tx : t);
       AuditLogger.log('TX_UPDATE', tx.id, `Updated ${tx.type} of ${tx.amount} (${tx.category})`, user?.id);
       updateData({ transactions: updatedTransactions });
@@ -776,32 +762,70 @@ export default function App() {
       setEditingTx(null);
   };
 
+  const triggerDeleteConfirmation = (id: string) => {
+    const tx = data?.transactions.find(t => t.id === id);
+    setDeleteConfirmation({
+      isOpen: true,
+      id,
+      itemDetails: tx ? {
+        title: tx.note || tx.category,
+        amount: `${data?.settings.currencySymbol || '$'}${tx.amount.toFixed(2)}`,
+        category: tx.category,
+        date: tx.date
+      } : undefined
+    });
+  };
+
   const handleAddDebt = (debt: Debt) => {
       if (!data) return;
-      const newDebt = { ...debt, updated_at: new Date().toISOString() };
+      const valid = validateAmount(debt.amount);
+      if (!valid.isValid) {
+        showToast(valid.error || 'Invalid debt amount');
+        return;
+      }
+      const newDebt = { ...debt, amount: valid.sanitizedAmount, updated_at: new Date().toISOString() };
       AuditLogger.log('DEBT_CREATE', newDebt.id, `Created debt for ${newDebt.person} of ${newDebt.amount}`, user?.id);
       updateData({ debts: [newDebt, ...data.debts] });
   };
 
   const handleTransfer = async (amount: number, fromId: string, toId: string, note: string, dateStr: string) => {
     if (!data) return;
-    const timestamp = Date.now();
-    const dateTime = getDateTime(dateStr);
-    const now = new Date().toISOString();
+
+    const valid = validateAmount(amount);
+    if (!valid.isValid) {
+      showToast(valid.error || 'Invalid transfer amount');
+      return;
+    }
+    const transferAmount = valid.sanitizedAmount;
 
     const fromWallet = data.wallets.find(w => w.id === fromId);
     const toWallet = data.wallets.find(w => w.id === toId);
     const fromCurr = fromWallet?.currency || data.settings.currencySymbol || '$';
     const toCurr = toWallet?.currency || data.settings.currencySymbol || '$';
 
-    let receivedAmount = amount;
-    if (fromCurr !== toCurr) {
-      receivedAmount = await ExchangeRateService.convertAmount(amount, fromCurr, toCurr);
+    // Transfer Balance Guard: Check source wallet balance
+    const fromWalletTxs = data.transactions.filter(t => t.walletId === fromId);
+    const fromBalance = fromWalletTxs.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0)
+      - fromWalletTxs.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
+    if (transferAmount > fromBalance) {
+      showToast(`Notice: Transfer amount exceeds available balance in ${fromWallet?.name || 'wallet'}.`, 'info');
     }
 
+    const timestamp = Date.now();
+    const dateTime = getDateTime(dateStr);
+    const now = new Date().toISOString();
+
+    let receivedAmount = transferAmount;
+    if (fromCurr !== toCurr) {
+      receivedAmount = await ExchangeRateService.convertAmount(transferAmount, fromCurr, toCurr);
+    }
+
+    const outId = crypto.randomUUID();
+    const inId = crypto.randomUUID();
+
     const txOut: Transaction = { 
-      id: timestamp.toString(), 
-      amount, 
+      id: outId, 
+      amount: transferAmount, 
       type: TransactionType.EXPENSE, 
       category: Category.TRANSFER, 
       date: dateTime, 
@@ -811,7 +835,7 @@ export default function App() {
     };
 
     const txIn: Transaction = { 
-      id: (timestamp + 1).toString(), 
+      id: inId, 
       amount: receivedAmount, 
       type: TransactionType.INCOME, 
       category: Category.TRANSFER, 
@@ -821,9 +845,18 @@ export default function App() {
       updated_at: now 
     };
     
-    AuditLogger.log('TRANSFER', `${timestamp}`, `Transferred ${fromCurr}${amount} to ${toWallet?.name} (${toCurr}${receivedAmount})`, user?.id);
+    AuditLogger.log('TRANSFER', outId, `Transferred ${fromCurr}${amount} to ${toWallet?.name} (${toCurr}${receivedAmount})`, user?.id);
     updateData({ transactions: [txIn, txOut, ...data.transactions] });
     setIsAddOpen(false);
+  };
+
+  const handleUndoDelete = () => {
+    if (undoToast?.tx && data) {
+      updateData({ transactions: [undoToast.tx, ...data.transactions] });
+      AuditLogger.log('TX_RESTORE', undoToast.tx.id, `Restored deleted transaction ${undoToast.tx.category}`, user?.id);
+      setUndoToast(null);
+      Haptics.success();
+    }
   };
 
   const openAddModal = (e?: React.MouseEvent, type: TransactionType = TransactionType.EXPENSE, quickData?: { category?: string, amount?: number, note?: string }) => {
@@ -880,7 +913,6 @@ export default function App() {
               </defs>
             </svg>
           )}
-      <div className="absolute inset-0 bg-noise opacity-15 pointer-events-none z-0" />
       
       <OnboardingModal isOpen={!data.settings.hasOnboarded} onComplete={handleOnboardingComplete} />
       
@@ -896,209 +928,453 @@ export default function App() {
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
       
-      <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden h-full relative z-10">
-        {/* Header - Mobile */}
+      <div className={`flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden h-full relative z-10 ${view === 'rabbai' ? 'dot-matrix-canvas' : ''}`}>
+        {/* Header - Mobile (Cloudflare Technical Design) */}
         {!isDesktop && (
-          <div className="flex-none pt-[calc(env(safe-area-inset-top,0px)+8px)] pb-2.5 px-4 bg-[var(--bg-surface)]/90 backdrop-blur-md border-b border-[var(--border-default)] z-40">
+          <header className="flex-none pt-[calc(env(safe-area-inset-top,0px)+6px)] pb-2 px-3 bg-[var(--bg-surface)]/95 backdrop-blur-md border-b border-[var(--border-default)] z-40 select-none">
             <div className="flex items-center justify-between gap-2 max-w-md mx-auto">
-              {['rabbai', 'analytics', 'provisions', 'subscriptions', 'control', 'identity'].includes(view) ? (
+              {view === 'rabbai' ? (
                 <>
-                  <button 
-                    onClick={() => {
-                      Haptics.light();
-                      requestViewChange('dashboard');
-                    }}
-                    className="flex items-center gap-1 text-[13px] font-medium text-[var(--accent-solid)] hover:opacity-80 active:scale-95 transition-all shrink-0 cursor-pointer"
-                  >
-                    <ChevronLeft size={16} strokeWidth={1.5} />
-                    <span>Back</span>
-                  </button>
-                  <h1 className="text-[13px] font-medium text-[var(--text-primary)] tracking-tight">
-                    {(() => {
-                      const titles: Record<string, string> = {
-                        analytics: 'Analytics & Trends',
-                        provisions: 'Upcoming Expenses',
-                        subscriptions: 'Subscriptions',
-                        control: 'Budgets & Categories',
-                        identity: 'Profile Settings'
-                      };
-                      return titles[view] || '';
-                    })()}
-                  </h1>
-                  <div className="w-[32px]" />
+                  {/* Left: New conversation dropdown (container-free) */}
+                  <div className="flex items-center gap-1 min-w-0">
+                    <div ref={rabbaiDropdownRef} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsRabbaiConvDropdownOpen(!isRabbaiConvDropdownOpen)}
+                        className="flex items-center gap-1 text-[13px] font-medium text-[var(--text-primary)] hover:text-white py-1 px-1 cursor-pointer transition-colors"
+                      >
+                        <span className="truncate max-w-[170px]">{activeRabbAiConv?.title || 'New conversation'}</span>
+                        <ChevronDown size={12} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+                      </button>
+
+                      {/* Dropdown Popover */}
+                      {isRabbaiConvDropdownOpen && (
+                        <div className="absolute left-0 top-full mt-1.5 w-64 bg-[#141418] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-1.5 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-100">
+                          <button
+                            type="button"
+                            onClick={handleCreateNewRabbAiConversation}
+                            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[6px] text-[var(--text-primary)] hover:bg-white/5 font-medium cursor-pointer transition-colors border-b border-[var(--border-default)] mb-1"
+                          >
+                            <Plus size={14} strokeWidth={1.5} />
+                            <span>New conversation</span>
+                          </button>
+
+                          <div className="max-h-56 overflow-y-auto space-y-0.5 no-scrollbar">
+                            {conversations.map(c => {
+                              const isActive = c.id === activeConvId;
+                              return (
+                                <div
+                                  key={c.id}
+                                  onClick={() => {
+                                    setActiveConvId(c.id);
+                                    setIsRabbaiConvDropdownOpen(false);
+                                  }}
+                                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] cursor-pointer transition-colors group ${
+                                    isActive ? 'bg-white/10 text-white font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                                    <ClockCounterClockwise size={12} className="shrink-0 text-[var(--text-muted)]" />
+                                    <span className="truncate">{c.title || 'Conversation'}</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleDeleteRabbAiConversation(c.id, e)}
+                                    className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-red-400 p-0.5 transition-opacity"
+                                    title="Delete chat"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right: + (new chat) and ✕ (close / return to dashboard) */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleCreateNewRabbAiConversation}
+                      className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                      title="New conversation"
+                    >
+                      <Plus size={18} strokeWidth={1.5} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => requestViewChange('dashboard')}
+                      className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                      title="Close RabbAi"
+                    >
+                      <X size={18} strokeWidth={1.5} />
+                    </button>
+                  </div>
                 </>
               ) : (
                 <>
-                  {/* Left: Wallet Selector Pill */}
-                  <button 
-                    onClick={() => {
-                      Haptics.light();
-                      setWalletSearchQuery('');
-                      setIsWalletModalOpen(true);
-                    }} 
-                    className="flex items-center gap-1.5 bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] active:scale-95 transition-all h-[32px] px-2.5 rounded-[6px] border border-[var(--border-default)] max-w-[180px]"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-[var(--accent-solid)] shrink-0" />
-                    <span className="text-[12px] font-medium text-[var(--text-primary)] truncate">
-                      {data.wallets.find(w => w.id === data.currentWalletId)?.name || 'Wallet'}
-                    </span>
-                    <ChevronDown size={13} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
-                  </button>
+                  {/* Left: Container-Free Navigation & Wallet Dropdown (with Wallet Icon, NO page title) */}
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        Haptics.light();
+                        setIsSidebarOpen(true);
+                      }}
+                      className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                      title="Open navigation menu"
+                    >
+                      <List size={20} strokeWidth={1.5} />
+                    </button>
 
-                  <div className="flex items-center gap-1.5" />
+                    {/* Wallet Dropdown with Wallet Icon (Container-Free) */}
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        Haptics.light();
+                        setWalletSearchQuery('');
+                        setIsWalletModalOpen(true);
+                      }} 
+                      className="flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-colors cursor-pointer py-1 px-1"
+                      title="Switch wallet"
+                    >
+                      <WalletIcon size={16} strokeWidth={1.5} className="text-[var(--text-secondary)] shrink-0" />
+                      <span className="truncate max-w-[125px]">
+                        {data.wallets.find(w => w.id === data.currentWalletId)?.name || 'Wallet'}
+                      </span>
+                      <ChevronDown size={12} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+                    </button>
+                  </div>
+
+                  {/* Right: AI Icon (Opens RabbAi) + Search Icon (All Container-Free) */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        Haptics.light();
+                        requestViewChange('rabbai');
+                      }}
+                      className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                      title="Open RabbAi Assistant"
+                    >
+                      <Sparkle size={19} strokeWidth={1.5} />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        Haptics.light();
+                        setIsCommandPaletteOpen(true);
+                      }}
+                      className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                      title="Quick search (Ctrl+K)"
+                    >
+                      <Search size={18} strokeWidth={1.5} />
+                    </button>
+                  </div>
                 </>
               )}
             </div>
-          </div>
+          </header>
         )}
 
         {isDesktop && (
           <div className="flex-none h-[52px] bg-transparent flex items-center justify-between px-8 relative z-50">
-            {/* Left: Minimal Page Title with Icon */}
-            <div className="flex items-center gap-2">
-              {(() => {
-                const pageConfig: Record<string, { title: string; icon: React.ElementType }> = {
-                  rabbai: { title: 'RabbAi', icon: Sparkle },
-                  dashboard: { title: 'Dashboard', icon: LayoutGrid },
-                  history: { title: 'Transactions', icon: Activity },
-                  analytics: { title: 'Analytics', icon: TrendingUp },
-                  debts: { title: 'Debts & Loans', icon: HandCoins },
-                  control: { title: 'Budgets & Categories', icon: Sliders },
-                  provisions: { title: 'Upcoming Expenses', icon: Calendar },
-                  subscriptions: { title: 'Subscriptions', icon: Ghost },
-                  identity: { title: 'Profile & Settings', icon: UserCircle },
-                };
-                const current = pageConfig[view] || { title: 'Overview', icon: LayoutGrid };
-                const IconComp = current.icon;
-                return (
-                  <>
-                    <IconComp size={16} className="text-[var(--text-muted)] stroke-[1.5px]" />
-                    <h1 className="text-sm font-medium text-[var(--text-primary)] tracking-tight">
-                      {current.title}
-                    </h1>
-                  </>
-                );
-              })()}
-            </div>
+            {view === 'rabbai' ? (
+              <div className="flex items-center justify-between w-full">
+                {/* Left: New conversation dropdown */}
+                <div ref={rabbaiDesktopDropdownRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsRabbaiConvDropdownOpen(!isRabbaiConvDropdownOpen)}
+                    className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--text-primary)] hover:text-white py-1 px-2 rounded-[6px] hover:bg-white/5 cursor-pointer"
+                  >
+                    <span className="truncate max-w-[280px]">{activeRabbAiConv?.title || 'New conversation'}</span>
+                    <ChevronDown size={12} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+                  </button>
 
-            {/* Right: Utilities */}
-            <div className="flex items-center gap-3">
-              {/* Current Wallet Selector Pill */}
-              <button 
-                onClick={() => {
-                  setWalletSearchQuery('');
-                  setIsWalletModalOpen(true);
-                }} 
-                className="flex items-center gap-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] active:scale-95 transition-all h-[32px] px-3 rounded-[6px] border border-[var(--border-default)] hover:border-[var(--border-active)] group cursor-pointer"
-              >
-                <span className="text-[10px] text-[var(--text-muted)] uppercase font-medium">Wallet:</span>
-                <span className="text-xs font-medium text-[var(--text-primary)]">
-                  {data.wallets.find(w => w.id === data.currentWalletId)?.name}
-                </span>
-                <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
-              </button>
+                  {/* Dropdown Popover */}
+                  {isRabbaiConvDropdownOpen && (
+                    <div className="absolute left-0 top-full mt-1.5 w-64 bg-[#141418] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-1.5 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-100">
+                      <button
+                        type="button"
+                        onClick={handleCreateNewRabbAiConversation}
+                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[6px] text-[var(--text-primary)] hover:bg-white/5 font-medium cursor-pointer transition-colors border-b border-[var(--border-default)] mb-1"
+                      >
+                        <Plus size={14} strokeWidth={1.5} />
+                        <span>New conversation</span>
+                      </button>
 
-              {/* Runway Indicator */}
-              {(() => {
-                const walletTransactions = data.transactions.filter((t: Transaction) => t.walletId === data.currentWalletId);
-                const totalIncome = walletTransactions.filter((t: Transaction) => t.type === TransactionType.INCOME).reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-                const totalExpense = walletTransactions.filter((t: Transaction) => t.type === TransactionType.EXPENSE).reduce((sum: number, t: Transaction) => sum + t.amount, 0);
-                const balance = totalIncome - totalExpense;
-                const runwayDays = PredictiveEngine.getRunwayDays(data, balance);
-                
-                if (!isFinite(runwayDays) || runwayDays >= 999) return null;
-                
-                return (
-                  <div className="flex items-center gap-1.5 bg-[var(--status-success-bg)] h-[32px] px-2.5 rounded-[6px] border border-[var(--border-default)]">
-                    <Activity size={12} className="text-[var(--status-success-fg)]" />
-                    <span className="text-[10px] font-medium text-[var(--text-muted)]">Runway:</span>
-                    <span className="text-[11px] font-semibold text-[var(--text-primary)]">
-                      {!data.settings.privacyMode ? `${runwayDays} Days` : '••••'}
+                      <div className="max-h-56 overflow-y-auto space-y-0.5 no-scrollbar">
+                        {conversations.map(c => {
+                          const isActive = c.id === activeConvId;
+                          return (
+                            <div
+                              key={c.id}
+                              onClick={() => {
+                                setActiveConvId(c.id);
+                                setIsRabbaiConvDropdownOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] cursor-pointer transition-colors group ${
+                                isActive ? 'bg-white/10 text-white font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0 pr-2">
+                                <ClockCounterClockwise size={12} className="shrink-0 text-[var(--text-muted)]" />
+                                <span className="truncate">{c.title || 'Conversation'}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteRabbAiConversation(c.id, e)}
+                                className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-red-400 p-0.5 transition-opacity"
+                                title="Delete chat"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* AI Provider Key Setup */}
+                      <div className="pt-1 mt-1 border-t border-[var(--border-default)]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentKey = localStorage.getItem('trackxpense_groq_api_key') || data.settings?.groqApiKey || '';
+                            const key = window.prompt('Enter free Groq API Key (gsk_...) or Gemini Key (AIza...):', currentKey);
+                            if (key !== null) {
+                              const trimmed = key.trim();
+                              if (trimmed.startsWith('AIza')) {
+                                localStorage.setItem('trackxpense_gemini_api_key', trimmed);
+                              } else if (trimmed) {
+                                localStorage.setItem('trackxpense_groq_api_key', trimmed);
+                              } else {
+                                localStorage.removeItem('trackxpense_groq_api_key');
+                                localStorage.removeItem('trackxpense_gemini_api_key');
+                              }
+                              updateData({ settings: { ...data.settings, groqApiKey: trimmed } });
+                            }
+                            setIsRabbaiConvDropdownOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[6px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5 cursor-pointer transition-colors"
+                        >
+                          <Key size={13} strokeWidth={1.5} />
+                          <span>AI Provider Key</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: + New Chat */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCreateNewRabbAiConversation}
+                    className="h-[32px] px-2.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] flex items-center gap-1.5 text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                  >
+                    <Plus size={14} strokeWidth={1.5} />
+                    <span>New chat</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Left: Minimal Page Title with Icon */}
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const pageConfig: Record<string, { title: string; icon: React.ElementType }> = {
+                      dashboard: { title: 'Overview', icon: LayoutGrid },
+                      history: { title: 'Ledger', icon: Activity },
+                      debts: { title: 'Debts & Loans', icon: HandCoins },
+                      analytics: { title: 'Analytics & Trends', icon: TrendingUp },
+                      control: { title: 'Budgets & Categories', icon: Sliders },
+                      provisions: { title: 'Upcoming Expenses', icon: Calendar },
+                      subscriptions: { title: 'Subscriptions', icon: Ghost },
+                      identity: { title: 'Profile & Settings', icon: UserCircle },
+                    };
+                    const current = pageConfig[view] || { title: 'Overview', icon: LayoutGrid };
+                    const IconComp = current.icon;
+                    return (
+                      <>
+                        <IconComp size={16} className="text-[var(--text-muted)] stroke-[1.5px]" />
+                        <h1 className="text-sm font-medium text-[var(--text-primary)] tracking-tight">
+                          {current.title}
+                        </h1>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Right: Utilities (No synced indicator) */}
+                <div className="flex items-center gap-3">
+                  {/* Current Wallet Selector Pill */}
+                  <button 
+                    onClick={() => {
+                      setWalletSearchQuery('');
+                      setIsWalletModalOpen(true);
+                    }} 
+                    className="flex items-center gap-2 bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] active:scale-95 transition-all h-[32px] px-3 rounded-[6px] border border-[var(--border-default)] hover:border-[var(--border-active)] group cursor-pointer"
+                    title="Switch wallet"
+                  >
+                    <WalletIcon size={14} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors shrink-0" />
+                    <span className="text-xs font-medium text-[var(--text-primary)]">
+                      {data.wallets.find(w => w.id === data.currentWalletId)?.name}
                     </span>
-                  </div>
-                );
-              })()}
+                    <ChevronDown size={14} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
+                  </button>
 
-              <button 
-                onClick={() => openAddModal(undefined, TransactionType.EXPENSE)} 
-                className="btn btn--primary text-[12px] h-[32px] px-3.5 font-medium rounded-[6px] flex items-center gap-1.5 cursor-pointer"
-              >
-                <PlusCircle size={15} className="btn__icon" /> Add Transaction
-              </button>
-            </div>
+                  <button 
+                    onClick={() => openAddModal(undefined, TransactionType.EXPENSE)} 
+                    className="btn btn--primary text-[12px] h-[32px] px-3.5 font-medium rounded-[6px] flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <PlusCircle size={15} className="btn__icon" /> Add Transaction
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
-        
-        {/* Main Content */}
+                {/* Main Content */}
         <main 
           ref={mainRef}
           className={`flex-1 min-w-0 min-h-0 w-full ${
-            isDesktop 
-              ? 'max-w-none px-8 overflow-y-auto pb-4' 
-              : 'max-w-md mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-3.5 pb-[calc(76px+env(safe-area-inset-bottom,0px))]'
+            view === 'rabbai'
+              ? 'max-w-none p-0 m-0 flex flex-col overflow-hidden'
+              : isDesktop 
+                ? 'max-w-none px-8 overflow-y-auto pb-4' 
+                : 'max-w-md mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom,0px))]'
           } relative`}
         >
+          <ErrorBoundary>
+          <Suspense fallback={<AppSkeleton />}>
           {isDesktop ? (
-            <div className="w-full max-w-5xl mx-auto py-4 view-transition">
-               {view === 'dashboard' && (
-                  <DesktopDashboard 
-                      data={data} 
-                      setView={setView} 
-                      updateData={updateData} 
-                      formatMoney={formatMoney} 
-                      onAddTransactionRequest={(t, q) => openAddModal(undefined, t, q)} 
-                      onEditTransaction={openEditModal}
-                      onDeleteTemplate={handleDeleteTemplate}
-                      onAddTransaction={handleAddTransaction}
-                  />
-               )}
-               {view === 'history' && (
-                  <DesktopHistory 
-                      data={data} 
-                      updateData={updateData}
-                      onRequestDelete={(id) => setDeleteConfirmation({ isOpen: true, id })} 
-                      formatMoney={formatMoney} 
-                      onEditTransaction={openEditModal}
-                  />
-               )}
-                {view === 'debts' && (
-                  <DesktopDebt 
-                      data={data} 
-                      updateData={updateData} 
-                      formatMoney={formatMoney} 
-                      onSettleTransaction={handleAddTransaction}
-                      onAddPayment={handleDebtPayment}
-                  />
-               )}
-               {view === 'analytics' && (
-                  <DesktopAnalytics data={data} updateData={updateData} formatMoney={formatMoney} />
-               )}
-               {view === 'identity' && (
-                  <DesktopIdentity 
-                    data={data} 
-                    updateData={updateData} 
-                    formatMoney={formatMoney} 
-                    onDirtyChange={setIsDirty} 
-                    onLogout={signOut} 
-                    initialTab={activeSubTab as any}
-                    onTabChange={(tab) => {
-                      setActiveSubTab(tab);
-                      navigateTo('identity', tab);
+            view === 'rabbai' ? (
+              <div className="w-full h-full flex-1 flex flex-col min-h-0 overflow-hidden max-w-none p-0 m-0 view-transition">
+                 <RabbAiView
+                    data={data}
+                    updateData={updateData}
+                    conversations={conversations}
+                    activeConvId={activeConvId || conversations[0]?.id}
+                    onUpdateConversations={(updated) => {
+                      setConversations(updated);
+                      saveRabbAiConversations(updated);
                     }}
+                    onAddTransaction={handleAddTransaction}
+                    onDeleteTransaction={(id) => updateData({ transactions: data.transactions.filter(t => t.id !== id) })}
+                    onAddWallet={(name, type, target, curr) => handleAddWallet(name, type, target, curr)}
+                    onDeleteWallet={handleDeleteWallet}
+                    onAddCategory={handleAiAddCategory}
+                    onDeleteCategory={handleAiDeleteCategory}
+                    onMergeCategory={handleAiMergeCategory}
+                    initialQuery={rabbaiPendingQuery?.text}
+                    initialImage={rabbaiPendingQuery?.image}
+                    onClearInitialQuery={() => setRabbaiPendingQuery(null)}
+                    onSelectConversation={setActiveConvId}
+                    onClose={() => requestViewChange('dashboard')}
                   />
-               )}
-               {view === 'control' && (
-                  <DesktopControl data={data} updateData={updateData} formatMoney={formatMoney} />
-               )}
-               {view === 'provisions' && (
-                  <ProvisioningCenter data={data} updateData={updateData} formatMoney={formatMoney} />
-               )}
-               {view === 'subscriptions' && (
-                  <SubscriptionManager data={data} updateData={updateData} formatMoney={formatMoney} />
-               )}
-            </div>
+              </div>
+            ) : (
+              <div className="w-full max-w-5xl py-4 mx-auto view-transition">
+                 {view === 'dashboard' && (
+                    <DesktopDashboard 
+                        data={data} 
+                        setView={setView} 
+                        updateData={updateData} 
+                        formatMoney={formatMoney} 
+                        onAddTransactionRequest={(t, q) => openAddModal(undefined, t, q)} 
+                        onEditTransaction={openEditModal}
+                        onDeleteTemplate={handleDeleteTemplate}
+                        onAddTransaction={handleAddTransaction}
+                        onOpenRabbAi={(q) => {
+                          const newConvId = `conv_${Date.now()}`;
+                          setActiveConvId(newConvId);
+                          setRabbaiPendingQuery(q);
+                          requestViewChange('rabbai');
+                        }}
+                    />
+                 )}
+                 {view === 'history' && (
+                    <HistoryView 
+                        data={data} 
+                        updateData={updateData} 
+                        onRequestDelete={triggerDeleteConfirmation} 
+                        formatMoney={formatMoney} 
+                        onEditTransaction={openEditModal}
+                        isDesktop={true}
+                    />
+                 )}
+                  {view === 'debts' && (
+                    <DebtView 
+                        data={data} 
+                        updateData={updateData} 
+                        formatMoney={formatMoney} 
+                        onSettleTransaction={handleAddTransaction}
+                        onAddPayment={handleDebtPayment}
+                        isDesktop={true}
+                    />
+                 )}
+                 {view === 'analytics' && (
+                    <AnalyticsView data={data} updateData={updateData} formatMoney={formatMoney} />
+                 )}
+                 {view === 'identity' && (
+                    <DesktopIdentity 
+                      data={data} 
+                      updateData={updateData} 
+                      formatMoney={formatMoney} 
+                      onDirtyChange={setIsDirty} 
+                      onLogout={signOut} 
+                      initialTab={activeSubTab as any}
+                      onTabChange={(tab) => {
+                        setActiveSubTab(tab);
+                        navigateTo('identity', tab);
+                      }}
+                    />
+                 )}
+                 {view === 'control' && (
+                    <DesktopControl data={data} updateData={updateData} formatMoney={formatMoney} />
+                 )}
+                 {view === 'provisions' && (
+                    <ProvisioningCenter data={data} updateData={updateData} formatMoney={formatMoney} />
+                 )}
+                 {view === 'subscriptions' && (
+                    <SubscriptionManager data={data} updateData={updateData} formatMoney={formatMoney} />
+                 )}
+              </div>
+            )
           ) : (
             <>
+              {view === 'rabbai' && (
+                <div className="w-full h-full flex-1 flex flex-col min-h-0 overflow-hidden p-0 m-0 max-w-none view-transition">
+                  <RabbAiView
+                    data={data}
+                    updateData={updateData}
+                    conversations={conversations}
+                    activeConvId={activeConvId || conversations[0]?.id}
+                    onUpdateConversations={(updated) => {
+                      setConversations(updated);
+                      saveRabbAiConversations(updated);
+                    }}
+                    onAddTransaction={handleAddTransaction}
+                    onDeleteTransaction={(id) => updateData({ transactions: data.transactions.filter(t => t.id !== id) })}
+                    onAddWallet={(name, type, target, curr) => handleAddWallet(name, type, target, curr)}
+                    onDeleteWallet={handleDeleteWallet}
+                    onAddCategory={handleAiAddCategory}
+                    onDeleteCategory={handleAiDeleteCategory}
+                    onMergeCategory={handleAiMergeCategory}
+                    initialQuery={rabbaiPendingQuery?.text}
+                    initialImage={rabbaiPendingQuery?.image}
+                    onClearInitialQuery={() => setRabbaiPendingQuery(null)}
+                    onSelectConversation={setActiveConvId}
+                    onClose={() => requestViewChange('dashboard')}
+                  />
+                </div>
+              )}
+
               {view === 'dashboard' && (
                 <div className="w-full view-transition">
                   <div className="h-auto p-0 lg:p-4">
@@ -1111,6 +1387,12 @@ export default function App() {
                           onEditTransaction={openEditModal}
                           onDeleteTemplate={handleDeleteTemplate}
                           onAddTransaction={handleAddTransaction}
+                          onOpenRabbAi={(q) => {
+                            const newConvId = `conv_${Date.now()}`;
+                            setActiveConvId(newConvId);
+                            setRabbaiPendingQuery(q);
+                            requestViewChange('rabbai');
+                          }}
                       />
                   </div>
                 </div>
@@ -1122,7 +1404,7 @@ export default function App() {
                       <HistoryView 
                           data={data} 
                           updateData={updateData}
-                          onRequestDelete={(id) => setDeleteConfirmation({ isOpen: true, id })} 
+                          onRequestDelete={triggerDeleteConfirmation} 
                           formatMoney={formatMoney} 
                           onEditTransaction={openEditModal}
                       />
@@ -1194,35 +1476,15 @@ export default function App() {
                   </div>
                 </div>
               )}
-
-              {view === 'menu' && (
-                <div className="w-full view-transition absolute inset-x-0 bottom-0 top-5">
-                  <MobileMenuView
-                    currentView={view}
-                    onNavigate={(v) => { requestViewChange(v); }}
-                    data={data}
-                    updateData={updateData}
-                    onLogout={signOut}
-                  />
-                </div>
-              )}
             </>
           )}
+          </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
 
 
 
-      <CommandPalette 
-        isOpen={isCommandPaletteOpen} 
-        onClose={() => setIsCommandPaletteOpen(false)} 
-        data={data}
-        setView={requestViewChange}
-        onQuickAdd={handleAddTransaction}
-      />
-
-
-      
       {/* Modals */}
       <AddTransactionModal 
         isOpen={isAddOpen} 
@@ -1242,11 +1504,20 @@ export default function App() {
       <DeleteConfirmationModal 
         isOpen={deleteConfirmation.isOpen} 
         onClose={() => setDeleteConfirmation({ isOpen: false, id: null })} 
+        itemDetails={deleteConfirmation.itemDetails}
         onConfirm={() => { 
-            if (deleteConfirmation.id) { 
+            if (deleteConfirmation.id && data) { 
                 const tx = data.transactions.find(t => t.id === deleteConfirmation.id);
+                if (tx) {
+                  AuditLogger.log('TX_DELETE', tx.id, `Deleted transaction ${tx.category} of ${tx.amount}`, user?.id);
+                  setUndoToast({
+                    tx,
+                    expiresAt: Date.now() + 6000
+                  });
+                }
                 updateData({ transactions: data.transactions.filter(t => t.id !== deleteConfirmation.id) });
                 setDeleteConfirmation({ isOpen: false, id: null }); 
+                Haptics.light();
             }
         }} 
       />
@@ -1309,7 +1580,7 @@ export default function App() {
                   setNewWalletCurrency(data.settings.currencySymbol || '$');
                   setNewWalletIsGoal(false);
                   setNewWalletTarget(0);
-                  setNewWalletColor('indigo');
+                  setNewWalletColor('amber');
                   setIsCreateWalletModalOpen(true);
                 }}
                 className="w-full h-[30px] px-2.5 flex items-center gap-2 rounded-[6px] text-[12px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
@@ -1323,10 +1594,10 @@ export default function App() {
 
         {/* Create Wallet Modal (2-Step Flow) */}
         {isCreateWalletModalOpen && createPortal(
-          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity animate-in fade-in duration-150" onClick={() => setIsCreateWalletModalOpen(false)} />
+          <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-150" onClick={() => setIsCreateWalletModalOpen(false)} />
             
-            <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] rounded-[12px] p-6 border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)] animate-in zoom-in-95 duration-150 space-y-4">
+            <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] rounded-[8px] p-6 border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)] animate-in zoom-in-95 duration-150 space-y-4">
               {/* Modal Header */}
               <div className="flex items-center justify-between">
                 <div>
@@ -1337,7 +1608,7 @@ export default function App() {
                 </div>
                 <button 
                   onClick={() => setIsCreateWalletModalOpen(false)}
-                  className="btn btn--outline btn--icon-sm shrink-0"
+                  className="btn btn--outline btn--icon-sm shrink-0 cursor-pointer"
                 >
                   <X size={15} strokeWidth={1.5} />
                 </button>
@@ -1361,14 +1632,14 @@ export default function App() {
                       value={newWalletName}
                       onChange={(e) => setNewWalletName(e.target.value)}
                       placeholder="My Wallet" 
-                      className="w-full h-[40px] px-3.5 rounded-[6px] bg-[var(--field-bg)] border border-[var(--field-border)] outline-none text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 transition-colors"
+                      className="w-full h-[36px] px-3 rounded-[6px] bg-[var(--field-bg)] border border-[var(--border-default)] focus:border-[var(--accent)] outline-none text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 transition-colors"
                       autoFocus
                     />
                   </div>
 
                   {/* Info Callout Banner */}
-                  <div className="p-3 rounded-[8px] bg-blue-500/10 border border-blue-500/20 flex items-start gap-2.5 text-[12px] text-blue-400 leading-relaxed">
-                    <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0 mt-0.5 font-bold text-[10px]">i</div>
+                  <div className="p-3 rounded-[8px] bg-[var(--accent-bg-soft)] border border-[var(--accent)]/20 flex items-start gap-2.5 text-[12px] text-[var(--accent)] leading-relaxed">
+                    <div className="w-4 h-4 rounded-full bg-[var(--accent)] flex items-center justify-center text-white shrink-0 mt-0.5 font-bold text-[10px]">i</div>
                     <span>This Wallet will be created with default settings. You can customize currency, target goals, and color theme anytime.</span>
                   </div>
 
@@ -1418,7 +1689,7 @@ export default function App() {
                         id="modalIsGoal" 
                         checked={newWalletIsGoal}
                         onChange={(e) => setNewWalletIsGoal(e.target.checked)}
-                        className="w-4 h-4 rounded border-[var(--border-default)] accent-[#2563eb] cursor-pointer"
+                        className="w-4 h-4 rounded border-[var(--border-default)] accent-[#F6821F] cursor-pointer"
                       />
                       <label htmlFor="modalIsGoal" className="text-[13px] font-medium text-[var(--text-primary)] cursor-pointer select-none">Savings Goal</label>
                     </div>
@@ -1437,11 +1708,11 @@ export default function App() {
                     <label className="text-[13px] font-medium text-[var(--text-primary)]">Theme Color</label>
                     <div className="flex gap-3 py-1">
                       {[
-                        { name: 'indigo' as ThemeOption, color: '#5e5ce6' },
+                        { name: 'amber' as ThemeOption, color: '#F6821F' },
                         { name: 'emerald' as ThemeOption, color: '#30d158' },
                         { name: 'rose' as ThemeOption, color: '#ff453a' },
-                        { name: 'amber' as ThemeOption, color: '#ff9f0a' },
                         { name: 'blue' as ThemeOption, color: '#0a84ff' },
+                        { name: 'indigo' as ThemeOption, color: '#5e5ce6' },
                       ].map(col => (
                         <button
                           key={col.name}
@@ -1494,12 +1765,24 @@ export default function App() {
         )}
       
       {isUnsavedModalOpen && <UnsavedChangesModal isOpen={isUnsavedModalOpen} onClose={() => setIsUnsavedModalOpen(false)} onConfirm={handleDiscardChanges} />}
-      {!isDesktop && (
-        <NavBar
-          currentView={view}
-          onChangeView={(v) => requestViewChange(v)}
-          onAddClick={(e) => openAddModal(e, TransactionType.EXPENSE)}
-        />
+      {undoToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[var(--z-toast,700)] flex items-center gap-3.5 bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-2xl px-4 py-2.5 rounded-[8px] animate-in fade-in slide-in-from-bottom-2 text-[12.5px] text-[var(--text-primary)]">
+          <span className="text-[var(--text-secondary)]">Transaction deleted</span>
+          <button
+            onClick={handleUndoDelete}
+            className="font-medium text-[var(--accent)] hover:underline cursor-pointer transition-colors"
+          >
+            Undo
+          </button>
+        </div>
+      )}
+      {notificationToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[var(--z-toast,700)] flex items-center gap-2.5 bg-[var(--bg-surface)] border border-[var(--border-default)] shadow-2xl px-4 py-2.5 rounded-[8px] animate-in fade-in slide-in-from-bottom-2 text-[12.5px] text-[var(--text-primary)]">
+          {notificationToast.type === 'error' && <AlertCircle size={16} className="text-[var(--status-error-fg)] shrink-0" />}
+          {notificationToast.type === 'info' && <Info size={16} className="text-[var(--accent)] shrink-0" />}
+          {notificationToast.type === 'success' && <Check size={16} className="text-[var(--status-success-fg)] shrink-0" />}
+          <span>{notificationToast.message}</span>
+        </div>
       )}
       {isStealthActive && <StealthOverlay />}
       {isLocked && data?.settings.vaultPasscode && (
@@ -1526,7 +1809,7 @@ export default function App() {
           onViewChange={(v) => requestViewChange(v)}
           onQuickAdd={(type, quickData) => {
             const newTx: Transaction = {
-              id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+              id: `tx_${crypto.randomUUID()}`,
               amount: quickData.amount,
               type,
               category: quickData.category || 'Other',
@@ -1544,6 +1827,12 @@ export default function App() {
           onSelectWallet={(walletId) => {
             updateData({ currentWalletId: walletId });
             Haptics.light();
+          }}
+          onOpenRabbAi={(q) => {
+            const newConvId = `conv_${Date.now()}`;
+            setActiveConvId(newConvId);
+            setRabbaiPendingQuery(q);
+            requestViewChange('rabbai');
           }}
         />
       )}

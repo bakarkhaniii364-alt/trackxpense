@@ -119,7 +119,7 @@ export const HealthReportTab: React.FC<HealthReportTabProps> = ({
   const { grade, tierName, tierColor } = useMemo(() => {
     if (healthScore >= 90) return { grade: 'A+', tierName: 'Elite Financial Health', tierColor: 'var(--status-success-fg)' };
     if (healthScore >= 80) return { grade: 'A', tierName: 'Strong Financial Health', tierColor: 'var(--status-success-fg)' };
-    if (healthScore >= 70) return { grade: 'B', tierName: 'Stable Financial Posture', tierColor: '#3b82f6' };
+    if (healthScore >= 70) return { grade: 'B', tierName: 'Stable Financial Posture', tierColor: 'var(--accent)' };
     if (healthScore >= 55) return { grade: 'C', tierName: 'Moderate Vulnerability', tierColor: 'var(--status-warning-fg)' };
     return { grade: 'D', tierName: 'Action Required', tierColor: 'var(--status-error-fg)' };
   }, [healthScore]);
@@ -206,7 +206,7 @@ export const HealthReportTab: React.FC<HealthReportTabProps> = ({
             </div>
             <div className="h-1.5 w-full bg-[var(--bg-surface)] rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full bg-[#3b82f6]"
+                className="h-full rounded-full bg-[var(--accent)]"
                 style={{ width: `${Math.min(100, (runwayDays / 90) * 100)}%` }}
               />
             </div>
@@ -267,7 +267,7 @@ export const HealthReportTab: React.FC<HealthReportTabProps> = ({
                   key={idx}
                   className="p-3 rounded-[8px] bg-[var(--bg-subtle)] border border-[var(--border-default)] flex items-start gap-2.5"
                 >
-                  <Activity size={15} strokeWidth={1.5} className="text-[#3b82f6] shrink-0 mt-0.5" />
+                  <Activity size={15} strokeWidth={1.5} className="text-[var(--accent)] shrink-0 mt-0.5" />
                   <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
                     {insight}
                   </p>

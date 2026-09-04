@@ -1,27 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /*
-  Design System — Dark Navy / Cyan (bevel-metal)
+  Design System — Warm Cloudflare Technical Dark
   -----------------------------------------------
   Canonical stylesheet. Single source of truth for all styles.
   Everything reads from the :root tokens below.
 */
 
 :root {
-  /* Neutral Dark Palette (Sleek Technical Neutral with Minimal Warmth) */
-  --ds-bg: #0E0E0F;             /* Deep neutral dark canvas (subtle zinc neutral, no brown) */
-  --ds-panel: #141416;          /* Structural card surface (subtle 1-step lift) */
-  --ds-panel-alt: #1A1A1D;      /* Surface hover / row hover */
-  --ds-border: #232326;         /* Crisp 1px hairline border */
-  --ds-border-strong: #36363A;  /* Active/input border */
+  /* Pitch Black Technical Palette (Matching User's Screenshot & Cloudflare Dark Mode) */
+  --ds-bg: #000000;             /* Pure pitch black canvas */
+  --ds-panel: #0D0D10;          /* Deep structural card surface */
+  --ds-panel-alt: #16161A;      /* Surface hover / row hover */
+  --ds-border: #202026;         /* Crisp 1px hairline border */
+  --ds-border-strong: #2E2E36;  /* Active/input border */
   --ds-text: #F4F4F5;           /* Primary text - crisp high-contrast white */
   --ds-text-dim: #A1A1AA;       /* Secondary body/label text */
   --ds-text-faint: #71717A;     /* Tertiary / micro kicker / metadata */
-  --ds-accent: #E3993D;
-  --ds-accent-strong: #F59E0B;
+  --ds-accent: #F6821F;         /* Cloudflare Canonical Orange */
+  --ds-accent-strong: #FF9233;
   --ds-ok: #22c55e;
   --ds-warn: #ef4444;
-  --ds-radius: 10px;
+  --ds-radius: 8px;
   --ds-font: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --ds-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Z-Index Hierarchy Token Scale */
+  --z-content: 1;
+  --z-sticky: 100;
+  --z-header: 200;
+  --z-dropdown: 300;
+  --z-sidebar: 400;
+  --z-modal-backdrop: 500;
+  --z-modal: 600;
+  --z-toast: 700;
+  --z-stealth: 9999;
 
   /* App Theme Variables & Tailwind Channels */
   --safe-top: env(safe-area-inset-top, 0px);
@@ -29,30 +44,39 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 
-  --color-primary: 227 153 61;
-  --color-primary-hex: #E3993D;
+  --color-primary: 246 130 31;
+  --color-primary-hex: #F6821F;
 
-  --bg-page: var(--ds-bg);
-  --bg-sidebar: var(--ds-bg);
-  --bg-surface: var(--ds-panel);
-  --bg-surface-hover: var(--ds-panel-alt);
-  --bg-subtle: #1C1C1F;
-  --bg-active-pill: var(--ds-panel-alt);
+  --bg-page: #000000;
+  --bg-sidebar: #000000;
+  --bg-surface: #0D0D10;
+  --bg-surface-hover: #16161A;
+  --bg-subtle: #121216;
+  --bg-active-pill: #16161A;
 
-  --border-default: var(--ds-border);
-  --border-subtle: var(--ds-border);
-  --border-strong: var(--ds-border-strong);
-  --border-active: var(--ds-border-strong);
+  --border-default: #202026;
+  --border-subtle: #202026;
+  --border-strong: #2E2E36;
+  --border-active: #2E2E36;
+}
 
+/* Technical Dotted Canvas Matrix */
+.dot-matrix-canvas {
+  background-image: radial-gradient(#24242c 1px, transparent 1px);
+  background-size: 16px 16px;
+  background-position: 0 0;
+}
+
+:root {
   --text-primary: var(--ds-text);
   --text-secondary: var(--ds-text-dim);
   --text-tertiary: var(--ds-text-faint);
   --text-muted: var(--ds-text-faint);
 
-  --accent-solid: #E3993D;
-  --accent-text: #0E0E0F;
-  --accent: #E3993D;
-  --accent-bg-soft: rgba(227, 153, 61, 0.12);
+  --accent-solid: #F6821F;
+  --accent-text: #FFFFFF;
+  --accent: #F6821F;
+  --accent-bg-soft: rgba(246, 130, 31, 0.12);
 
   --status-success-bg: rgba(34, 197, 94, 0.12);
   --status-success-fg: #22c55e;
@@ -61,52 +85,52 @@
   --status-warning-bg: rgba(245, 158, 11, 0.12);
   --status-warning-fg: #f59e0b;
 
-  --bg-core: 14 14 15;
-  --bg-card: 20 20 22;
+  --bg-core: 0 0 0;
+  --bg-card: 13 13 16;
   --text-main: 244 244 245;
 
   --bento-gap: 1rem;
-  --bento-radius: 10px;
+  --bento-radius: 8px;
   --sidebar-radius: 6px;
-  --bento-padding: 20px;
+  --bento-padding: 16px;
 
   --global-bg-noise: none;
   --global-bg-gradient: none;
 
-  /* Form & Field Module — Warm Technical Surface & Amber Focus Ring */
-  --field-bg: #141416;
-  --field-bg-hover: #18181B;
-  --field-border: #28282D;
-  --field-border-hover: #3C3C44;
+  /* Form & Field Module — Pitch Black Technical Surface & Cloudflare Focus */
+  --field-bg: #0B0B0E;
+  --field-bg-hover: #121216;
+  --field-border: #202026;
+  --field-border-hover: #2E2E36;
   --field-border-focus: var(--accent);
-  --field-focus-glow: rgba(227, 153, 61, 0.25);
+  --field-focus-glow: rgba(246, 130, 31, 0.25);
 
-  /* Button Module — Hue Architecture (Orange Hue: 28deg)
+  /* Button Module — Hue Architecture (Cloudflare Orange Hue: 24deg)
      Parametrically defines the color wheel angle for the entire button system.
      All metallic bevels, gradients, lips, and glow borders derive from this hue.
   */
-  --btn-hue: 28;
-  --btn-accent: hsl(var(--btn-hue), 71%, 61%);
-  --btn-accent-dim: hsl(var(--btn-hue), 55%, 52%);
-  --btn-accent-border: hsla(var(--btn-hue), 55%, 52%, 0.35);
-  --btn-accent-hover-border: hsl(var(--btn-hue), 71%, 61%);
-  --btn-accent-ring: hsla(var(--btn-hue), 55%, 52%, 0.3);
-  --btn-accent-glow: hsla(var(--btn-hue), 71%, 61%, 0.4);
+  --btn-hue: 24;
+  --btn-accent: hsl(var(--btn-hue), 92%, 54%);
+  --btn-accent-dim: hsl(var(--btn-hue), 85%, 46%);
+  --btn-accent-border: hsla(var(--btn-hue), 85%, 46%, 0.45);
+  --btn-accent-hover-border: hsl(var(--btn-hue), 95%, 58%);
+  --btn-accent-ring: hsla(var(--btn-hue), 92%, 54%, 0.35);
+  --btn-accent-glow: hsla(var(--btn-hue), 92%, 54%, 0.45);
 
   /* Primary Button Metallic Gradients */
   --btn-primary-bg: linear-gradient(
     180deg,
-    hsl(var(--btn-hue), 29%, 18%) 0%,
-    hsl(var(--btn-hue), 31%, 11%) 42%,
-    hsl(var(--btn-hue), 37%, 8%) 58%,
-    hsl(var(--btn-hue), 25%, 14%) 100%
+    hsl(var(--btn-hue), 34%, 20%) 0%,
+    hsl(var(--btn-hue), 36%, 13%) 42%,
+    hsl(var(--btn-hue), 42%, 9%) 58%,
+    hsl(var(--btn-hue), 30%, 15%) 100%
   );
   --btn-primary-bg-hover: linear-gradient(
     180deg,
-    hsl(var(--btn-hue), 29%, 22%) 0%,
-    hsl(var(--btn-hue), 32%, 15%) 38%,
-    hsl(var(--btn-hue), 36%, 9%) 62%,
-    hsl(var(--btn-hue), 33%, 14%) 100%
+    hsl(var(--btn-hue), 34%, 25%) 0%,
+    hsl(var(--btn-hue), 38%, 17%) 38%,
+    hsl(var(--btn-hue), 42%, 11%) 62%,
+    hsl(var(--btn-hue), 36%, 16%) 100%
   );
 
   /* Secondary Button Metallic Gradients */
@@ -125,7 +149,7 @@
     hsl(var(--btn-hue), 26%, 15%) 100%
   );
 
-  /* Tabs Module — Hue Architecture (Orange Hue: 28deg)
+  /* Tabs Module — Hue Architecture (Cloudflare Orange Hue: 24deg)
      Synchronizes segmented tab tracks and active pills with the orange hue.
   */
   --tab-track-bg: linear-gradient(
@@ -140,6 +164,54 @@
   --tab-active-lip: var(--btn-accent-dim);
   --tab-active-glow: var(--btn-accent-glow);
   --tab-active-text-glow: hsla(var(--btn-hue), 71%, 61%, 0.3);
+}
+
+/* Cloudflare Orange Palette (Universal Canonical Theme) */
+body.theme-indigo,
+body.theme-emerald,
+body.theme-rose,
+body.theme-amber,
+body.theme-orange,
+body.theme-blue {
+  --ds-accent: #F6821F;
+  --ds-accent-strong: #FF9233;
+  --accent: #F6821F;
+  --accent-solid: #F6821F;
+  --accent-hover: #FF9233;
+  --accent-text: #FFFFFF;
+  --accent-bg-soft: rgba(246, 130, 31, 0.12);
+  --btn-hue: 24;
+}
+
+/* Light Theme Tokens */
+body.light-mode {
+  --ds-bg: #FAFAFA;
+  --ds-panel: #FFFFFF;
+  --ds-panel-alt: #F3F4F6;
+  --ds-border: #E5E7EB;
+  --ds-border-strong: #D1D5DB;
+  --ds-text: #111827;
+  --ds-text-dim: #4B5563;
+  --ds-text-faint: #9CA3AF;
+
+  --bg-page: #FAFAFA;
+  --bg-sidebar: #F4F5F7;
+  --bg-surface: #FFFFFF;
+  --bg-surface-hover: #F3F4F6;
+  --bg-subtle: #EAEAEB;
+  --bg-active-pill: #F3F4F6;
+
+  --border-default: #E5E7EB;
+  --border-subtle: #E5E7EB;
+  --border-strong: #D1D5DB;
+  --border-active: #D1D5DB;
+
+  --field-bg: #FFFFFF;
+  --field-bg-hover: #F9FAFB;
+  --field-border: #E5E7EB;
+  --field-border-hover: #D1D5DB;
+
+  color-scheme: light;
 }
 
 /* Base resets & layout */
@@ -178,6 +250,22 @@ body.desktop-ui {
 @keyframes dsFadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Smooth View Transition */
+.view-transition {
+  animation: viewFadeSlide 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes viewFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Layout reset helper rules */
@@ -789,6 +877,79 @@ textarea[class*="border-none"]:focus,
 
 .animate-hero-bottom-down {
   animation: heroBottomSlideDown 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
+}
+
+/* =========================================================================
+   Badges & Status Pills (Canonical Cloudflare High-Density Pattern)
+   Pills with soft tinted backgrounds and NO outlines (border: none).
+   ========================================================================= */
+.pill,
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  font-family: var(--ds-font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 2.5px 8px;
+  white-space: nowrap;
+}
+
+.pill--success,
+.pill--income,
+.badge-pill-success {
+  background-color: var(--status-success-bg) !important;
+  color: var(--status-success-fg) !important;
+  border: none !important;
+}
+
+.pill--expense,
+.pill--muted,
+.badge-pill-default {
+  background-color: var(--bg-subtle) !important;
+  color: var(--text-secondary) !important;
+  border: none !important;
+}
+
+.pill--warning,
+.pill--pending,
+.badge-pill-warning {
+  background-color: var(--status-warning-bg) !important;
+  color: var(--status-warning-fg) !important;
+  border: none !important;
+}
+
+.pill--error,
+.pill--danger,
+.badge-pill-error {
+  background-color: var(--status-error-bg) !important;
+  color: var(--status-error-fg) !important;
+  border: none !important;
+}
+
+.pill--accent,
+.pill--transfer,
+.badge-pill-accent {
+  background-color: var(--accent-bg-soft) !important;
+  color: var(--accent) !important;
+  border: none !important;
+}
+
+/* Accessibility: Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 

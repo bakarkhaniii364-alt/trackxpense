@@ -61,8 +61,8 @@ export const BentoRunwayTrajectory: React.FC<BentoRunwayTrajectoryProps> = ({
             <AreaChart data={trajectoryData} margin={{ top: 5, right: 0, left: -24, bottom: 0 }}>
               <defs>
                 <linearGradient id="bentoTrajGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="#F6821F" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#F6821F" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
               <CartesianGrid stroke="var(--border-default)" strokeDasharray="2 2" vertical={false} />
@@ -79,7 +79,7 @@ export const BentoRunwayTrajectory: React.FC<BentoRunwayTrajectoryProps> = ({
                 }}
                 formatter={(val: any) => [displayMoney(Number(val) || 0), 'Projected']}
               />
-              <Area type="monotone" dataKey="balance" stroke="#3b82f6" strokeWidth={1.5} fill="url(#bentoTrajGrad)" />
+              <Area type="monotone" dataKey="balance" stroke="#F6821F" strokeWidth={1.5} fill="url(#bentoTrajGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

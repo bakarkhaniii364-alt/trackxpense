@@ -70,9 +70,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({
     <div className={`space-y-6 ${isCompact ? '' : 'w-full mx-auto pb-10'}`}>
       {!isCompact && (
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-[var(--bg-surface)] text-[#2563EB] rounded-[8px] border border-[var(--border-default)]">
-            <Database size={22} strokeWidth={1.5} />
-          </div>
+          <Database size={22} strokeWidth={1.5} className="text-[var(--accent)]" />
           <div>
             <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Data Storage</h2>
             <p className="text-xs text-[var(--text-secondary)] mt-0.5">Backup, restore and local ledger controls.</p>
@@ -85,7 +83,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({
         <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] p-6 flex flex-col gap-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Download size={16} strokeWidth={1.5} className="text-[#2563EB]" />
+              <Download size={16} strokeWidth={1.5} className="text-[var(--accent)]" />
               <p className="text-[11px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em]">Export Data</p>
             </div>
             <div className="tabs">
@@ -202,7 +200,7 @@ export const DataManagement: React.FC<DataManagementProps> = ({
             </div>
 
             <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-              This will permanently delete all your wallets, transactions, debts, categories, and AI conversations from this device.
+              This will permanently delete all your wallets, transactions, debts, categories, and chat records from this device.
             </p>
 
             <div className="space-y-2 bg-[var(--bg-subtle)] p-3.5 rounded-[8px] border border-[var(--border-default)]">

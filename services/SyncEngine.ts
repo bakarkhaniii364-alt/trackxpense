@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import * as StorageService from './storage';
-import { AppData, SyncStatus, TransactionType } from '../types';
+import { AppData, SyncStatus, TransactionType, CategoryItem } from '../types';
 
 class SyncEngine {
   private isSyncing = false;
@@ -24,6 +24,16 @@ class SyncEngine {
 
   private mapLocalToDb(table: string, payload: any, userId: string): any {
     switch (table) {
+      case 'categories':
+        return {
+          id: payload.id,
+          name: payload.name,
+          type: payload.type || 'EXPENSE',
+          color: payload.color || '#5b9a7d',
+          icon: payload.icon || null,
+          is_system: payload.isSystem || false,
+          updated_at: payload.updated_at || new Date().toISOString()
+        };
       case 'transactions':
         return {
           id: payload.id,
@@ -103,8 +113,9 @@ class SyncEngine {
           dark_mode: payload.darkMode,
           currency_symbol: payload.currencySymbol,
           privacy_mode: payload.privacyMode,
-          vault_passcode: payload.vaultPasscode || null,
-          vault_salt: payload.vaultSalt || null,
+          // Zero-Knowledge Security: vault passcode & salt are strictly device-local and never synced to cloud
+          vault_passcode: null,
+          vault_salt: null,
           stealth_mode_enabled: payload.stealthModeEnabled || false,
           stealth_hotkey: payload.stealthHotkey || 'Escape',
           haptics_enabled: payload.hapticsEnabled !== false,
@@ -206,7 +217,8 @@ class SyncEngine {
         { data: dbSubs, error: subsErr },
         { data: dbProvisions, error: provsErr },
         { data: dbTemplates, error: tplsErr },
-        { data: dbSnapshots, error: snapsErr }
+        { data: dbSnapshots, error: snapsErr },
+        { data: dbCategories, error: catsErr }
       ] = await Promise.all([
         supabase.from('users').select('*').eq('id', userId).maybeSingle(),
         supabase.from('settings').select('*').eq('user_id', userId).maybeSingle(),
@@ -216,7 +228,8 @@ class SyncEngine {
         supabase.from('subscriptions').select('*').eq('user_id', userId),
         supabase.from('provisions').select('*').eq('user_id', userId),
         supabase.from('templates').select('*').eq('user_id', userId),
-        supabase.from('balance_snapshots').select('*').eq('user_id', userId)
+        supabase.from('balance_snapshots').select('*').eq('user_id', userId),
+        supabase.from('categories').select('*').eq('user_id', userId)
       ]);
 
       if (userErr || !dbUser) {
@@ -295,8 +308,21 @@ class SyncEngine {
         }))
         .sort((a, b) => b.date.localeCompare(a.date));
 
+      const localData = await StorageService.getAppData();
+
+      const categories: CategoryItem[] = (dbCategories && dbCategories.length > 0)
+        ? dbCategories.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            type: c.type as TransactionType,
+            color: c.color,
+            icon: c.icon,
+            isSystem: c.is_system || false
+          }))
+        : localData.categories;
+
       const settings = dbSettings ? {
-        theme: (dbSettings.theme || 'indigo') as any,
+        theme: (dbSettings.theme === 'indigo' || !dbSettings.theme ? 'amber' : dbSettings.theme) as any,
         darkMode: dbSettings.dark_mode !== false,
         notificationsEnabled: dbSettings.notificationsEnabled || false,
         expenseReminders: dbSettings.expenseReminders || false,
@@ -306,14 +332,14 @@ class SyncEngine {
         currencySymbol: dbSettings.currency_symbol || '৳',
         budgetLimits: dbSettings.budget_limits || {},
         hasOnboarded: true,
-        vaultPasscode: dbSettings.vault_passcode || '',
-        vaultSalt: dbSettings.vault_salt || undefined,
-        isVaultLocked: false,
+        vaultPasscode: localData.settings?.vaultPasscode || '',
+        vaultSalt: localData.settings?.vaultSalt || undefined,
+        isVaultLocked: localData.settings?.isVaultLocked || false,
         stealthModeEnabled: dbSettings.stealth_mode_enabled || false,
         stealthHotkey: dbSettings.stealth_hotkey || 'Escape',
         hapticsEnabled: dbSettings.haptics_enabled !== false
       } : {
-        theme: 'indigo' as const,
+        theme: 'amber' as const,
         darkMode: true,
         notificationsEnabled: false,
         expenseReminders: false,
@@ -323,8 +349,9 @@ class SyncEngine {
         currencySymbol: '৳',
         budgetLimits: {},
         hasOnboarded: true,
-        vaultPasscode: '',
-        isVaultLocked: false,
+        vaultPasscode: localData.settings?.vaultPasscode || '',
+        vaultSalt: localData.settings?.vaultSalt || undefined,
+        isVaultLocked: localData.settings?.isVaultLocked || false,
         stealthModeEnabled: false,
         stealthHotkey: 'Escape',
         hapticsEnabled: true
@@ -336,13 +363,11 @@ class SyncEngine {
         dailyGoal: Number(dbUser.daily_goal || 0)
       };
 
-      const localData = await StorageService.getAppData();
-
       const appData: AppData = {
         wallets: wallets.length > 0 ? wallets : [{ id: 'main', name: 'Main Wallet', type: 'STANDARD' }],
         transactions,
         debts,
-        categories: localData.categories,
+        categories: categories && categories.length > 0 ? categories : localData.categories,
         currentWalletId: wallets.length > 0 ? wallets[0].id : 'main',
         settings,
         profile,
@@ -354,7 +379,7 @@ class SyncEngine {
         recurringRules
       };
 
-      return StorageService.sanitizeJargon(appData);
+      return appData;
     } catch (err) {
       console.error('Error pulling cloud data:', err);
       return null;

@@ -1,4 +1,5 @@
 import { AppData, TransactionType } from '../types';
+import { GroqClient } from './groqClient';
 
 export interface AIParsedTransaction {
   amount: number | null;
@@ -10,12 +11,9 @@ export interface AIParsedTransaction {
   source: 'groq_ai' | 'fallback_heuristic';
 }
 
-// Always use the server-side env key
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
-
 /**
- * Bulletproof transaction parsing using Groq's Llama 3.1 8B Instant model.
- * Includes strict try/catch around JSON parsing & safety filter refusals.
+ * Bulletproof transaction parsing using Groq AI via secure edge proxy.
+ * Automatically falls back to high-accuracy local regex/heuristics if offline.
  */
 export async function parseTransactionWithAI(
   text: string,
@@ -25,23 +23,15 @@ export async function parseTransactionWithAI(
   const rawText = text.trim();
   if (!rawText) return null;
 
-  const apiKey = (customApiKey && customApiKey.trim()) || GROQ_API_KEY;
-
-  if (apiKey) {
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'qwen/qwen3.6-27b',
-          temperature: 0.1,
-          messages: [
-            {
-              role: 'system',
-              content: `You are a financial transaction extractor. Analyze the input and extract transaction details.
+  try {
+    const rawContent = await GroqClient.complete({
+      model: 'openai/gpt-oss-120b',
+      temperature: 0.1,
+      customApiKey,
+      messages: [
+        {
+          role: 'system',
+          content: `You are a financial transaction extractor. Analyze the input and extract transaction details.
 Available Categories: ${categories.join(', ')}.
 
 Return ONLY a valid JSON object with the following schema:
@@ -52,148 +42,117 @@ Return ONLY a valid JSON object with the following schema:
   "type": "INCOME" or "EXPENSE",
   "is_valid": boolean (MUST BE false if the user is denying, cancelling, or stating they DID NOT spend or earn something, e.g. "I didn't spend", "didn't buy", "cancelled", "not paying")
 }`
-            },
-            {
-              role: 'user',
-              content: rawText
-            }
-          ]
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        let content = data.choices?.[0]?.message?.content;
-
-        if (content) {
-          content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-          const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*?\}/);
-          const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const amount = typeof parsed.amount === 'number' && !isNaN(parsed.amount) ? parsed.amount : null;
-            const isValid = parsed.is_valid !== false;
-            const isDenial = parsed.is_valid === false;
-            const type = parsed.type === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE;
-            const category = parsed.category || (type === TransactionType.INCOME ? 'Salary' : 'General');
-            const description = parsed.description || rawText;
-
-            return {
-              amount,
-              category,
-              description,
-              type,
-              isValid,
-              isDenial,
-              source: 'groq_ai'
-            };
-          } catch (jsonErr) {
-            console.warn('Groq AI returned non-JSON response or refusal text:', jsonErr);
-          }
+        },
+        {
+          role: 'user',
+          content: rawText
         }
+      ]
+    });
+
+    if (rawContent) {
+      const parsed = GroqClient.extractJson(rawContent);
+      if (parsed) {
+        const amount = typeof parsed.amount === 'number' && !isNaN(parsed.amount) ? parsed.amount : null;
+        const isValid = parsed.is_valid !== false;
+        const isDenial = parsed.is_valid === false;
+        const type = parsed.type === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE;
+        const category = parsed.category || (type === TransactionType.INCOME ? 'Salary' : 'General');
+        const description = parsed.description || rawText;
+
+        return {
+          amount,
+          category,
+          description,
+          type,
+          isValid,
+          isDenial,
+          source: 'groq_ai'
+        };
       }
-    } catch (err) {
-      console.warn('Groq AI request failed, falling back to local NLP:', err);
     }
+  } catch (err) {
+    // Edge/network failed; fall back to local heuristic below
   }
 
   // --- Fallback Local Heuristic Parsing ---
-  return parseLocalHeuristic(rawText, categories);
-}
+  const lower = rawText.toLowerCase();
 
-/**
- * Local heuristic NLP fallback parsing when Groq API key is offline or unavailable.
- */
-function parseLocalHeuristic(text: string, categories: string[]): AIParsedTransaction | null {
-  const isDenial = /\b(didn't|did not|not|don't|cancelled|never)\b/i.test(text);
-  const isIncome = /^(income|\+)|(earned|received|salary|deposit)/i.test(text);
+  // Check for denials/cancellations
+  const denialKeywords = ['didn\'t', 'did not', 'never', 'cancel', 'cancelled', 'not paying', 'not spend', 'haven\'t spent'];
+  const isDenial = denialKeywords.some(k => lower.includes(k));
+
+  // Heuristic Income detection
+  const incomeKeywords = ['received', 'got', 'salary', 'freelance', 'sold', 'earned', 'deposit', 'income'];
+  const isIncome = incomeKeywords.some(k => lower.includes(k));
   const type = isIncome ? TransactionType.INCOME : TransactionType.EXPENSE;
 
-  const amountMatch = text.match(/(?:^|\s)\$?(\d+(?:\.\d{1,2})?)(?:\s|$)/i);
-  const amount = amountMatch ? parseFloat(amountMatch[1]) : null;
+  // Extract amount
+  const amountMatch = rawText.match(/(?:[\$৳€£¥]|tk\.?|bdt)?\s*(\d+(?:[,\.]\d{1,2})?)\s*(?:[\$৳€£¥]|tk\.?|bdt)?/i);
+  let amount: number | null = null;
+  if (amountMatch && amountMatch[1]) {
+    const cleanAmount = amountMatch[1].replace(',', '');
+    const num = parseFloat(cleanAmount);
+    if (!isNaN(num)) amount = num;
+  }
 
-  if (amount === null && !isDenial) return null;
-
-  const cleanedText = text
-    .replace(/(?:^|\s)\$?(\d+(?:\.\d{1,2})?)(?:\s|$)/i, ' ')
-    .replace(/\b(spent|bought|paid|for|on|income|earned|received|\+)\b/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  let category = type === TransactionType.INCOME ? 'Salary' : 'General';
-  if (cleanedText) {
-    const matched = categories.find(c =>
-      c.toLowerCase().includes(cleanedText.toLowerCase()) ||
-      cleanedText.toLowerCase().includes(c.toLowerCase())
-    );
-    if (matched) category = matched;
+  // Match category
+  let matchedCat = type === TransactionType.INCOME ? 'Salary' : 'General';
+  for (const cat of categories) {
+    if (lower.includes(cat.toLowerCase())) {
+      matchedCat = cat;
+      break;
+    }
   }
 
   return {
     amount,
-    category,
-    description: cleanedText || text,
+    category: matchedCat,
+    description: rawText,
     type,
-    isValid: !isDenial && amount !== null,
+    isValid: !isDenial,
     isDenial,
     source: 'fallback_heuristic'
   };
 }
 
 /**
- * Generates dynamic financial advice using Groq Llama 3.1 8B Instant with strict error handling.
+ * Generate smart financial insights using Groq via secure edge proxy.
  */
-export async function generateAIAdvice(data: AppData): Promise<string[] | null> {
-  const apiKey = GROQ_API_KEY;
-  if (!apiKey) return null;
-
+export async function getSmartFinancialAdvice(
+  data: AppData,
+  customApiKey?: string
+): Promise<string[] | null> {
   const income = data.transactions.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0);
   const expense = data.transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
   const debtTotal = data.debts.filter(d => !d.isSettled && d.type === 'I_OWE').reduce((s, d) => s + d.amount, 0);
 
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'qwen/qwen3.6-27b',
-        temperature: 0.3,
-        messages: [
-          {
-            role: 'system',
-            content: `You are a concise financial advisory coach. Return ONLY a JSON object with key "tips" containing an array of 3 short, actionable, friendly bullet point recommendations based on the user's data.`
-          },
-          {
-            role: 'user',
-            content: `User balance: ${data.settings.currencySymbol}${balance}, Total Income: ${data.settings.currencySymbol}${income}, Total Expense: ${data.settings.currencySymbol}${expense}, Total Debts Owed: ${data.settings.currencySymbol}${debtTotal}, Profile Monthly Goal: ${data.settings.currencySymbol}${data.profile.monthlyGoal || 0}`
-          }
-        ]
-      })
+    const rawContent = await GroqClient.complete({
+      model: 'openai/gpt-oss-120b',
+      temperature: 0.3,
+      customApiKey,
+      messages: [
+        {
+          role: 'system',
+          content: `You are a concise financial advisory coach. Return ONLY a JSON object with key "tips" containing an array of 3 short, actionable, friendly bullet point recommendations based on the user's data.`
+        },
+        {
+          role: 'user',
+          content: `User balance: ${data.settings.currencySymbol}${balance}, Total Income: ${data.settings.currencySymbol}${income}, Total Expense: ${data.settings.currencySymbol}${expense}, Total Debts Owed: ${data.settings.currencySymbol}${debtTotal}, Profile Monthly Goal: ${data.settings.currencySymbol}${data.profile.monthlyGoal || 0}`
+        }
+      ]
     });
 
-    if (response.ok) {
-      const result = await response.json();
-      let content = result.choices?.[0]?.message?.content;
-      if (content) {
-        content = content.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-        const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*?\}/);
-        const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
-        try {
-          const parsed = JSON.parse(jsonStr);
-          if (Array.isArray(parsed.tips) && parsed.tips.length > 0) {
-            return parsed.tips;
-          }
-        } catch (e) {
-          console.warn('Failed to parse AI advice JSON:', e);
-        }
+    if (rawContent) {
+      const parsed = GroqClient.extractJson(rawContent);
+      if (parsed && Array.isArray(parsed.tips) && parsed.tips.length > 0) {
+        return parsed.tips;
       }
     }
   } catch (err) {
-    console.warn('Groq AI advice generation failed:', err);
+    // Advice generation fallback
   }
 
   return null;

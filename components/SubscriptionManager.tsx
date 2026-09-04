@@ -72,7 +72,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
 
     const registerRecurringRule = (name: string, amount: number, freq: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' = 'MONTHLY') => {
         const newRule: RecurringRule = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             name,
             amount,
             type: TransactionType.EXPENSE,
@@ -145,7 +145,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                             {formatMoney(monthlyTotal, data.settings.currencySymbol)}
                         </p>
                     </div>
-                    <div className="px-3 py-1.5 rounded-[6px] bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[12px] font-medium">
+                    <div className="pill pill--accent text-[11px] py-1 px-2.5">
                         {activeRules.length} active service{activeRules.length === 1 ? '' : 's'}
                     </div>
                 </div>
@@ -165,11 +165,11 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                                         className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all"
                                     >
                                         <div className="flex items-center gap-3.5">
-                                            <Ghost size={20} strokeWidth={1.5} className={rule.isActive ? 'text-blue-400' : 'text-[var(--text-muted)]'} />
+                                            <Ghost size={20} strokeWidth={1.5} className={rule.isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} />
                                             <div>
                                                 <h4 className="text-[14px] font-medium text-[var(--text-primary)] flex items-center gap-2">
                                                     {rule.name}
-                                                    {!rule.isActive && <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 text-[10px] font-medium rounded border border-amber-500/20">Paused</span>}
+                                                    {!rule.isActive && <span className="pill pill--warning text-[10px] py-0.5 px-2">Paused</span>}
                                                 </h4>
                                                 <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
                                                     {formatMoney(rule.amount, data.settings.currencySymbol)} • {rule.frequency.toLowerCase()}
@@ -179,7 +179,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                                         <div className="flex items-center gap-1.5">
                                             <button 
                                                 onClick={() => toggleRuleActive(rule.id)}
-                                                className={`btn btn--xs ${rule.isActive ? 'btn--secondary text-blue-400' : 'btn--outline text-[var(--text-muted)]'}`}
+                                                className={`btn btn--xs ${rule.isActive ? 'btn--secondary text-[var(--accent)]' : 'btn--outline text-[var(--text-muted)]'}`}
                                             >
                                                 {rule.isActive ? 'Active' : 'Resume'}
                                             </button>

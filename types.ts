@@ -16,7 +16,8 @@ export enum Category {
   BREAKFAST = 'Breakfast',
   LUNCH = 'Lunch',
   DINNER = 'Dinner',
-  FOODPANDA = 'Foodpanda',
+  FOOD_DELIVERY = 'Food Delivery',
+  FOODPANDA = 'Food Delivery',
   SNACKS = 'Snacks',
   LOAN_PAYMENT = 'Loan Payment',
   TRANSPORT = 'Transportation',
@@ -120,7 +121,7 @@ export interface Debt {
   updated_at?: string;
 }
 
-export type ThemeOption = 'indigo' | 'emerald' | 'rose' | 'amber' | 'blue';
+export type ThemeOption = 'indigo' | 'emerald' | 'rose' | 'amber' | 'blue' | 'orange';
 
 export interface BudgetConfig {
   limit: number;

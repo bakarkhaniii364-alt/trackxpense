@@ -24,39 +24,31 @@ export const VaultLock: React.FC<VaultLockProps> = ({
   const [isVerifying, setIsVerifying] = useState(false);
 
   const handleKeypad = async (num: string) => {
-    if (isVerifying || passcode.length >= 4) return;
+    if (isVerifying || passcode.length >= 6) return;
 
     const newCode = passcode + num;
     setPasscode(newCode);
     Haptics.light();
 
-    if (newCode.length === 4) {
-      setIsVerifying(true);
+    if (newCode.length >= 4) {
       const isValid = await verifyVaultPasscode(newCode, storedHash, storedSalt);
-
       if (isValid) {
+        setIsVerifying(true);
         Haptics.success();
-
-        // If this was a legacy unhashed passcode, auto-migrate to salted hash
-        if (!storedSalt && onMigratePasscode) {
-          try {
-            const { hash, salt } = await hashVaultPasscode(newCode);
-            onMigratePasscode(hash, salt);
-          } catch (e) {
-            console.warn('Failed to migrate legacy passcode hash:', e);
-          }
-        }
-
         onUnlock();
-      } else {
-        Haptics.warning();
-        setError(true);
-        setTimeout(() => {
-          setPasscode('');
-          setError(false);
-          setIsVerifying(false);
-        }, 400);
+        return;
       }
+    }
+
+    if (newCode.length >= 6) {
+      setIsVerifying(true);
+      Haptics.warning();
+      setError(true);
+      setTimeout(() => {
+        setPasscode('');
+        setError(false);
+        setIsVerifying(false);
+      }, 400);
     }
   };
 
@@ -67,7 +59,7 @@ export const VaultLock: React.FC<VaultLockProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 select-none">
+    <div className="fixed inset-0 z-[var(--z-stealth,10000)] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 select-none">
       <div className={`w-full max-w-xs bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] p-6 flex flex-col items-center text-center animate-in zoom-in-95 duration-200 shadow-2xl ${error ? 'animate-shake' : ''}`}>
         
         {/* Unboxed Header Icon */}
@@ -79,17 +71,17 @@ export const VaultLock: React.FC<VaultLockProps> = ({
           Vault Locked
         </h2>
         <p className="text-[12px] text-[var(--text-secondary)] mt-1 mb-6">
-          Enter your 4-digit security passcode
+          Enter your security passcode
         </p>
 
-        {/* 4 PIN Dots */}
-        <div className="flex justify-center gap-3.5 mb-8">
-          {[0, 1, 2, 3].map(i => {
+        {/* 6 PIN Dots */}
+        <div className="flex justify-center gap-2.5 mb-8">
+          {[0, 1, 2, 3, 4, 5].map(i => {
             const isFilled = passcode.length > i;
             return (
               <div 
                 key={i} 
-                className={`w-3 h-3 rounded-full transition-all duration-200 border ${
+                className={`w-2.5 h-2.5 rounded-full transition-all duration-200 border ${
                   isFilled 
                     ? 'bg-[var(--accent-solid)] border-[var(--accent-solid)] scale-110' 
                     : 'bg-transparent border-[var(--border-strong)]'

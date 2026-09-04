@@ -30,6 +30,7 @@ interface CommandPaletteProps {
   onQuickAdd: (type: TransactionType, data: { amount: number, category: string, note?: string }) => void;
   onTogglePrivacy: () => void;
   onSelectWallet?: (walletId: string) => void;
+  onOpenRabbAi?: (q: { text: string }) => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -39,7 +40,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onViewChange,
   onQuickAdd,
   onTogglePrivacy,
-  onSelectWallet
+  onSelectWallet,
+  onOpenRabbAi
 }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -108,27 +110,27 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   if (isAiLoading && query.trim().length > 3) {
     quickEntrySection.push({
       id: 'ai-loading',
-      label: 'Analyzing input with RabbAi (Llama 3.1 8B)...',
+      label: 'Processing command...',
       icon: Sparkles,
       action: () => {},
-      section: 'RabbAi Intelligence'
+      section: 'Actions'
     });
   } else if (aiResult) {
     if (aiResult.isDenial) {
       quickEntrySection.push({
         id: 'ai-denial',
         label: `Denial Detected: "I didn't spend/earn"`,
-        subtitle: `Got it, I won't log this transaction (${query})`,
+        subtitle: `Got it, will not log this transaction (${query})`,
         icon: Ban,
         action: () => onClose(),
-        section: 'RabbAi Intelligence',
+        section: 'Actions',
         isDenial: true
       });
     } else if (aiResult.isValid && aiResult.amount !== null) {
       quickEntrySection.push({
         id: 'ai-quick-add',
         label: `Log ${aiResult.type === TransactionType.INCOME ? '+' : ''}${data.settings.currencySymbol || '$'}${aiResult.amount} under ${aiResult.category}`,
-        subtitle: `Description: ${aiResult.description} (${aiResult.source === 'groq_ai' ? 'RabbAi' : 'Local NLP'})`,
+        subtitle: `Description: ${aiResult.description}`,
         icon: Zap,
         action: () => {
           onQuickAdd(aiResult.type, { 
@@ -138,10 +140,28 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           });
           onClose();
         },
-        section: 'RabbAi Intelligence',
+        section: 'Actions',
         isAi: true
       });
     }
+  }
+
+  // Offer direct assistant query if user typed something that isn't a simple navigation match
+  if (query.trim() && !aiResult?.isValid) {
+    quickEntrySection.push({
+      id: 'ask-rabbai',
+      label: `Search or run: "${query.trim()}"`,
+      subtitle: 'Execute transaction instruction or search query',
+      icon: Sparkles,
+      action: () => {
+        if (onOpenRabbAi) {
+          onOpenRabbAi({ text: query.trim() });
+        } else {
+          onViewChange('rabbai');
+        }
+      },
+      section: 'Actions'
+    });
   }
 
   const results = [
@@ -171,6 +191,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       if (results[selectedIndex]) {
         results[selectedIndex].action();
         onClose();
+      } else if (query.trim()) {
+        if (onOpenRabbAi) {
+          onOpenRabbAi({ text: query.trim() });
+        } else {
+          onViewChange('rabbai');
+        }
+        onClose();
       }
     } else if (e.key === 'Escape') {
       onClose();
@@ -195,10 +222,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       <div 
         className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity duration-150" 
         onClick={onClose} 
+        aria-hidden="true"
       />
       
       {/* Modal Shell */}
-      <div className="relative w-full max-w-xl bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] shadow-2xl overflow-hidden flex flex-col z-10 text-[var(--text-primary)]">
+      <div 
+        role="dialog" 
+        aria-modal="true" 
+        aria-label="Command Palette"
+        className="relative w-full max-w-xl bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] shadow-2xl overflow-hidden flex flex-col z-10 text-[var(--text-primary)]"
+      >
         {/* Top Input Bar */}
         <div className="h-[48px] px-4 flex items-center gap-3 border-b border-[var(--border-default)] shrink-0">
           <Search size={16} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
@@ -211,8 +244,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             onKeyDown={handleKeyDown}
             className="flex-1 bg-transparent border-none outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
           />
-          <span className="flex items-center gap-1 text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-subtle)] px-1.5 py-0.5 rounded border border-[var(--border-default)]">
-            <Zap size={10} className="text-amber-400" /> RabbAi
+          <span className="text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-subtle)] px-1.5 py-0.5 rounded border border-[var(--border-default)]">
+            Cmd/Ctrl K
           </span>
           <button 
             onClick={onClose}
@@ -262,7 +295,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           {isWalletActive && (
-                            <span className="text-[10px] font-medium text-[var(--status-success-fg)] bg-[var(--status-success-bg)] px-1.5 py-0.5 rounded border border-[var(--status-success-fg)]/20 flex items-center gap-1">
+                            <span className="pill pill--success text-[10px] py-0.5 px-2 flex items-center gap-1">
                               <Check size={10} /> Active
                             </span>
                           )}
@@ -287,20 +320,20 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           {query.trim() === '' && (
             <div className="mt-2 pt-2 border-t border-[var(--border-default)]/40 px-3 pb-1">
               <h3 className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1.5 flex items-center gap-1">
-                <Zap size={11} className="text-amber-400" /> Groq AI Natural Language Examples
+                <Zap size={11} className="text-amber-400" /> Quick Entry & Search Examples
               </h3>
               <div className="space-y-1 text-[12px] text-[var(--text-muted)]">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[11px] text-[var(--text-primary)]">"Spent 200 on coffee today"</span>
-                  <span>— Groq AI extracts $200, Expense, Coffee</span>
+                  <span>— extracts $200, Expense, Coffee</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[11px] text-[var(--text-primary)]">"I didn't spend 200 on coffee"</span>
-                  <span>— Groq AI detects negation & cancels logging</span>
+                  <span>— detects negation & cancels logging</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[11px] text-[var(--text-primary)]">"Received 1500 freelance payment"</span>
-                  <span>— Groq AI extracts $1500, Income</span>
+                  <span>— records $1,500 income</span>
                 </div>
               </div>
             </div>
@@ -320,8 +353,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               <span className="ml-1">to select</span>
             </span>
           </div>
-          <span className="text-[10px] font-mono text-[var(--text-muted)] opacity-70 flex items-center gap-1">
-            <Zap size={10} className="text-amber-400" /> Powered by Groq Llama 3.1 8B
+          <span className="text-[10px] font-mono text-[var(--text-muted)] opacity-70">
+            Esc to close
           </span>
         </div>
       </div>

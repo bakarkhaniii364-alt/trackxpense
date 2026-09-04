@@ -12,7 +12,11 @@ import {
   ArrowDown,
   SlidersHorizontal,
   Receipt,
-  Plus
+  Plus,
+  DotsThree,
+  Check,
+  PencilSimple,
+  Copy
 } from '@phosphor-icons/react';
 import { Transaction, TransactionType, AppData } from '../types';
 import { CategoryIcon } from './shared/CategoryIcon';
@@ -55,6 +59,26 @@ export const HistoryView: React.FC<HistoryProps> = ({
   const [isMobile, setIsMobile] = useState(!propIsDesktop && typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [activeRowMenu, setActiveRowMenu] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleCloseMenu = () => setActiveRowMenu(null);
+    if (activeRowMenu) {
+      window.addEventListener('click', handleCloseMenu);
+    }
+    return () => window.removeEventListener('click', handleCloseMenu);
+  }, [activeRowMenu]);
+
+  const handleDuplicateTransaction = (t: Transaction) => {
+    Haptics.light();
+    if (!updateData) return;
+    const newTx: Transaction = {
+      ...t,
+      id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      date: new Date().toISOString()
+    };
+    updateData({ transactions: [newTx, ...(data.transactions || [])] });
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -142,9 +166,11 @@ export const HistoryView: React.FC<HistoryProps> = ({
   };
 
   const handleBatchDelete = () => {
-    if (selectedIds.length === 0) return;
+    if (selectedIds.length === 0 || !data) return;
     if (confirm(`Delete ${selectedIds.length} selected transactions?`)) {
-      selectedIds.forEach(id => onRequestDelete(id));
+      updateData({
+        transactions: data.transactions.filter(t => !selectedIds.includes(t.id))
+      });
       setSelectedIds([]);
       Haptics.success();
     }
@@ -205,230 +231,379 @@ export const HistoryView: React.FC<HistoryProps> = ({
         </div>
       </div>
 
-      {/* Filter and View Modes Bar */}
-      <div className="bg-[var(--bg-surface)] p-3 sm:p-4 rounded-[10px] border border-[var(--border-default)] space-y-3">
-        
-        {/* Search & Date Input Row */}
-        <div className="flex flex-col sm:flex-row gap-2.5">
-          <div className="flex-1 flex items-center gap-2 bg-[var(--bg-subtle)] rounded-[6px] px-3 py-1.5 border border-[var(--border-default)] focus-within:border-[var(--accent-solid)] transition-colors">
-            <Search size={14} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
-            <input 
-              type="text" 
-              placeholder="Search by note, merchant, category, or tag..." 
-              value={searchTerm} 
-              onChange={e => setSearchTerm(e.target.value)} 
-              className="bg-transparent text-[12px] text-[var(--text-primary)] w-full outline-none placeholder:text-[var(--text-muted)]" 
-            />
-            {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">
-                <X size={13} strokeWidth={1.5} />
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <input 
-                type="date" 
-                value={dateRange.start} 
-                onChange={e => setDateRange(prev => ({...prev, start: e.target.value}))}
-                className="h-[32px] bg-[var(--field-bg)] text-[var(--text-primary)] text-[11px] rounded-[6px] px-2.5 outline-none border border-[var(--field-border)]"
-                title="Start Date"
-              />
-            </div>
-            <span className="text-[var(--text-muted)] text-[11px]">to</span>
-            <div className="relative">
-              <input 
-                type="date" 
-                value={dateRange.end} 
-                onChange={e => setDateRange(prev => ({...prev, end: e.target.value}))}
-                className="h-[32px] bg-[var(--field-bg)] text-[var(--text-primary)] text-[11px] rounded-[6px] px-2.5 outline-none border border-[var(--field-border)]"
-                title="End Date"
-              />
-            </div>
-          </div>
+      {/* Cloudflare Underline Tab Bar (No Pill Shapes, No Outer Container) */}
+      <div className="border-b border-[var(--border-default)] flex items-center justify-between gap-4 overflow-x-auto no-scrollbar pt-1">
+        {/* Left: Type Filter Tabs */}
+        <div className="flex items-center gap-6 shrink-0">
+          <button
+            onClick={() => { Haptics.light(); setTypeFilter('ALL'); }}
+            className={`pb-2.5 text-[13px] font-medium border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+              typeFilter === 'ALL'
+                ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <span>All</span>
+            <span className="text-[11px] font-mono text-[var(--text-muted)]">
+              {data.transactions.length}
+            </span>
+          </button>
+          <button
+            onClick={() => { Haptics.light(); setTypeFilter('EXPENSE'); }}
+            className={`pb-2.5 text-[13px] font-medium border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+              typeFilter === 'EXPENSE'
+                ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <span>Expenses</span>
+            <span className="text-[11px] font-mono text-[var(--text-muted)]">
+              {data.transactions.filter(t => t.type === TransactionType.EXPENSE).length}
+            </span>
+          </button>
+          <button
+            onClick={() => { Haptics.light(); setTypeFilter('INCOME'); }}
+            className={`pb-2.5 text-[13px] font-medium border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+              typeFilter === 'INCOME'
+                ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
+                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <span>Income</span>
+            <span className="text-[11px] font-mono text-[var(--text-muted)]">
+              {data.transactions.filter(t => t.type === TransactionType.INCOME).length}
+            </span>
+          </button>
         </div>
 
-        {/* Filter Chips Row */}
-        <div className="flex items-center justify-between gap-3 overflow-x-auto no-scrollbar pt-0.5">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={() => { Haptics.light(); setTypeFilter('ALL'); setSearchTerm(''); setDateRange({start: '', end: ''}); }}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all cursor-pointer ${
-                typeFilter === 'ALL' && !searchTerm && !dateRange.start && !dateRange.end
-                  ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)] font-semibold'
-                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => { Haptics.light(); setTypeFilter(typeFilter === 'EXPENSE' ? 'ALL' : 'EXPENSE'); }}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all cursor-pointer ${
-                typeFilter === 'EXPENSE'
-                  ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)] font-semibold'
-                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Expenses
-            </button>
-            <button
-              onClick={() => { Haptics.light(); setTypeFilter(typeFilter === 'INCOME' ? 'ALL' : 'INCOME'); }}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all cursor-pointer ${
-                typeFilter === 'INCOME'
-                  ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)] font-semibold'
-                  : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Income
-            </button>
-
-            {allTags.slice(0, 6).map(tag => (
-              <button 
-                key={tag} 
-                onClick={() => { Haptics.light(); setSearchTerm(prev => prev === tag ? '' : tag); }} 
-                className={`px-2 py-0.5 rounded-full text-[11px] font-mono border transition-all cursor-pointer ${
-                  searchTerm === tag 
-                    ? 'bg-[var(--accent-solid)] text-[var(--accent-text)] border-[var(--accent-solid)] font-semibold' 
-                    : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-default)] hover:text-[var(--text-primary)]'
+        {/* Right: View Mode Underline Tabs */}
+        <div className="flex items-center gap-5 shrink-0">
+          {[
+            { id: 'list', icon: FileText, label: 'Ledger' },
+            { id: 'calendar', icon: CalendarIcon, label: 'Calendar' },
+            { id: 'stats', icon: PieChart, label: 'Stats' },
+            { id: 'flow', icon: Shuffle, label: 'Sankey' }
+          ].map(tab => {
+            const Icon = tab.icon;
+            const isActive = viewMode === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => { Haptics.light(); setViewMode(tab.id as any); }}
+                className={`pb-2.5 text-[13px] font-medium border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  isActive
+                    ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
+                    : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                {tag}
+                <Icon size={14} strokeWidth={1.5} />
+                <span>{tab.label}</span>
               </button>
-            ))}
-          </div>
+            );
+          })}
+        </div>
+      </div>
 
-          {/* View Mode Segmented Controls */}
-          <div className="flex p-0.5 rounded-[6px] bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[11px] shrink-0">
-            {[
-              { id: 'list', icon: FileText, label: 'Ledger' },
-              { id: 'calendar', icon: CalendarIcon, label: 'Calendar' },
-              { id: 'stats', icon: PieChart, label: 'Stats' },
-              { id: 'flow', icon: Shuffle, label: 'Sankey' }
-            ].map(tab => {
-              const Icon = tab.icon;
-              const isActive = viewMode === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => { Haptics.light(); setViewMode(tab.id as any); }}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-[4px] font-medium transition-all cursor-pointer ${
-                    isActive 
-                      ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold' 
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                  }`}
-                >
-                  <Icon size={12} strokeWidth={1.5} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
+      {/* Flat Toolbar: Search & Date Inputs - NO Outer Container Card */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+        {/* Search Input: Clean 1px border */}
+        <div className="flex-1 flex items-center gap-2 bg-[var(--bg-surface)] rounded-[6px] px-3 h-[36px] border border-[var(--border-default)] focus-within:border-[var(--border-active)] transition-colors">
+          <Search size={14} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+          <input 
+            type="text" 
+            placeholder="Search note, category, or merchant..." 
+            value={searchTerm} 
+            onChange={e => setSearchTerm(e.target.value)} 
+            className="bg-transparent text-[12px] text-[var(--text-primary)] w-full outline-none placeholder:text-[var(--text-muted)]" 
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">
+              <X size={13} strokeWidth={1.5} />
+            </button>
+          )}
+        </div>
+
+        {/* Date Inputs: Clean 1px border */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="relative">
+            <input 
+              type="date" 
+              value={dateRange.start} 
+              onChange={e => setDateRange(prev => ({...prev, start: e.target.value}))}
+              className="h-[36px] bg-[var(--bg-surface)] text-[var(--text-primary)] text-[11px] rounded-[6px] px-2.5 outline-none border border-[var(--border-default)] focus:border-[var(--border-active)] transition-colors"
+              title="Start Date"
+            />
           </div>
+          <span className="text-[var(--text-muted)] text-[11px]">to</span>
+          <div className="relative">
+            <input 
+              type="date" 
+              value={dateRange.end} 
+              onChange={e => setDateRange(prev => ({...prev, end: e.target.value}))}
+              className="h-[36px] bg-[var(--bg-surface)] text-[var(--text-primary)] text-[11px] rounded-[6px] px-2.5 outline-none border border-[var(--border-default)] focus:border-[var(--border-active)] transition-colors"
+              title="End Date"
+            />
+          </div>
+          {(dateRange.start || dateRange.end) && (
+            <button
+              type="button"
+              onClick={() => setDateRange({start: '', end: ''})}
+              className="h-[36px] px-2.5 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
       {/* Main View Mode Panes */}
       {viewMode === 'calendar' && (
-        <CalendarView transactions={filteredTransactions} onSelectDate={(d) => setDateRange({ start: d, end: d })} />
+        <CalendarView 
+          transactions={filteredTransactions} 
+          onSelectDate={(d) => setDateRange({ start: d, end: d })}
+          currencySymbol={data.settings.currencySymbol}
+          formatMoney={formatMoney}
+        />
       )}
 
       {viewMode === 'stats' && (
-        <HistoryStats transactions={filteredTransactions} />
+        <HistoryStats 
+          transactions={filteredTransactions} 
+          data={data} 
+          formatMoney={formatMoney} 
+        />
       )}
 
       {viewMode === 'flow' && (
-        <SankeyChart transactions={filteredTransactions} />
+        <SankeyChart 
+          transactions={filteredTransactions} 
+          categories={data?.categories || []} 
+        />
       )}
 
       {viewMode === 'list' && (
         <div className="space-y-3">
           {filteredTransactions.length === 0 ? (
-            <EmptyStateSeeder onSeed={updateData} />
+            <EmptyStateSeeder data={data} updateData={updateData} />
           ) : (
-            <div className="bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] overflow-hidden shadow-xs">
+            <div className="bg-[var(--bg-surface)] rounded-[8px] border border-[var(--border-default)] shadow-xs">
               
+              {/* Cloudflare Bulk Selection Bar: only visible when entries are selected */}
+              {selectedIds.length > 0 && (
+                <div className="px-4 py-2 bg-[var(--bg-subtle)] border-b border-[var(--border-default)] flex items-center justify-between text-[12px] animate-in fade-in duration-150">
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium text-[var(--text-primary)] font-mono">
+                      {selectedIds.length} selected
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedIds([])}
+                      className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                    >
+                      Cancel selection
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleBatchDelete}
+                    className="h-[26px] px-2.5 bg-[var(--status-error-bg)] text-[var(--status-error-fg)] hover:opacity-90 rounded-[4px] font-medium text-[11px] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={12} strokeWidth={1.5} />
+                    <span>Delete ({selectedIds.length})</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Table Section Header (Cloudflare / Lumen layout) */}
+              <div className="px-4 py-2 border-b border-[var(--border-default)] flex items-center justify-between">
+                <span className="text-[12px] font-medium text-[var(--text-primary)]">
+                  All records
+                </span>
+                <span className="text-[11px] text-[var(--text-muted)] font-mono">
+                  {filteredTransactions.length} {filteredTransactions.length === 1 ? 'record' : 'records'}
+                </span>
+              </div>
+
               {/* Responsive Layout: Table on Tablet/Desktop, Card Rows on Mobile */}
-              <div className="hidden md:block overflow-x-auto">
+              <div className="hidden md:block">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-[var(--border-default)] bg-[var(--bg-subtle)]/40 text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em]">
-                      <th className="px-4 py-2.5 w-10">
-                        <GlassCheckbox 
-                          checked={paginatedTransactions.length > 0 && paginatedTransactions.every(t => selectedIds.includes(t.id))}
-                          onChange={selectAllCurrentPage}
-                        />
-                      </th>
+                    <tr className="border-b border-[var(--border-default)] bg-[var(--bg-surface)] text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em]">
+                      {selectedIds.length > 0 && (
+                        <th className="px-4 py-2 w-10">
+                          <GlassCheckbox 
+                            checked={paginatedTransactions.length > 0 && paginatedTransactions.every((t, idx) => selectedIds.includes(t.id ? String(t.id) : `tx_${idx}_${t.date}`))}
+                            onChange={selectAllCurrentPage}
+                          />
+                        </th>
+                      )}
+                      <th className="px-4 py-2 w-24">Type</th>
                       <th 
-                        className="px-4 py-2.5 cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                        className="px-4 py-2 cursor-pointer hover:text-[var(--text-primary)] transition-colors"
                         onClick={() => toggleSort('date')}
                       >
                         <div className="flex items-center gap-1">
-                          Date {sortKey === 'date' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
+                          Date {sortKey === 'date' && (sortDirection === 'asc' ? <ArrowUp size={11}/> : <ArrowDown size={11}/>)}
                         </div>
                       </th>
                       <th 
-                        className="px-4 py-2.5 cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                        className="px-4 py-2 cursor-pointer hover:text-[var(--text-primary)] transition-colors"
                         onClick={() => toggleSort('category')}
                       >
                         <div className="flex items-center gap-1">
-                          Category {sortKey === 'category' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
+                          Category {sortKey === 'category' && (sortDirection === 'asc' ? <ArrowUp size={11}/> : <ArrowDown size={11}/>)}
                         </div>
                       </th>
-                      <th className="px-4 py-2.5">
+                      <th className="px-4 py-2">
                         Note / Description
                       </th>
                       <th 
-                        className="px-4 py-2.5 text-right cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                        className="px-4 py-2 text-right cursor-pointer hover:text-[var(--text-primary)] transition-colors"
                         onClick={() => toggleSort('amount')}
                       >
                         <div className="flex items-center justify-end gap-1">
-                          Amount {sortKey === 'amount' && (sortDirection === 'asc' ? <ArrowUp size={12}/> : <ArrowDown size={12}/>)}
+                          Amount {sortKey === 'amount' && (sortDirection === 'asc' ? <ArrowUp size={11}/> : <ArrowDown size={11}/>)}
                         </div>
                       </th>
+                      <th className="px-3 py-2 w-10 text-right"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-default)]">
-                    {paginatedTransactions.map((t) => {
-                      const isSelected = selectedIds.includes(t.id);
+                    {paginatedTransactions.map((t, idx) => {
+                      const txId = t.id ? String(t.id) : `tx_${idx}_${t.date || ''}_${t.amount || 0}`;
+                      const isSelected = selectedIds.includes(txId);
+                      const isMenuOpen = activeRowMenu === txId;
+                      const openUpwards = idx >= Math.max(1, paginatedTransactions.length - 2);
+
                       return (
                         <tr 
-                          key={t.id} 
+                          key={txId} 
                           onClick={() => onEditTransaction(t)} 
                           className={`hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer ${
                             isSelected ? 'bg-[var(--bg-subtle)]' : ''
                           }`}
                         >
-                          <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                            <GlassCheckbox 
-                              checked={isSelected}
-                              onChange={() => toggleSelect(t.id)}
-                            />
+                          {selectedIds.length > 0 && (
+                            <td className="px-4 py-2" onClick={e => e.stopPropagation()}>
+                              <GlassCheckbox 
+                                checked={isSelected}
+                                onChange={() => toggleSelect(txId)}
+                              />
+                            </td>
+                          )}
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            {t.type === TransactionType.INCOME ? (
+                              <span className="pill pill--income">
+                                Income
+                              </span>
+                            ) : t.type === TransactionType.TRANSFER ? (
+                              <span className="pill pill--transfer">
+                                Transfer
+                              </span>
+                            ) : (
+                              <span className="pill pill--expense">
+                                Expense
+                              </span>
+                            )}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span className="text-[12px] font-medium text-[var(--text-primary)] font-mono block">
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            <span className="text-[12px] font-medium text-[var(--text-primary)] font-mono">
                               {new Date(t.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                             </span>
-                            <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                            <span className="text-[10px] text-[var(--text-muted)] font-mono ml-2">
                               {new Date(t.date).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center gap-2">
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
                               <CategoryIcon category={t.category} color={data.categories?.find(c => c.name === t.category)?.color} />
                               <span className="text-[12px] font-medium text-[var(--text-primary)]">{t.category}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-2">
                             <span className="text-[12px] text-[var(--text-primary)] line-clamp-1 max-w-[340px]">
                               {t.note || <span className="text-[var(--text-muted)] italic">No note</span>}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-right whitespace-nowrap">
-                            <span className={`text-[13px] font-semibold font-mono tracking-tight ${
+                          <td className="px-4 py-2 text-right whitespace-nowrap">
+                            <span className={`text-[12.5px] font-semibold font-mono tracking-tight ${
                               t.type === TransactionType.INCOME ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-primary)]'
                             }`}>
                               {t.type === TransactionType.INCOME ? '+' : '-'}{formatMoney(t.amount, data.settings.currencySymbol)}
                             </span>
+                          </td>
+                          <td className="px-3 py-2 text-right whitespace-nowrap relative" onClick={e => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveRowMenu(isMenuOpen ? null : txId);
+                              }}
+                              className="w-6 h-6 rounded-[4px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] inline-flex items-center justify-center transition-colors cursor-pointer"
+                              title="Row options"
+                            >
+                              <DotsThree size={16} weight="bold" />
+                            </button>
+                            {isMenuOpen && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-[40]"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveRowMenu(null);
+                                  }}
+                                />
+                                <div className={`absolute right-3 z-[50] w-36 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_12px_32px_rgba(0,0,0,0.65)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100 text-left select-none ${
+                                  openUpwards ? 'bottom-7' : 'top-8'
+                                }`}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      toggleSelect(txId);
+                                      setActiveRowMenu(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors text-[11.5px]"
+                                  >
+                                    <Check size={13} strokeWidth={1.5} />
+                                    <span>{isSelected ? 'Deselect' : 'Select'}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      onEditTransaction(t);
+                                      setActiveRowMenu(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors text-[11.5px]"
+                                  >
+                                    <PencilSimple size={13} strokeWidth={1.5} />
+                                    <span>Edit</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleDuplicateTransaction(t);
+                                      setActiveRowMenu(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors text-[11.5px]"
+                                  >
+                                    <Copy size={13} strokeWidth={1.5} />
+                                    <span>Duplicate</span>
+                                  </button>
+                                  <div className="my-1 border-t border-[var(--border-default)]" />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      onRequestDelete(txId);
+                                      setActiveRowMenu(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-[4px] text-[var(--status-error-fg)] hover:bg-[var(--status-error-bg)] cursor-pointer transition-colors text-[11.5px]"
+                                  >
+                                    <Trash2 size={13} strokeWidth={1.5} />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
+                              </>
+                            )}
                           </td>
                         </tr>
                       );
@@ -439,20 +614,25 @@ export const HistoryView: React.FC<HistoryProps> = ({
 
               {/* Mobile Card Rows List */}
               <div className="block md:hidden divide-y divide-[var(--border-default)]">
-                {paginatedTransactions.map((t) => {
-                  const isSelected = selectedIds.includes(t.id);
+                {paginatedTransactions.map((t, idx) => {
+                  const txId = t.id ? String(t.id) : `tx_${idx}_${t.date || ''}_${t.amount || 0}`;
+                  const isSelected = selectedIds.includes(txId);
+                  const isMenuOpen = activeRowMenu === txId;
+
                   return (
                     <div
-                      key={t.id}
+                      key={txId}
                       onClick={() => onEditTransaction(t)}
-                      className={`p-3.5 flex items-center justify-between gap-3 hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer ${
+                      className={`px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer ${
                         isSelected ? 'bg-[var(--bg-subtle)]' : ''
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div onClick={e => { e.stopPropagation(); toggleSelect(t.id); }}>
-                          <GlassCheckbox checked={isSelected} onChange={() => toggleSelect(t.id)} />
-                        </div>
+                        {selectedIds.length > 0 && (
+                          <div onClick={e => { e.stopPropagation(); toggleSelect(txId); }}>
+                            <GlassCheckbox checked={isSelected} onChange={() => toggleSelect(txId)} />
+                          </div>
+                        )}
                         <CategoryIcon category={t.category} color={data.categories?.find(c => c.name === t.category)?.color} />
                         <div className="min-w-0">
                           <p className="text-[13px] font-medium text-[var(--text-primary)] truncate">
@@ -464,15 +644,88 @@ export const HistoryView: React.FC<HistoryProps> = ({
                         </div>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        <span className={`text-[13px] font-semibold font-mono ${
-                          t.type === TransactionType.INCOME ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-primary)]'
-                        }`}>
-                          {t.type === TransactionType.INCOME ? '+' : '-'}{formatMoney(t.amount, data.settings.currencySymbol)}
-                        </span>
-                        <span className="text-[10px] text-[var(--text-muted)] block font-mono">
-                          {new Date(t.date).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}
-                        </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="text-right">
+                          <span className={`text-[13px] font-semibold font-mono ${
+                            t.type === TransactionType.INCOME ? 'text-[var(--status-success-fg)]' : 'text-[var(--text-primary)]'
+                          }`}>
+                            {t.type === TransactionType.INCOME ? '+' : '-'}{formatMoney(t.amount, data.settings.currencySymbol)}
+                          </span>
+                          <span className="text-[10px] text-[var(--text-muted)] block font-mono">
+                            {new Date(t.date).toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })}
+                          </span>
+                        </div>
+
+                        <div className="relative" onClick={e => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveRowMenu(isMenuOpen ? null : txId);
+                            }}
+                            className="w-7 h-7 rounded-[4px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] inline-flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <DotsThree size={18} weight="bold" />
+                          </button>
+                          {isMenuOpen && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-[40]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveRowMenu(null);
+                                }}
+                              />
+                              <div className="absolute right-0 top-8 z-[50] w-36 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_12px_32px_rgba(0,0,0,0.65)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100 text-left select-none">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    toggleSelect(txId);
+                                    setActiveRowMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                                >
+                                  <Check size={13} strokeWidth={1.5} />
+                                  <span>{isSelected ? 'Deselect' : 'Select'}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onEditTransaction(t);
+                                    setActiveRowMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                                >
+                                  <PencilSimple size={13} strokeWidth={1.5} />
+                                  <span>Edit</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleDuplicateTransaction(t);
+                                    setActiveRowMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                                >
+                                  <Copy size={13} strokeWidth={1.5} />
+                                  <span>Duplicate</span>
+                                </button>
+                                <div className="my-1 border-t border-[var(--border-default)]" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onRequestDelete(txId);
+                                    setActiveRowMenu(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--status-error-fg)] hover:bg-[var(--status-error-bg)] cursor-pointer transition-colors"
+                                >
+                                  <Trash2 size={13} strokeWidth={1.5} />
+                                  <span>Delete</span>
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -480,7 +733,7 @@ export const HistoryView: React.FC<HistoryProps> = ({
               </div>
 
               {/* Pagination Bar */}
-              <div className="px-4 py-3 border-t border-[var(--border-default)] flex items-center justify-between text-[11px]">
+              <div className="px-4 py-2 border-t border-[var(--border-default)] flex items-center justify-between text-[11px]">
                 <span className="text-[var(--text-muted)]">
                   Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredTransactions.length)} of {filteredTransactions.length} records
                 </span>

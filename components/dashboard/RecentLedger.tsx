@@ -23,7 +23,7 @@ export const RecentLedger: React.FC<RecentLedgerProps> = ({
     const currency = data.settings.currencySymbol;
 
     return (
-        <div className="rounded-[18px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 transition-colors">
+        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 lg:p-6 transition-colors">
             <div className="flex items-center justify-between mb-4">
                 <div>
                     <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] block mb-0.5">
