@@ -52,7 +52,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
         <div className="w-full mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 px-0.5 pt-0.5">
             
             {/* Cloudflare-Style Section Header Outside Card */}
-            <div className="flex items-center justify-between pb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
                 <div>
                     <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Upcoming Expenses</h2>
                     <p className="text-xs text-[var(--text-secondary)] mt-0.5">Schedule planned future purchases or bills to monitor 30-day liabilities.</p>
@@ -64,7 +64,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
                         setDate('');
                         setIsAddModalOpen(true);
                     }}
-                    className="btn btn--primary h-[32px] px-3.5 text-[12px] shrink-0"
+                    className="btn btn--primary h-[32px] px-3.5 text-[12px] shrink-0 self-start sm:self-auto"
                 >
                     <Plus size={14} />
                     <span>Add expense</span>

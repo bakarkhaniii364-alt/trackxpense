@@ -646,7 +646,8 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 </div>
               )}
 
-              <table className="w-full text-left border-collapse">
+              <div className="w-full overflow-x-auto no-scrollbar">
+                <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-[var(--border-default)] bg-[var(--bg-surface)] text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em]">
                     {selectedCategoryIds.length > 0 && (
@@ -797,6 +798,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                   })}
                 </tbody>
               </table>
+              </div>
 
               <TablePaginationFooter
                 currentPage={catCurrentPage}

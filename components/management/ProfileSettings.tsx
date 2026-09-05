@@ -24,8 +24,10 @@ import {
   Target,
   Palette,
   ArrowSquareOut as ExternalLink,
-  Lightning as Zap
+  Lightning as Zap,
+  Sparkle
 } from '@phosphor-icons/react';
+import { Haptics } from '../../services/haptics';
 import { CURRENCIES } from '../shared/CommonUI';
 import { supabase } from '../../services/supabase';
 import { saveAs } from 'file-saver';
@@ -295,9 +297,9 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
               <h2 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Profile & Preferences</h2>
 
               {/* Name Card */}
-              <div id="profile" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+              <div id="profile" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-4 sm:px-5 py-3.5 sm:py-4 transition-all">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-auto sm:w-[180px] shrink-0">
                     Name
                   </span>
                   {editingCard === 'profile' ? (
@@ -306,7 +308,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                         type="text"
                         value={localProfile.name}
                         onChange={(e) => setLocalProfile({ ...localProfile, name: e.target.value })}
-                        className="h-[32px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2.5 text-[13px] text-[var(--text-primary)] outline-none"
+                        className="h-[32px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2.5 text-[13px] text-[var(--text-primary)] outline-none w-full max-w-[200px]"
                         autoFocus
                       />
                       <div className="flex items-center gap-2">
@@ -315,8 +317,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       </div>
                     </div>
                   ) : (
-                    <>
-                      <span className="text-[13px] text-[var(--text-secondary)] flex-1">
+                    <div className="flex-1 flex items-center justify-between gap-2">
+                      <span className="text-[13px] text-[var(--text-secondary)]">
                         {localProfile.name || 'User'}
                       </span>
                       <button 
@@ -325,15 +327,15 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       >
                         Rename
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
 
               {/* Currency & Locale Card */}
-              <div id="currency" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+              <div id="currency" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-4 sm:px-5 py-3.5 sm:py-4 transition-all">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-auto sm:w-[180px] shrink-0">
                     Currency & locale
                   </span>
                   {editingCard === 'currency' ? (
@@ -356,8 +358,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">Done</button>
                     </div>
                   ) : (
-                    <>
-                      <span className="text-[13px] text-[var(--text-secondary)] flex-1">
+                    <div className="flex-1 flex items-center justify-between gap-2">
+                      <span className="text-[13px] text-[var(--text-secondary)]">
                         Active Currency Symbol: <strong className="text-[var(--text-primary)] font-medium font-mono">{localSettings.currencySymbol}</strong>
                       </span>
                       <button 
@@ -366,26 +368,28 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       >
                         Change
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
 
               {/* Stealth Mode Card */}
-              <div id="privacy" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+              <div id="privacy" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-4 sm:px-5 py-3.5 sm:py-4 transition-all">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-auto sm:w-[180px] shrink-0">
                     Stealth mode
                   </span>
-                  <span className="text-[13px] text-[var(--text-secondary)] flex-1">
-                    Privacy Masking: <strong className="text-[var(--text-primary)] font-medium">{localSettings.privacyMode ? 'Enabled' : 'Disabled'}</strong>
-                  </span>
-                  <button 
-                    onClick={togglePrivacyMode}
-                    className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
-                  >
-                    {localSettings.privacyMode ? 'Disable' : 'Enable'}
-                  </button>
+                  <div className="flex-1 flex items-center justify-between gap-2">
+                    <span className="text-[13px] text-[var(--text-secondary)]">
+                      Privacy Masking: <strong className="text-[var(--text-primary)] font-medium">{localSettings.privacyMode ? 'Enabled' : 'Disabled'}</strong>
+                    </span>
+                    <button 
+                      onClick={togglePrivacyMode}
+                      className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
+                    >
+                      {localSettings.privacyMode ? 'Disable' : 'Enable'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -399,12 +403,12 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
 
               {/* Field 1: Daily Expense Limit */}
               <div id="daily-limit" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-auto sm:w-[180px] shrink-0">
                     Daily Expense Limit
                   </span>
                   {editingCard === 'daily_target' ? (
-                    <div className="flex-1 flex items-center justify-between gap-3">
+                    <div className="flex-1 flex flex-wrap items-center justify-between gap-3">
                       <input
                         type="number"
                         placeholder="Daily limit..."
@@ -419,8 +423,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       </div>
                     </div>
                   ) : (
-                    <>
-                      <span className="text-[13px] text-[var(--text-secondary)] flex-1 font-mono">
+                    <div className="flex-1 flex items-center justify-between gap-2">
+                      <span className="text-[13px] text-[var(--text-secondary)] font-mono">
                         {localProfile.dailyGoal ? fmtMoney(localProfile.dailyGoal, data.settings.currencySymbol) : 'No daily limit set'}
                       </span>
                       <button 
@@ -429,19 +433,19 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       >
                         Edit
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
 
               {/* Field 2: Monthly Expense Limit */}
               <div id="monthly-limit" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-auto sm:w-[180px] shrink-0">
                     Monthly Expense Limit
                   </span>
                   {editingCard === 'monthly_target' ? (
-                    <div className="flex-1 flex items-center justify-between gap-3">
+                    <div className="flex-1 flex flex-wrap items-center justify-between gap-3">
                       <input
                         type="number"
                         placeholder="Monthly goal..."
@@ -456,8 +460,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       </div>
                     </div>
                   ) : (
-                    <>
-                      <span className="text-[13px] text-[var(--text-secondary)] flex-1 font-mono">
+                    <div className="flex-1 flex items-center justify-between gap-2">
+                      <span className="text-[13px] text-[var(--text-secondary)] font-mono">
                         {fmtMoney(localProfile.monthlyGoal, data.settings.currencySymbol)}
                       </span>
                       <button 
@@ -466,7 +470,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       >
                         Edit
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
@@ -481,37 +485,41 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
 
               {/* Field 1: Expense Alert */}
               <div id="expense-alert" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-auto sm:w-[180px] shrink-0">
                     Expense Alert
                   </span>
-                  <span className="text-[13px] text-[var(--text-secondary)] flex-1">
-                    Status: <strong className="text-[var(--text-primary)] font-medium">{localSettings.expenseReminders ? 'Enabled' : 'Disabled'}</strong>
-                  </span>
-                  <button 
-                    onClick={() => toggleNotification('expense')}
-                    className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
-                  >
-                    {localSettings.expenseReminders ? 'Disable' : 'Enable'}
-                  </button>
+                  <div className="flex-1 flex items-center justify-between gap-2">
+                    <span className="text-[13px] text-[var(--text-secondary)]">
+                      Status: <strong className="text-[var(--text-primary)] font-medium">{localSettings.expenseReminders ? 'Enabled' : 'Disabled'}</strong>
+                    </span>
+                    <button 
+                      onClick={() => toggleNotification('expense')}
+                      className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
+                    >
+                      {localSettings.expenseReminders ? 'Disable' : 'Enable'}
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Field 2: Debt Alert */}
               <div id="debt-alert" className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] rounded-[10px] px-5 py-4 transition-all">
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-[180px] shrink-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <span className="text-[13px] font-medium text-[var(--text-primary)] w-auto sm:w-[180px] shrink-0">
                     Debt Alert
                   </span>
-                  <span className="text-[13px] text-[var(--text-secondary)] flex-1">
-                    Status: <strong className="text-[var(--text-primary)] font-medium">{localSettings.debtReminders ? 'Enabled' : 'Disabled'}</strong>
-                  </span>
-                  <button 
-                    onClick={() => toggleNotification('debt')}
-                    className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
-                  >
-                    {localSettings.debtReminders ? 'Disable' : 'Enable'}
-                  </button>
+                  <div className="flex-1 flex items-center justify-between gap-2">
+                    <span className="text-[13px] text-[var(--text-secondary)]">
+                      Status: <strong className="text-[var(--text-primary)] font-medium">{localSettings.debtReminders ? 'Enabled' : 'Disabled'}</strong>
+                    </span>
+                    <button 
+                      onClick={() => toggleNotification('debt')}
+                      className="text-[13px] font-medium text-[var(--accent-solid)] hover:underline transition-all"
+                    >
+                      {localSettings.debtReminders ? 'Disable' : 'Enable'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -572,21 +580,21 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           <div className="lg:col-span-9 space-y-4">
             
             {/* Top Environment Selector Row (Matches Screenshot 1 Header line) */}
-            <div className="flex items-center justify-between pb-2">
-              <div className="flex items-center gap-3">
-                <span className="text-[13px] font-medium text-[var(--text-primary)]">Choose Environment:</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-[13px] font-medium text-[var(--text-primary)] whitespace-nowrap">Choose Environment:</span>
                 <CustomSelect
                   value={selectedWalletIdToConfig}
                   onChange={(val) => setSelectedWalletIdToConfig(val)}
                   options={(data.wallets || []).map(w => ({ value: w.id, label: w.name }))}
                   size="sm"
-                  className="min-w-[160px]"
+                  className="w-full sm:w-auto min-w-[160px]"
                 />
               </div>
 
               <button
                 onClick={() => { setNewWalletName(''); setNewWalletTarget(''); setIsAddWalletOpen(true); }}
-                className="btn btn--primary h-[34px] px-3.5 text-[12px] flex items-center gap-1.5 shrink-0"
+                className="btn btn--primary h-[34px] px-3.5 text-[12px] flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
               >
                 <Plus size={14} strokeWidth={1.5} />
                 <span>Add new wallet</span>

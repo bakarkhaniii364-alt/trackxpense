@@ -240,7 +240,7 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
           Analytics
         </h1>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           {/* Cloudflare-Style Date Range Picker with [ 📅 Last 24h ] [ + ] [ 🔄 ] */}
           <CloudflareDateRangePicker
             value={dateRange}

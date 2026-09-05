@@ -118,7 +118,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
         <div className="w-full mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 px-0.5 pt-0.5">
             
             {/* Cloudflare-Style Section Header Outside Card */}
-            <div className="flex items-center justify-between pb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
                 <div>
                     <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Subscriptions</h2>
                     <p className="text-xs text-[var(--text-secondary)] mt-0.5">Track active recurring services and auto-detected monthly subscriptions.</p>
@@ -129,7 +129,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                         setSubAmount('');
                         setIsAddModalOpen(true);
                     }}
-                    className="btn btn--primary h-[32px] px-3.5 text-[12px] shrink-0"
+                    className="btn btn--primary h-[32px] px-3.5 text-[12px] shrink-0 self-start sm:self-auto"
                 >
                     <Plus size={14} />
                     <span>Add subscription</span>
@@ -162,16 +162,16 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                                 {activeRules.map(rule => (
                                     <div 
                                         key={rule.id} 
-                                        className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all"
+                                        className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all gap-2"
                                     >
-                                        <div className="flex items-center gap-3.5">
-                                            <SpotifyIcon size={20} strokeWidth={1.5} className={rule.isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} />
-                                            <div>
-                                                <h4 className="text-[14px] font-medium text-[var(--text-primary)] flex items-center gap-2">
-                                                    {rule.name}
-                                                    {!rule.isActive && <span className="pill pill--warning text-[10px] py-0.5 px-2">Paused</span>}
+                                        <div className="flex items-center gap-3.5 min-w-0">
+                                            <SpotifyIcon size={20} strokeWidth={1.5} className={`shrink-0 ${rule.isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}`} />
+                                            <div className="min-w-0">
+                                                <h4 className="text-[14px] font-medium text-[var(--text-primary)] flex items-center gap-2 truncate">
+                                                    <span className="truncate">{rule.name}</span>
+                                                    {!rule.isActive && <span className="pill pill--warning text-[10px] py-0.5 px-2 shrink-0">Paused</span>}
                                                 </h4>
-                                                <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+                                                <p className="text-[12px] text-[var(--text-muted)] mt-0.5 truncate">
                                                     {formatMoney(rule.amount, data.settings.currencySymbol)} • {rule.frequency.toLowerCase()}
                                                 </p>
                                             </div>

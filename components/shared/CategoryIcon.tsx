@@ -29,7 +29,6 @@ export const MUTED_CATEGORY_COLORS: Record<string, string> = {
   [Category.LUNCH]: '#b57a4e',
   [Category.DINNER]: '#a5694e',
   [Category.FOOD_DELIVERY]: '#a56b6b',
-  [Category.FOODPANDA]: '#a56b6b',
   [Category.SNACKS]: '#b5a55e',
   [Category.LOAN_PAYMENT]: '#a56b6b',
   [Category.TRANSPORT]: '#6b9ab5',

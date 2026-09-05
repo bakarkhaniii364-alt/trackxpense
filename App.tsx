@@ -942,7 +942,7 @@ export default function App() {
   }
 
     return (
-        <div className="h-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full bg-[var(--bg-page)] text-main font-sans selection:bg-primary/30 transition-colors duration-300 flex flex-col lg:flex-row overflow-hidden relative">
+        <div className="h-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full max-w-full bg-[var(--bg-page)] text-main font-sans selection:bg-primary/30 transition-colors duration-300 flex flex-col lg:flex-row overflow-hidden overflow-x-hidden relative">
           {isDesktop && (
             <svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }} aria-hidden>
               <defs>
@@ -969,7 +969,7 @@ export default function App() {
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
       
-      <div className={`flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden h-full relative z-10 ${view === 'rabbai' ? 'dot-matrix-canvas' : ''}`}>
+      <div className={`flex-1 min-w-0 min-h-0 w-full max-w-full flex flex-col overflow-hidden overflow-x-hidden h-full relative z-10 ${view === 'rabbai' ? 'dot-matrix-canvas' : ''}`}>
         {/* Header - Mobile (Cloudflare Technical Design) */}
         {!isDesktop && (
           <header className="flex-none pt-[calc(env(safe-area-inset-top,0px)+6px)] pb-2 px-3 bg-[var(--bg-surface)]/95 backdrop-blur-md border-b border-[var(--border-default)] z-40 select-none">
@@ -1301,9 +1301,9 @@ export default function App() {
                 {/* Main Content */}
         <main 
           ref={mainRef}
-          className={`flex-1 min-w-0 min-h-0 w-full ${
+          className={`flex-1 min-w-0 min-h-0 w-full max-w-full ${
             view === 'rabbai'
-              ? 'max-w-none p-0 m-0 flex flex-col overflow-hidden'
+              ? 'max-w-none p-0 m-0 flex flex-col overflow-hidden overflow-x-hidden'
               : isDesktop 
                 ? 'max-w-none px-8 overflow-y-auto pb-4 no-scrollbar' 
                 : 'max-w-md mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-2 sm:pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] no-scrollbar'
@@ -1313,7 +1313,7 @@ export default function App() {
           <Suspense fallback={<AppSkeleton />}>
           {isDesktop ? (
             view === 'rabbai' ? (
-              <div className="w-full h-full flex-1 flex flex-col min-h-0 overflow-hidden max-w-none p-0 m-0 view-transition">
+              <div className="w-full max-w-full h-full flex-1 flex flex-col min-h-0 overflow-hidden overflow-x-hidden max-w-none p-0 m-0 view-transition">
                  <RabbAiView
                     data={data}
                     updateData={updateData}
@@ -1404,7 +1404,7 @@ export default function App() {
           ) : (
             <>
               {view === 'rabbai' && (
-                <div className="w-full h-full flex-1 flex flex-col min-h-0 overflow-hidden p-0 m-0 max-w-none view-transition">
+                <div className="w-full max-w-full h-full flex-1 flex flex-col min-h-0 overflow-hidden overflow-x-hidden p-0 m-0 max-w-none view-transition">
                   <RabbAiView
                     data={data}
                     updateData={updateData}
@@ -1432,7 +1432,7 @@ export default function App() {
               )}
 
               {view === 'dashboard' && (
-                <div className="w-full view-transition">
+                <div className="w-full max-w-full overflow-x-hidden view-transition">
                   <div className="h-auto p-0 lg:p-4">
                       <DesktopDashboard 
                           data={data} 
@@ -1455,7 +1455,7 @@ export default function App() {
               )}
 
               {view === 'history' && (
-                <div className="w-full view-transition">
+                <div className="w-full max-w-full overflow-x-hidden view-transition">
                   <div className="h-auto p-0 lg:p-4">
                       <HistoryView 
                           data={data} 
@@ -1469,7 +1469,7 @@ export default function App() {
               )}
 
               {view === 'debts' && (
-                <div className="w-full view-transition">
+                <div className="w-full max-w-full overflow-x-hidden view-transition">
                   <div className="h-auto p-0 lg:p-4">
                     <DebtView 
                         data={data} 
@@ -1483,7 +1483,7 @@ export default function App() {
               )}
 
               {view === 'analytics' && (
-                <div className="w-full view-transition">
+                <div className="w-full max-w-full overflow-x-hidden view-transition">
                   <div className="h-auto p-0 lg:p-4">
                       <AnalyticsView data={data} updateData={updateData} formatMoney={formatMoney} />
                   </div>
@@ -1491,7 +1491,7 @@ export default function App() {
               )}
 
               {view === 'provisions' && (
-                <div className="w-full view-transition">
+                <div className="w-full max-w-full overflow-x-hidden view-transition">
                   <div className="h-auto p-0 lg:p-4">
                       <ProvisioningCenter data={data} updateData={updateData} formatMoney={formatMoney} />
                   </div>
@@ -1499,7 +1499,7 @@ export default function App() {
               )}
 
               {view === 'subscriptions' && (
-                <div className="w-full view-transition">
+                <div className="w-full max-w-full overflow-x-hidden view-transition">
                   <div className="h-auto p-0 lg:p-4">
                       <SubscriptionManager data={data} updateData={updateData} formatMoney={formatMoney} />
                   </div>
@@ -1507,7 +1507,7 @@ export default function App() {
               )}
 
               {view === 'identity' && (
-                <div className="w-full view-transition">
+                <div className="w-full max-w-full overflow-x-hidden view-transition">
                   <div className="h-auto p-0 lg:p-4">
                       <DesktopIdentity 
                         data={data} 
@@ -1526,7 +1526,7 @@ export default function App() {
               )}
 
               {view === 'control' && (
-                <div className="w-full view-transition">
+                <div className="w-full max-w-full overflow-x-hidden view-transition">
                   <div className="h-auto p-0 lg:p-4">
                       <DesktopControl data={data} updateData={updateData} formatMoney={formatMoney} />
                   </div>

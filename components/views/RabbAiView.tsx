@@ -290,7 +290,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
   };
 
   const startListening = async () => {
-    Haptics.medium();
+    Haptics.light();
     setSpeechError(null);
     interimTranscriptRef.current = '';
     audioChunksRef.current = [];
@@ -720,6 +720,24 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
         document.body.removeChild(link);
         break;
       }
+      case 'DELETE_ALL_DATA': {
+        if (updateData) {
+          updateData({
+            transactions: [],
+            debts: [],
+            provisions: [],
+            templates: [],
+            streaks: {},
+            balanceHistory: [],
+            recurringRules: [],
+            settings: {
+              ...data.settings,
+              budgetLimits: {}
+            }
+          });
+        }
+        break;
+      }
     }
     patchMessage(msgId, {
       aiAction: { ...action, executed: true }
@@ -849,7 +867,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       {/* CENTER WORKSPACE: Dot-Matrix Canvas with Landing State or Message Stream   */}
       {/* ========================================================================= */}
       <div 
-        className="flex-1 overflow-y-auto px-3 py-2 relative flex flex-col no-scrollbar"
+        className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full px-3 py-2 relative flex flex-col no-scrollbar"
         style={{
           WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 48px, black calc(100% - 24px), transparent 100%)',
           maskImage: 'linear-gradient(to bottom, transparent 0%, black 48px, black calc(100% - 24px), transparent 100%)'
@@ -909,14 +927,14 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
         {/* Message Stream */}
         {hasMessages && (
-          <div className="w-full max-w-2xl mx-auto space-y-5 pt-8 pb-6">
+          <div className="w-full max-w-2xl mx-auto space-y-5 pt-8 pb-6 overflow-x-hidden">
             {displayMessages.map((msg) => {
               const isUser = msg.sender === 'user';
               
               if (isUser) {
                 const isEditing = editingMsgId === msg.id;
                 return (
-                  <div key={msg.id} className="flex flex-col items-end space-y-1.5 group max-w-full">
+                  <div key={msg.id} className="flex flex-col items-end space-y-1.5 group w-full max-w-full">
                     {isEditing ? (
                       <div className="w-full max-w-[85%] bg-[#141418] border border-[var(--accent)]/50 rounded-[12px] p-3 space-y-2.5 text-left shadow-lg">
                         <textarea
@@ -953,13 +971,13 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                         </div>
                       </div>
                     ) : (
-                      <div className="max-w-[85%] bg-[#1a1a22] border border-[var(--border-default)] rounded-[12px] px-3.5 py-2.5 space-y-2 shadow-sm text-left">
+                      <div className="max-w-[85%] bg-[#1a1a22] border border-[var(--border-default)] rounded-[12px] px-3.5 py-2.5 space-y-2 shadow-sm text-left break-words">
                         {msg.imageUrl && (
                           <div className="rounded-[8px] overflow-hidden border border-[var(--border-default)] max-w-[240px]">
                             <img src={msg.imageUrl} alt="Uploaded receipt" className="w-full h-auto object-cover" />
                           </div>
                         )}
-                        <div className="text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap">
+                        <div className="text-[13px] text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap break-words">
                           {msg.text}
                         </div>
                       </div>
@@ -1006,7 +1024,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
               }
 
               return (
-                <div key={msg.id} className="flex flex-col items-start space-y-1.5 text-left group">
+                <div key={msg.id} className="flex flex-col items-start space-y-1.5 text-left group w-full max-w-full overflow-hidden">
                   {/* Assistant Header */}
                   <div className="flex items-center gap-2.5 text-[12px] font-medium text-[var(--text-muted)] pl-0.5">
                     <img 
@@ -1023,13 +1041,13 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                   </div>
 
                   {/* Prose Body */}
-                  <div className="text-[13px] text-[#E4E4E7] leading-relaxed pl-[42px] max-w-full">
+                  <div className="text-[13px] text-[#E4E4E7] leading-relaxed pl-[42px] max-w-full break-words overflow-hidden">
                     <MarkdownRenderer content={msg.text} />
                   </div>
 
                   {/* Extracted Transaction Card */}
                   {msg.extractedTransaction && (
-                    <div className="ml-[42px] w-full max-w-sm rounded-[10px] bg-[#141418] border border-[var(--border-default)] p-3.5 space-y-2.5">
+                    <div className="ml-[42px] w-[calc(100%-42px)] max-w-sm rounded-[10px] bg-[#141418] border border-[var(--border-default)] p-3.5 space-y-2.5 box-border">
                       <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-1.5">
                         <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-muted)] flex items-center gap-1.5">
                           <Receipt size={12} strokeWidth={1.5} />
@@ -1113,30 +1131,58 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                   )}
 
                   {/* AI Action Execution Card */}
-                  {msg.aiAction && !msg.aiAction.executed && (
-                    <div className="ml-[42px] w-full max-w-sm rounded-[10px] bg-[#141418] border border-[var(--border-default)] p-3.5 space-y-2">
-                      <span className="text-[10px] uppercase tracking-wider font-medium text-[var(--text-muted)]">
-                        Proposed Action
-                      </span>
+                  {msg.aiAction && (
+                    <div className="ml-[42px] w-[calc(100%-42px)] max-w-sm rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] p-3.5 space-y-2.5 box-border">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase tracking-wider font-medium text-[var(--text-muted)]">
+                          Proposed Action
+                        </span>
+                        {msg.aiAction.executed && (
+                          <span className="text-[10px] uppercase font-mono text-[var(--status-success-fg)] flex items-center gap-1 font-medium">
+                            <Check size={11} weight="bold" />
+                            Executed
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[12px] text-[var(--text-primary)] font-medium">
                         {msg.aiAction.type === 'SET_BUDGET' ? (
                           <span>Set Budget: <strong className="text-white">{(msg.aiAction.payload as any).category}</strong> → {data.settings?.currencySymbol || '$'}{(msg.aiAction.payload as any).limit} / {(msg.aiAction.payload as any).period || 'MONTHLY'}</span>
                         ) : msg.aiAction.type === 'DELETE_TRANSACTION' ? (
                           <span>Delete Transaction: <strong className="text-white">{(msg.aiAction.payload as any).description || 'Item'}</strong> {(msg.aiAction.payload as any).amount !== undefined ? `(${data.settings?.currencySymbol || '$'}${(msg.aiAction.payload as any).amount})` : ''}</span>
+                        ) : msg.aiAction.type === 'DELETE_ALL_DATA' ? (
+                          <span>Delete All Data</span>
                         ) : (
                           msg.aiAction.type.replace(/_/g, ' ')
                         )}
                       </p>
-                      <button
-                        onClick={() => handleExecuteAction(msg.id, msg.aiAction!)}
-                        className={`w-full h-[28px] text-[11.5px] rounded-[6px] font-medium cursor-pointer transition-colors ${
-                          msg.aiAction.type === 'DELETE_TRANSACTION' || msg.aiAction.type === 'DELETE_ALL_DATA'
-                            ? 'bg-[var(--status-error-bg)] text-[var(--status-error-fg)] border border-[var(--status-error-fg)]/30 hover:bg-[var(--status-error-fg)] hover:text-white'
-                            : 'btn btn--primary'
-                        }`}
-                      >
-                        {msg.aiAction.type === 'DELETE_TRANSACTION' ? 'Confirm Deletion' : 'Confirm & Execute'}
-                      </button>
+                      {msg.aiAction.executed ? (
+                        <div className="pt-2 border-t border-[var(--border-default)] flex items-center justify-between text-[11px]">
+                          <span className="text-[var(--text-secondary)] flex items-center gap-1.5 font-medium">
+                            <Check size={13} weight="bold" className="text-[var(--status-success-fg)]" />
+                            <span>Action completed</span>
+                          </span>
+                          <span className="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Confirmed</span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleExecuteAction(msg.id, msg.aiAction!)}
+                          className={`btn ${
+                            msg.aiAction.type === 'DELETE_TRANSACTION' ||
+                            msg.aiAction.type === 'DELETE_ALL_DATA' ||
+                            msg.aiAction.type === 'DELETE_CATEGORY' ||
+                            msg.aiAction.type === 'DELETE_WALLET'
+                              ? 'btn--danger'
+                              : 'btn--primary'
+                          } w-full h-[30px] text-[12px] rounded-[6px] font-medium cursor-pointer`}
+                        >
+                          {msg.aiAction.type === 'DELETE_TRANSACTION' || msg.aiAction.type === 'DELETE_ALL_DATA'
+                            ? 'Confirm & Delete'
+                            : msg.aiAction.type === 'DELETE_CATEGORY' || msg.aiAction.type === 'DELETE_WALLET'
+                            ? 'Confirm Deletion'
+                            : 'Confirm & Execute'}
+                        </button>
+                      )}
                     </div>
                   )}
 

@@ -222,7 +222,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
   flushList();
   flushTable();
 
-  return <div className={`space-y-1 text-[13px] ${className}`}>{elements}</div>;
+  return <div className={`space-y-1 text-[13px] break-words max-w-full overflow-hidden ${className}`}>{elements}</div>;
 };
 
 /**
