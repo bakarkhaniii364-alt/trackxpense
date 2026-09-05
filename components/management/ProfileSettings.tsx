@@ -901,38 +901,55 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight flex items-center gap-2">
-                    <Zap size={18} className="text-amber-400" />
-                    <span>Smart Assistant Configuration</span>
+                    <Sparkle size={18} className="text-[var(--accent-solid)]" />
+                    <span>RabbAi Assistant (AI Co-Pilot)</span>
                   </h2>
                   <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    Fast serverless engine for natural language transaction logging, receipt scanning, and automated categorization.
+                    Fast conversational assistant for natural language logging, receipt scanning, and budget advice. Completely optional.
                   </p>
                 </div>
               </div>
 
               <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-5 rounded-[10px] space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-medium text-[var(--text-primary)]">Enable Smart Processing</span>
+                  <div>
+                    <span className="text-[13px] font-medium text-[var(--text-primary)] block">Enable RabbAi Assistant</span>
+                    <span className="text-[11px] text-[var(--text-secondary)] block mt-0.5">
+                      {Boolean(localSettings.enableAiParsing)
+                        ? 'Active — Natural language commands, voice input, and receipt OCR are enabled.' 
+                        : 'Disabled (Default) — App runs in 100% manual mode with zero AI processing.'}
+                    </span>
+                  </div>
                   <input
                     type="checkbox"
-                    checked={localSettings.enableAiParsing !== false}
+                    checked={Boolean(localSettings.enableAiParsing)}
                     onChange={(e) => {
                       const updated = { ...localSettings, enableAiParsing: e.target.checked };
                       setLocalSettings(updated);
                       updateData({ settings: updated });
+                      Haptics.light();
                     }}
-                    className="w-4 h-4 rounded border-[var(--border-default)] accent-[#F6821F] cursor-pointer"
+                    className="w-4 h-4 rounded border-[var(--border-default)] accent-[var(--accent-solid)] cursor-pointer"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-[13px] font-medium text-[var(--text-primary)] block">Assistant Engine Status</label>
-                  <div className="flex items-center gap-2 h-[38px] bg-[var(--status-success-bg)] border border-[var(--border-default)] rounded-[8px] px-3">
-                    <span className="w-2 h-2 rounded-full bg-[var(--status-success-fg)] shrink-0" />
-                    <span className="text-[12px] text-[var(--status-success-fg)] font-medium">Service Active — managed server-side</span>
-                  </div>
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    High-throughput cloud engine · Active and ready for instant requests.
+                  {Boolean(localSettings.enableAiParsing) ? (
+                    <div className="flex items-center gap-2 h-[38px] bg-[var(--status-success-bg)] border border-[var(--border-default)] rounded-[8px] px-3">
+                      <span className="w-2 h-2 rounded-full bg-[var(--status-success-fg)] shrink-0 animate-pulse" />
+                      <span className="text-[12px] text-[var(--status-success-fg)] font-medium">Service Active — Ready for instant requests</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 h-[38px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[8px] px-3">
+                      <span className="w-2 h-2 rounded-full bg-[var(--text-muted)] shrink-0" />
+                      <span className="text-[12px] text-[var(--text-muted)] font-medium">AI Disabled (Default) — Pure manual mode active</span>
+                    </div>
+                  )}
+                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                    {Boolean(localSettings.enableAiParsing)
+                      ? 'High-throughput cloud engine · Zero data selling · Encrypted transport.' 
+                      : 'Zero AI requests are made. All financial tracking is handled 100% locally on your device.'}
                   </p>
                 </div>
               </div>

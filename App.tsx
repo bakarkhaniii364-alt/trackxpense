@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { Transaction, ViewState, TransactionType, AppData, Wallet, WalletType, Debt, TransactionTemplate, DebtPayment, Category, CategoryItem, ThemeOption } from './types';
 import { PredictiveEngine } from './services/PredictiveEngine';
 import * as StorageService from './services/storage';
-import { DashboardView } from './components/DashboardView';
 import { AddTransactionModal } from './components/AddTransactionModal';
 import { DesktopDashboard } from './components/pc/DesktopDashboard';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
@@ -582,14 +581,6 @@ export default function App() {
         else if (isAddOpen) { setIsAddOpen(false); setEditingTx(null); handled = true; } 
         else if (deleteConfirmation.isOpen) { setDeleteConfirmation({ isOpen: false, id: null }); handled = true; } 
         else if (isUnsavedModalOpen) { setIsUnsavedModalOpen(false); handled = true; }
-        else if (view === 'menu') {
-            const currentHash = window.location.hash.replace('#', '');
-            const subViews = ['analytics', 'provisions', 'subscriptions', 'control', 'identity'];
-            if (!subViews.includes(currentHash)) {
-                setView('dashboard');
-                handled = true;
-            }
-        }
 
         if (handled) {
             window.history.pushState(null, '', window.location.href);
@@ -600,7 +591,7 @@ export default function App() {
      return () => window.removeEventListener('popstate', onPopState);
   }, [isSidebarOpen, isWalletModalOpen, isAddOpen, deleteConfirmation, isUnsavedModalOpen, view]);
 
-  const handleOnboardingComplete = (name: string, balance: number, dailyGoal: number) => {
+  const handleOnboardingComplete = (name: string, balance: number, dailyGoal: number, currencySymbol?: string, enableAi: boolean = false) => {
       if (!data) return;
       
       let newTransactions = [...data.transactions];
@@ -619,9 +610,21 @@ export default function App() {
           newTransactions = [initTx, ...newTransactions];
       }
 
+      const updatedSettings = { 
+        ...data.settings, 
+        hasOnboarded: true,
+        enableAiParsing: enableAi,
+        ...(currencySymbol ? { currencySymbol } : {})
+      };
+
+      const updatedWallets = currencySymbol 
+        ? data.wallets.map((w, idx) => idx === 0 ? { ...w, currency: currencySymbol } : w)
+        : data.wallets;
+
       updateData({
-          profile: { ...data.profile, name, dailyGoal },
-          settings: { ...data.settings, hasOnboarded: true },
+          profile: { ...data.profile, name: name || 'User', dailyGoal: dailyGoal || 0 },
+          settings: updatedSettings,
+          wallets: updatedWallets,
           transactions: newTransactions
       });
   };
@@ -1103,19 +1106,21 @@ export default function App() {
                     </button>
                   </div>
 
-                  {/* Right: AI Icon (Opens RabbAi) + Search Icon (All Container-Free) */}
+                  {/* Right: AI Icon (Opens RabbAi if enabled) + Search Icon (All Container-Free) */}
                   <div className="flex items-center gap-1 shrink-0">
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        Haptics.light();
-                        requestViewChange('rabbai');
-                      }}
-                      className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
-                      title="Open RabbAi Assistant"
-                    >
-                      <AiStarIcon size={19} strokeWidth={1.5} />
-                    </button>
+                    {Boolean(data.settings?.enableAiParsing) && (
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          Haptics.light();
+                          requestViewChange('rabbai');
+                        }}
+                        className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                        title="Open RabbAi Assistant"
+                      >
+                        <AiStarIcon size={19} strokeWidth={1.5} />
+                      </button>
+                    )}
 
                     <button
                       type="button"
@@ -1330,6 +1335,7 @@ export default function App() {
                     onClearInitialQuery={() => setRabbaiPendingQuery(null)}
                     onSelectConversation={setActiveConvId}
                     onClose={() => requestViewChange('dashboard')}
+                    onOpenSettings={() => requestViewChange('identity')}
                   />
               </div>
             ) : (
@@ -1420,6 +1426,7 @@ export default function App() {
                     onClearInitialQuery={() => setRabbaiPendingQuery(null)}
                     onSelectConversation={setActiveConvId}
                     onClose={() => requestViewChange('dashboard')}
+                    onOpenSettings={() => requestViewChange('identity')}
                   />
                 </div>
               )}
@@ -1427,7 +1434,7 @@ export default function App() {
               {view === 'dashboard' && (
                 <div className="w-full view-transition">
                   <div className="h-auto p-0 lg:p-4">
-                      <DashboardView 
+                      <DesktopDashboard 
                           data={data} 
                           setView={setView} 
                           updateData={updateData} 

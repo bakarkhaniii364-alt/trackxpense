@@ -18,10 +18,15 @@ export interface AIParsedTransaction {
 export async function parseTransactionWithAI(
   text: string,
   categories: string[],
-  customApiKey?: string
+  customApiKey?: string,
+  enableAi: boolean = false
 ): Promise<AIParsedTransaction | null> {
   const rawText = text.trim();
   if (!rawText) return null;
+
+  if (!enableAi) {
+    return parseFallbackLocal(rawText, categories);
+  }
 
   try {
     const rawContent = await GroqClient.complete({
@@ -123,6 +128,10 @@ export async function getSmartFinancialAdvice(
   data: AppData,
   customApiKey?: string
 ): Promise<string[] | null> {
+  if (!data.settings?.enableAiParsing) {
+    return null;
+  }
+
   const income = data.transactions.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0);
   const expense = data.transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;

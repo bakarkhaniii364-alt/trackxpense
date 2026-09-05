@@ -15,10 +15,6 @@ const pathToRouteMap: Record<string, { view: ViewState; subTab?: string }> = {
   '/transactions': { view: 'history' },
   '/history': { view: 'history' },
   '/analytics': { view: 'analytics' },
-  '/analytics/cash-flow': { view: 'analytics', subTab: 'cashflow' },
-  '/analytics/categories': { view: 'analytics', subTab: 'category' },
-  '/analytics/predictive': { view: 'analytics', subTab: 'predictive' },
-  '/analytics/health': { view: 'analytics', subTab: 'health' },
   '/debts': { view: 'debts' },
   '/budgets': { view: 'control' },
   '/control': { view: 'control' },
@@ -31,7 +27,6 @@ const pathToRouteMap: Record<string, { view: ViewState; subTab?: string }> = {
   '/settings/security': { view: 'identity', subTab: 'data_security' },
   '/settings/privacy': { view: 'identity', subTab: 'privacy' },
   '/profile': { view: 'identity', subTab: 'general' },
-  '/menu': { view: 'menu' },
 };
 
 // Maps ViewState and subTab to canonical path
@@ -44,10 +39,6 @@ export function getRoutePath(view: ViewState, subTab?: string): string {
     case 'history':
       return '/transactions';
     case 'analytics':
-      if (subTab === 'cashflow') return '/analytics/cash-flow';
-      if (subTab === 'category') return '/analytics/categories';
-      if (subTab === 'predictive') return '/analytics/predictive';
-      if (subTab === 'health') return '/analytics/health';
       return '/analytics';
     case 'debts':
       return '/debts';
@@ -62,8 +53,6 @@ export function getRoutePath(view: ViewState, subTab?: string): string {
       if (subTab === 'data_security' || subTab === 'security') return '/settings/security';
       if (subTab === 'privacy') return '/settings/privacy';
       return '/settings/general';
-    case 'menu':
-      return '/menu';
     default:
       return '/';
   }

@@ -250,7 +250,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div ref={mainMenuContainerRef} className="space-y-1 relative w-full">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: SquaresFour, btnRef: dashboardRef },
-              ...(isStatic ? [{ id: 'rabbai', label: 'RabbAi Assistant', icon: AiStarIcon }] : []),
+              ...(isStatic
+                ? [{
+                    id: 'rabbai',
+                    label: 'RabbAi Assistant',
+                    icon: AiStarIcon,
+                    badge: !data.settings?.enableAiParsing ? 'OFF' : undefined
+                  }]
+                : []),
               { id: 'history', label: 'Transactions', icon: Pulse, btnRef: historyRef },
               { id: 'analytics', label: 'Analytics', icon: TrendUp, btnRef: analyticsRef },
               { id: 'debts', label: 'Debts & Loans', icon: HandCoins, btnRef: debtsRef },
@@ -292,6 +299,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   >
                     {item.label}
                   </span>
+                  {item.badge && !isCollapsed && (
+                    <span className="ml-auto mr-2 text-[9px] font-mono px-1 py-0.5 rounded bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border-default)]">
+                      {item.badge}
+                    </span>
+                  )}
                 </button>
               );
             })}

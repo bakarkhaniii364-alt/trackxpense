@@ -387,6 +387,14 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     setSelectedReceipt(null);
     setIsSearchFocused(false);
 
+    // If AI is disabled (default): do not route to RabbAi or run AI parsing
+    if (!data.settings?.enableAiParsing) {
+      if (text) {
+        onAddTransactionRequest(TransactionType.EXPENSE, { note: text });
+      }
+      return;
+    }
+
     // Route to full RabbAi conversation window
     if (onOpenRabbAi) {
       onOpenRabbAi({ text, image: receipt || undefined });
@@ -516,37 +524,44 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                     searchInputRef.current?.blur();
                   }
                 }}
-                placeholder={isMobileScreen ? "Search or log expense..." : "Search or jump to... (e.g. '$15 for lunch', or press Ctrl+K)"}
+                placeholder={
+                  isMobileScreen 
+                    ? (Boolean(data.settings?.enableAiParsing) ? "Search or log expense..." : "Search records...") 
+                    : (Boolean(data.settings?.enableAiParsing) ? "Search or jump to... (e.g. '$15 for lunch', or press Ctrl+K)" : "Search records, wallets, or jump to... (press Ctrl+K)")
+                }
                 className="input-reset flex-1 min-w-0 bg-transparent border-0 outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] leading-normal py-1"
                 style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
               />
 
               {/* Right Toolbar Controls */}
               <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-                {/* Attach Receipt Button */}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="h-[26px] w-[26px] sm:w-auto px-0 sm:px-2 rounded-[6px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors flex items-center justify-center sm:gap-1.5 text-[11.5px] cursor-pointer shrink-0"
-                  title="Attach receipt image"
-                >
-                  <Paperclip size={13} strokeWidth={1.5} />
-                  <span className="hidden sm:inline">Receipt</span>
-                </button>
+                {/* Attach Receipt & Voice Mic Buttons (Only when AI Assistant is enabled) */}
+                {Boolean(data.settings?.enableAiParsing) && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="h-[26px] w-[26px] sm:w-auto px-0 sm:px-2 rounded-[6px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors flex items-center justify-center sm:gap-1.5 text-[11.5px] cursor-pointer shrink-0"
+                      title="Attach receipt image"
+                    >
+                      <Paperclip size={13} strokeWidth={1.5} />
+                      <span className="hidden sm:inline">Receipt</span>
+                    </button>
 
-                {/* Functional Voice Mic */}
-                <button
-                  type="button"
-                  onClick={toggleListening}
-                  className={`h-[26px] w-[26px] rounded-[6px] flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                    isListening
-                      ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/40'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
-                  }`}
-                  title={isListening ? 'Listening... click to stop' : 'Click to speak'}
-                >
-                  <Microphone size={14} strokeWidth={1.5} />
-                </button>
+                    <button
+                      type="button"
+                      onClick={toggleListening}
+                      className={`h-[26px] w-[26px] rounded-[6px] flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                        isListening
+                          ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/40'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                      }`}
+                      title={isListening ? 'Listening... click to stop' : 'Click to speak'}
+                    >
+                      <Microphone size={14} strokeWidth={1.5} />
+                    </button>
+                  </>
+                )}
 
                 {/* Keyboard Shortcut Pill or Clear */}
                 {commandText ? (

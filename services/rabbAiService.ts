@@ -96,6 +96,16 @@ export async function sendRabbAiTextMessage(
   history: RabbAiMessage[],
   data: AppData
 ): Promise<RabbAiMessage> {
+  // Hard Killswitch: Zero AI processing when AI is disabled (off by default)
+  if (!data.settings?.enableAiParsing) {
+    return {
+      id: `msg_${crypto.randomUUID()}`,
+      sender: 'rabbai',
+      text: "RabbAi Assistant is currently turned off. To use natural language expense logging, receipt scanning, or financial advice, you can enable RabbAi anytime in Settings.",
+      timestamp: new Date().toISOString()
+    };
+  }
+
   const apiKey = (
     (data.settings?.groqApiKey && data.settings.groqApiKey.trim()) ||
     localStorage.getItem('trackxpense_groq_api_key')?.trim() ||
@@ -982,6 +992,16 @@ export async function sendRabbAiImageMessage(
   userPromptText: string,
   data: AppData
 ): Promise<RabbAiMessage> {
+  // Hard Killswitch: Zero AI processing when AI is disabled (off by default)
+  if (!data.settings?.enableAiParsing) {
+    return {
+      id: `msg_${crypto.randomUUID()}`,
+      sender: 'rabbai',
+      text: "Receipt scanning and image analysis are disabled because RabbAi is turned off. Please enable RabbAi in Settings to scan receipts.",
+      timestamp: new Date().toISOString()
+    };
+  }
+
   const apiKey = (
     (data.settings?.groqApiKey && data.settings.groqApiKey.trim()) ||
     localStorage.getItem('trackxpense_groq_api_key')?.trim() ||

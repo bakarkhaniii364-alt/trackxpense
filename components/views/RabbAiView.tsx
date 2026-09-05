@@ -21,6 +21,7 @@ import {
   Waveform
 } from '@phosphor-icons/react';
 import { SpotifyIcon } from '../shared/SpotifyIcon';
+import { AiStarIcon } from '../shared/AiStarIcon';
 import { CoinFlipLoader } from '../shared/CoinFlipLoader';
 import { AppData, TransactionType, CategoryItem, WalletType } from '../../types';
 import { 
@@ -52,6 +53,7 @@ interface RabbAiViewProps {
   onClearInitialQuery?: () => void;
   onSelectConversation?: (id: string) => void;
   onClose?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export const RabbAiView: React.FC<RabbAiViewProps> = ({
@@ -71,7 +73,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
   initialImage,
   onClearInitialQuery,
   onSelectConversation,
-  onClose
+  onClose,
+  onOpenSettings
 }) => {
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -759,11 +762,80 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     }
   ];
 
+  const isAiEnabled = Boolean(data.settings?.enableAiParsing);
+
+  // Dedicated Zero-AI Manual Mode view when AI is turned off (default state)
+  if (!isAiEnabled) {
+    return (
+      <div className="w-full flex-1 flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto my-auto animate-in fade-in select-none">
+        <div className="mb-4">
+          <AiStarIcon size={32} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+        </div>
+
+        <span className="text-[10px] uppercase font-semibold tracking-[0.06em] text-[var(--text-muted)] block mb-1">
+          Zero-AI Manual Mode
+        </span>
+
+        <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight mb-2">
+          RabbAi Assistant is Off
+        </h2>
+
+        <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-6">
+          RabbAi is turned off by default. TrackXpense operates in strict manual mode with zero cloud AI inferences and complete local privacy. You can enable RabbAi anytime in Settings.
+        </p>
+
+        <div className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] p-4 text-left space-y-2.5 mb-6 text-[12px]">
+          <div className="flex items-start gap-2.5 text-[var(--text-secondary)]">
+            <Check size={14} strokeWidth={2} className="text-[var(--status-success-fg)] shrink-0 mt-0.5" />
+            <span><strong>100% Private:</strong> Zero prompts or receipts are ever sent to cloud AI servers.</span>
+          </div>
+          <div className="flex items-start gap-2.5 text-[var(--text-secondary)]">
+            <Check size={14} strokeWidth={2} className="text-[var(--status-success-fg)] shrink-0 mt-0.5" />
+            <span><strong>Full Manual Ledger:</strong> Track, categorize, and budget expenses through your normal dashboard.</span>
+          </div>
+          <div className="flex items-start gap-2.5 text-[var(--text-secondary)]">
+            <Check size={14} strokeWidth={2} className="text-[var(--status-success-fg)] shrink-0 mt-0.5" />
+            <span><strong>Settings Control:</strong> Enable or disable anytime from the Settings menu.</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full">
+          <button
+            type="button"
+            onClick={() => {
+              if (onOpenSettings) {
+                onOpenSettings();
+              } else {
+                updateData?.({
+                  settings: {
+                    ...data.settings,
+                    enableAiParsing: true
+                  }
+                });
+              }
+            }}
+            className="w-full h-[38px] rounded-[6px] bg-[var(--accent-solid)] text-[var(--accent-text)] text-[13px] font-medium hover:opacity-90 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 font-sans"
+          >
+            <span>Open Settings to Enable</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full h-[38px] rounded-[6px] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] text-[var(--text-primary)] text-[13px] font-medium transition-colors cursor-pointer flex items-center justify-center"
+          >
+            <span>Return to Dashboard</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className="w-full flex-1 flex flex-col h-full relative overflow-hidden select-none bg-transparent"
     >
-      
+
       {/* Hidden File Input for Receipt Attachment */}
       <input
         type="file"

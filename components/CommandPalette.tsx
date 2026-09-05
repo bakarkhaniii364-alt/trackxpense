@@ -82,17 +82,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       return;
     }
 
-    setIsAiLoading(true);
+    const isAiEnabled = Boolean(data.settings?.enableAiParsing);
+    setIsAiLoading(isAiEnabled);
     const categoryNames = (data.categories || []).map(c => c.name);
 
     const timer = setTimeout(async () => {
-      const parsed = await parseTransactionWithAI(query, categoryNames);
+      const parsed = await parseTransactionWithAI(query, categoryNames, undefined, isAiEnabled);
       setAiResult(parsed);
       setIsAiLoading(false);
-    }, 200);
+    }, isAiEnabled ? 200 : 50);
 
     return () => clearTimeout(timer);
-  }, [query, data.categories]);
+  }, [query, data.categories, data.settings?.enableAiParsing]);
 
   const filteredNav = navCommands.filter(c => 
     c.label.toLowerCase().includes(query.toLowerCase()) ||

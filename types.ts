@@ -189,5 +189,5 @@ export interface AppData {
   recurringRules: RecurringRule[]; // New: Automated engine
 }
 
-export type ViewState = 'rabbai' | 'dashboard' | 'history' | 'debts' | 'analytics' | 'identity' | 'control' | 'provisions' | 'subscriptions' | 'menu';
+export type ViewState = 'rabbai' | 'dashboard' | 'history' | 'debts' | 'analytics' | 'identity' | 'control' | 'provisions' | 'subscriptions';
 
