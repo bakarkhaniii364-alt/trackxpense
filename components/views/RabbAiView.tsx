@@ -153,6 +153,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     return new Set(targetConv?.messages?.map(m => m.id) || []);
   });
 
+  const activeAnchorTargetRef = useRef<string | null>(null);
+
   const handleStreamComplete = useCallback((msgId: string) => {
     setStreamedMessageIds(prev => {
       if (prev.has(msgId)) return prev;
@@ -160,6 +162,10 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       next.add(msgId);
       return next;
     });
+    activeAnchorTargetRef.current = null;
+    if (spacerRef.current) {
+      spacerRef.current.style.height = '0px';
+    }
   }, []);
 
   // User scroll state tracking
@@ -217,13 +223,24 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
   }, [displayMessages]);
 
   // Dynamic bottom spacer calculation:
-  // Dynamically expands only enough so the latest prompt can scroll to the top (48px below fade mask),
-  // and dynamically collapses as the AI response streams in.
-  // Clamps maxScrollTop precisely to targetScrollTop so the user can never scroll down past the active exchange into empty void.
+  // Dynamically expands only during message dispatch / AI generation so the prompt can glide to the top,
+  // and smoothly collapses to 0 when idle so there is never an empty void below the conversation.
   const updateBottomSpacer = useCallback((targetMsgId?: string) => {
     if (!chatContainerRef.current || !spacerRef.current) return;
     const container = chatContainerRef.current;
-    const idToAnchor = targetMsgId || lastUserMsgId;
+
+    if (targetMsgId) {
+      activeAnchorTargetRef.current = targetMsgId;
+    }
+
+    // When the conversation is completely idle (not loading, not analyzing, and no active anchor target):
+    // Collapse the spacer to 0px. This strictly eliminates any empty void below the messages!
+    if (!isLoading && !isAnalyzing && !activeAnchorTargetRef.current && !targetMsgId) {
+      spacerRef.current.style.height = '0px';
+      return;
+    }
+
+    const idToAnchor = targetMsgId || activeAnchorTargetRef.current || lastUserMsgId;
     if (!idToAnchor) {
       spacerRef.current.style.height = '0px';
       return;
@@ -231,7 +248,11 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
     const userMsgEl = container.querySelector<HTMLElement>(`[data-msg-id="${idToAnchor}"]`);
     if (!userMsgEl) {
-      spacerRef.current.style.height = '0px';
+      if (targetMsgId || activeAnchorTargetRef.current) {
+        spacerRef.current.style.height = `${Math.max(250, container.clientHeight - 120)}px`;
+      } else {
+        spacerRef.current.style.height = '0px';
+      }
       return;
     }
 
@@ -261,7 +282,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     const needed = Math.max(0, Math.round(requiredScrollHeight - scrollHeightWithoutSpacer));
 
     spacerRef.current.style.height = `${needed}px`;
-  }, [lastUserMsgId]);
+  }, [lastUserMsgId, isAnalyzing]);
 
   // Recalculate spacer whenever window resizes, messages change, or mobile keyboard toggles
   useEffect(() => {
@@ -269,7 +290,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     const handleResize = () => updateBottomSpacer();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [updateBottomSpacer, displayMessages, isLoading, effectiveViewportHeight]);
+  }, [updateBottomSpacer, displayMessages, isLoading, isAnalyzing, effectiveViewportHeight]);
 
   // Top-anchored scroll: Positions the user's prompt right near the top of the reading pane (48px below top)
   const scrollToLatestPrompt = useCallback((msgId?: string, behavior: ScrollBehavior = 'smooth'): boolean => {
@@ -322,6 +343,13 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     const scrollDelta = currentScrollTop - lastScrollTopRef.current;
     lastScrollTopRef.current = currentScrollTop;
 
+    // If the user manually scrolls while idle, release any artificial anchor spacer
+    // so they never scroll down into empty space past the conversation!
+    if (!isLoading && spacerRef.current && spacerRef.current.style.height !== '0px') {
+      activeAnchorTargetRef.current = null;
+      spacerRef.current.style.height = '0px';
+    }
+
     if (!lastUserMsgId) {
       setShowScrollLatest(false);
       return;
@@ -347,7 +375,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     }
 
     setShowScrollLatest(isScrolledUpFromLatest);
-  }, [lastUserMsgId]);
+  }, [lastUserMsgId, isLoading]);
 
   // Streaming Auto-Follow: tracks ONLY active streaming text, ignoring thinking loader
   useEffect(() => {
@@ -1591,7 +1619,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
             <div ref={chatBottomRef} className="h-1 w-full" />
 
             {/* Dynamic Clamped Bottom Spacer: bridges only the gap needed to top-anchor the prompt, collapsing to 0 as AI answers */}
-            <div ref={spacerRef} className="w-full pointer-events-none shrink-0" aria-hidden="true" />
+            <div ref={spacerRef} className="w-full pointer-events-none shrink-0 transition-[height] duration-300 ease-out" aria-hidden="true" />
           </div>
         )}
 
