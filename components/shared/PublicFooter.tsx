@@ -1,5 +1,6 @@
 import React from 'react';
 import { LegalModalType } from './LegalModal';
+import { navigateTo } from '../../src/services/router';
 
 interface PublicFooterProps {
   onOpenLegal: (type: LegalModalType) => void;
@@ -20,29 +21,32 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ onOpenLegal, classNa
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6 text-[var(--text-muted)] text-[12px]">
-        <button
-          type="button"
-          onClick={() => onOpenLegal('privacy')}
+        <a
+          href="/privacy"
+          target="_blank"
+          rel="noopener noreferrer"
           className="hover:text-[var(--text-primary)] transition-colors cursor-pointer"
         >
           Privacy Policy
-        </button>
-        <button
-          type="button"
-          onClick={() => onOpenLegal('terms')}
+        </a>
+        <a
+          href="/terms"
+          target="_blank"
+          rel="noopener noreferrer"
           className="hover:text-[var(--text-primary)] transition-colors cursor-pointer"
         >
           Terms of Service
-        </button>
-        <button
-          type="button"
-          onClick={() => onOpenLegal('security')}
+        </a>
+        <a
+          href="/security"
+          target="_blank"
+          rel="noopener noreferrer"
           className="hover:text-[var(--text-primary)] transition-colors cursor-pointer"
         >
-          Security
-        </button>
+          Security Policy
+        </a>
         <a
-          href="mailto:dev@trackxpense.app"
+          href="mailto:bakarkhaniii364@gmail.com"
           className="hover:text-[var(--text-primary)] transition-colors"
         >
           Contact

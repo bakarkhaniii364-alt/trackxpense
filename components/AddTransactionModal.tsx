@@ -217,7 +217,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
             {/* Backdrop */}
             <div 
-                className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
+                className="fixed inset-0 bg-black/80 transition-opacity" 
                 onClick={() => { Haptics.light(); onClose(); }} 
             />
             
@@ -312,7 +312,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                             <GlassSelect 
                                 value={toWalletId} 
                                 onChange={setToWalletId} 
-                                options={data.wallets.filter((w: Wallet) => w.id !== data.currentWalletId).map((w: Wallet) => ({ label: w.name, value: w.id }))} 
+                                options={data.wallets.filter((w: Wallet) => w.id !== data.currentWalletId).map((w: Wallet) => ({ 
+                                    label: w.name, 
+                                    value: w.id,
+                                    icon: <WalletIcon size={14} className="text-[var(--text-muted)]" />
+                                }))} 
                                 placeholder="Select target wallet..."
                             />
                         </div>
@@ -338,7 +342,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                 <GlassSelect 
                                     value={category} 
                                     onChange={setCategory} 
-                                    options={data.categories.filter((c: CategoryItem) => c.type === type).map((c: CategoryItem) => ({ label: c.name, value: c.name }))}
+                                    options={data.categories.filter((c: CategoryItem) => c.type === type).map((c: CategoryItem) => ({ 
+                                        label: c.name, 
+                                        value: c.name,
+                                        icon: <CategoryIcon category={c.name} color={c.color} size={15} strokeWidth={1.5} />
+                                    }))}
                                 />
                             ) : (
                                 <div className="space-y-2 pt-1">
@@ -348,7 +356,11 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                                 <GlassSelect
                                                     value={s.category}
                                                     onChange={val => updateSplit(idx, 'category', val)}
-                                                    options={data.categories.filter((c: CategoryItem) => c.type === type).map((c: CategoryItem) => ({ label: c.name, value: c.name }))}
+                                                    options={data.categories.filter((c: CategoryItem) => c.type === type).map((c: CategoryItem) => ({ 
+                                                        label: c.name, 
+                                                        value: c.name,
+                                                        icon: <CategoryIcon category={c.name} color={c.color} size={15} strokeWidth={1.5} />
+                                                    }))}
                                                 />
                                             </div>
                                             <input

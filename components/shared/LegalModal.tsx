@@ -1,6 +1,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, ShieldCheck, Lock, FileText } from '@phosphor-icons/react';
+import { navigateTo } from '../../src/services/router';
 
 export type LegalModalType = 'privacy' | 'terms' | 'security' | null;
 
@@ -16,7 +17,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
     <div className="fixed inset-0 z-[var(--z-stealth,9999)] flex items-center justify-center p-4 selection:bg-[var(--accent-subtle)] selection:text-[var(--accent-solid)]">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
+        className="fixed inset-0 bg-black/80 transition-opacity" 
         onClick={onClose} 
       />
 
@@ -97,7 +98,28 @@ export const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
         </div>
 
         {/* Footer Action */}
-        <div className="flex justify-end pt-3 border-t border-[var(--border-default)]">
+        <div className="flex items-center justify-between pt-3 border-t border-[var(--border-default)]">
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              if (type === 'privacy') {
+                window.open('/privacy', '_blank');
+              } else if (type === 'security') {
+                window.open('/security', '_blank');
+              } else if (type === 'terms') {
+                window.open('/terms', '_blank');
+              }
+            }}
+            className="text-[12px] text-[var(--accent)] hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <span>
+              {type === 'privacy' && 'Open full Privacy Policy'}
+              {type === 'security' && 'Open full Security Policy'}
+              {type === 'terms' && 'Open full Terms of Service'}
+            </span>
+            <span>&rarr;</span>
+          </button>
           <button
             type="button"
             onClick={onClose}

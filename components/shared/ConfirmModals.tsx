@@ -23,7 +23,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
   if (!isOpen) return null;
   return createPortal(
     <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-xs transition-opacity" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/80 transition-opacity" onClick={onClose} aria-hidden="true" />
       <div 
         role="dialog" 
         aria-modal="true" 
@@ -66,7 +66,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
             <button 
               type="button" 
               onClick={onConfirm} 
-              className="flex-1 h-[34px] rounded-[6px] text-[12px] font-medium cursor-pointer transition-colors bg-[var(--status-error-bg)] text-[var(--status-error-fg)] border border-[var(--status-error-fg)]/30 hover:bg-[var(--status-error-fg)] hover:text-white flex items-center justify-center"
+              className="btn btn--danger flex-1 h-[34px] rounded-[6px] text-[12px] font-medium cursor-pointer flex items-center justify-center"
             >
               Delete
             </button>
@@ -92,7 +92,7 @@ export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({
   if (!isOpen) return null;
   return createPortal(
     <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-xs transition-opacity" onClick={onClose} aria-hidden="true" />
+      <div className="fixed inset-0 bg-black/80 transition-opacity" onClick={onClose} aria-hidden="true" />
       <div 
         role="dialog" 
         aria-modal="true" 
@@ -106,6 +106,93 @@ export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({
           <div className="flex flex-col gap-2 w-full">
             <button onClick={onConfirm} className="btn btn--primary w-full h-[34px] rounded-[6px] text-[12px] font-medium cursor-pointer">Discard & Continue</button>
             <button onClick={onClose} className="btn btn--outline w-full h-[34px] rounded-[6px] text-[12px] font-medium cursor-pointer">Stay & Save</button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+export interface DeleteConversationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onDeleteChatOnly: () => void;
+  onDeleteChatAndLogs: () => void;
+  title?: string;
+  loggedCount?: number;
+}
+
+export const DeleteConversationModal: React.FC<DeleteConversationModalProps> = ({
+  isOpen,
+  onClose,
+  onDeleteChatOnly,
+  onDeleteChatAndLogs,
+  title = 'Conversation',
+  loggedCount = 0
+}) => {
+  if (!isOpen) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/80 transition-opacity" onClick={onClose} aria-hidden="true" />
+      <div 
+        role="dialog" 
+        aria-modal="true" 
+        aria-labelledby="delete-conv-dialog-title"
+        className="relative bg-[var(--bg-surface)] w-full max-w-md rounded-[10px] p-5 border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 duration-150 text-[var(--text-primary)] z-10"
+      >
+        <div className="flex flex-col text-left">
+          <div className="flex items-center gap-2 mb-2">
+            <Trash2 size={20} className="stroke-[1.5px] text-[var(--accent)] shrink-0" />
+            <h3 id="delete-conv-dialog-title" className="text-[15px] font-medium text-[var(--text-primary)] truncate">
+              Delete "{title}"?
+            </h3>
+          </div>
+
+          <p className="text-[13px] text-[var(--text-secondary)] mb-3 leading-relaxed">
+            By default, deleting this chat only removes the conversation history. Any transactions, budgets, or wallets you logged in this chat will remain safely saved in your records.
+          </p>
+
+          {loggedCount > 0 ? (
+            <div className="w-full bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] p-2.5 mb-4 text-[12px] text-[var(--text-secondary)] leading-relaxed">
+              <span className="text-[var(--text-primary)] font-medium">
+                {loggedCount} {loggedCount === 1 ? 'transaction was' : 'transactions were'} logged
+              </span> in this conversation. If you also want to remove these logged transactions, choose <strong className="text-red-400 font-medium">Delete Chat & Logs</strong>.
+            </div>
+          ) : (
+            <div className="w-full bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] p-2.5 mb-4 text-[12px] text-[var(--text-muted)]">
+              No transactions were logged in this chat.
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row-reverse gap-2 w-full pt-1">
+            {loggedCount > 0 && (
+              <button 
+                type="button" 
+                onClick={onDeleteChatAndLogs} 
+                className="btn btn--danger h-[34px] px-3.5 rounded-[6px] text-[12px] font-medium cursor-pointer flex items-center justify-center gap-1.5"
+                title="Delete conversation and rollback logged transactions"
+              >
+                <span>Delete Chat & Logs</span>
+              </button>
+            )}
+            
+            <button 
+              type="button" 
+              onClick={onDeleteChatOnly} 
+              className="btn btn--primary h-[34px] px-3 rounded-[6px] text-[12px] font-medium cursor-pointer flex items-center justify-center gap-1.5"
+              title="Delete conversation only, keep transactions"
+            >
+              <span>Delete Chat Only</span>
+            </button>
+
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="btn btn--outline h-[34px] px-3 rounded-[6px] text-[12px] font-medium cursor-pointer"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       </div>

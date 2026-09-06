@@ -87,7 +87,7 @@ export const SimulationModule: React.FC<SimulationModuleProps> = ({
     <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-200">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
+        className="fixed inset-0 bg-black/80 transition-opacity" 
         onClick={onClose} 
       />
 

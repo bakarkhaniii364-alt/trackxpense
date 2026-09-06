@@ -6,6 +6,7 @@ import {
   Plus,
   Microphone,
   ArrowUp,
+  ArrowRight,
   Paperclip,
   X,
   Sparkle,
@@ -456,6 +457,19 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     }
   };
 
+  const highlightMatch = (text: string, query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return text;
+    const index = text.toLowerCase().indexOf(trimmed.toLowerCase());
+    if (index === -1) return text;
+    
+    const before = text.slice(0, index);
+    const match = text.slice(index, index + trimmed.length);
+    const after = text.slice(index + trimmed.length);
+
+    return <span>{before}<span className="text-[#ff9f43] bg-[#7a3800]/40 rounded-[2px] font-medium">{match}</span>{after}</span>;
+  };
+
   const recentFiveTransactions = useMemo(() => {
     return data.transactions.slice(0, 5);
   }, [data.transactions]);
@@ -499,8 +513,24 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
             </div>
           )}
 
-          {/* Thinner & Sleek Smart Search Container with Shining Beam */}
-          <div className="shining-beam-wrapper">
+          {/* Thinner & Sleek Smart Search Container with Shining Beam & Typing Gradient Glow */}
+          <div className="relative w-full">
+            {/* Ambient Diffused Glow while typing - extends through padding and fades softly so it never clips */}
+            <div 
+              aria-hidden="true"
+              className={`absolute -top-3 -bottom-2.5 -left-3.5 -right-3.5 sm:-inset-[4px] rounded-[16px] blur-[16px] sm:blur-[22px] transition-opacity duration-300 pointer-events-none ${
+                commandText.trim().length > 0 
+                  ? 'opacity-80' 
+                  : 'opacity-0'
+              }`}
+              style={{
+                background: 'linear-gradient(90deg, transparent 0%, rgba(246,130,31,0.85) 10%, #FF7A00 28%, #FF3D71 55%, #A855F7 80%, rgba(246,130,31,0.85) 90%, transparent 100%)',
+                backgroundSize: '200% 100%',
+                animation: commandText.trim().length > 0 ? 'gradientGlowShift 4s ease infinite' : 'none',
+              }}
+            />
+
+            <div className="relative z-10 shining-beam-wrapper">
             <div className="shining-beam-inner py-1.5 px-2.5 sm:px-3 transition-colors flex items-center gap-1.5 sm:gap-2">
               
               {/* Search Icon */}
@@ -568,9 +598,11 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                   <button
                     type="button"
                     onClick={() => { setCommandText(''); setIsSearchFocused(false); }}
-                    className="h-[22px] px-1.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded bg-[var(--bg-subtle)] border border-[var(--border-default)] cursor-pointer shrink-0"
+                    className="h-[22px] px-1.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded bg-[var(--bg-subtle)] border border-[var(--border-default)] cursor-pointer shrink-0 flex items-center justify-center"
+                    title="Clear search"
                   >
-                    Esc
+                    <span className="hidden sm:inline">Esc</span>
+                    <X size={12} strokeWidth={2} className="sm:hidden" />
                   </button>
                 ) : (
                   <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-muted)] select-none shrink-0">
@@ -592,45 +624,46 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Anchored Suggestions Dropdown Menu */}
+          {/* Anchored Suggestions Dropdown Menu (Cloudflare Dark & Minimal, No Horizontal Dividers) */}
           {isSearchFocused && (
             <div 
-              style={{ backgroundColor: '#121216' }}
-              className="absolute left-0 right-0 top-full mt-1.5 bg-[#121216] border border-[var(--border-default)] rounded-[8px] shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-[100] overflow-hidden text-[12.5px] animate-in fade-in zoom-in-95 duration-100 divide-y divide-[var(--border-default)]"
+              style={{ backgroundColor: '#111114' }}
+              className="absolute left-0 right-0 top-full mt-1.5 bg-[#111114] border border-[#232328] rounded-[10px] shadow-[0_20px_60px_rgba(0,0,0,0.9)] z-[100] overflow-hidden text-[12.5px] animate-in fade-in zoom-in-95 duration-100 p-1.5"
             >
-              <div className="max-h-[340px] overflow-y-auto divide-y divide-[var(--border-default)]">
+              <div className="max-h-[340px] overflow-y-auto space-y-2 no-scrollbar">
                 
                 {/* 1. Actions / Dynamic Query */}
                 {commandText.trim() && (
-                  <div className="p-1">
-                    <div className="px-2.5 py-1 text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
+                  <div>
+                    <div className="px-2.5 pt-1 pb-1 text-[11.5px] font-normal text-[#8e8e93]">
                       Actions
                     </div>
                     <div
                       onClick={handleSendCommand}
-                      className="flex items-center justify-between px-2.5 py-2 rounded-[6px] hover:bg-[var(--bg-surface-hover)] cursor-pointer text-[var(--text-primary)] transition-colors"
+                      className="flex items-center justify-between px-2.5 py-1.5 rounded-[6px] hover:bg-[#1a1a1f] cursor-pointer text-[#f4f4f5] transition-colors group"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <ArrowUp size={14} className="text-[var(--accent)] shrink-0" weight="bold" />
-                        <span className="truncate">
+                        <span className="truncate text-[13px] text-[#d4d4d8]">
                           Execute command: <span className="text-[var(--text-primary)] font-medium">"{commandText.trim()}"</span>
                         </span>
                       </div>
-                      <span className="text-[11px] text-[var(--text-muted)] font-mono shrink-0">↵ Enter</span>
+                      <ArrowRight size={13} strokeWidth={1.5} className="text-[#71717a] group-hover:text-[#f4f4f5] opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-2" />
                     </div>
                   </div>
                 )}
 
-                {/* 2. Navigation Suggestions */}
-                <div className="p-1">
-                  <div className="px-2.5 py-1 text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
-                    Navigation
+                {/* 2. Navigation Suggestions (Go to) */}
+                <div>
+                  <div className="px-2.5 pt-1 pb-1 text-[11.5px] font-normal text-[#8e8e93]">
+                    Go to
                   </div>
                   <div className="space-y-0.5">
                     {[
                       { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutGrid, action: () => { setView('dashboard'); setIsSearchFocused(false); } },
-                      { id: 'history', label: 'Transactions & Ledger', icon: Activity, action: () => { setView('history'); setIsSearchFocused(false); } },
+                      { id: 'history', label: 'Ledger & Transactions', icon: Activity, action: () => { setView('history'); setIsSearchFocused(false); } },
                       { id: 'analytics', label: 'Financial Analytics', icon: TrendingUp, action: () => { setView('analytics'); setIsSearchFocused(false); } },
                       { id: 'debts', label: 'Debts & Loans', icon: HandCoins, action: () => { setView('debts'); setIsSearchFocused(false); } },
                       { id: 'control', label: 'Budgets & Categories', icon: Sliders, action: () => { setView('control'); setIsSearchFocused(false); } },
@@ -646,13 +679,13 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                           <div
                             key={item.id}
                             onClick={item.action}
-                            className="flex items-center justify-between px-2.5 py-1.5 rounded-[6px] hover:bg-[var(--bg-surface-hover)] cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors group"
+                            className="flex items-center justify-between px-2.5 py-1.5 rounded-[6px] hover:bg-[#1a1a1f] cursor-pointer text-[#d4d4d8] hover:text-[#f4f4f5] transition-colors group"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <Icon size={15} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0 transition-colors" />
-                              <span className="truncate">{item.label}</span>
+                              <Icon size={15} strokeWidth={1.5} className="text-[#8e8e93] group-hover:text-[#f4f4f5] shrink-0 transition-colors" />
+                              <span className="truncate text-[13px]">{highlightMatch(item.label, commandText)}</span>
                             </div>
-                            <CaretRight size={11} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0" />
+                            <ArrowRight size={13} strokeWidth={1.5} className="text-[#71717a] group-hover:text-[#f4f4f5] opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-2" />
                           </div>
                         );
                       })}
@@ -660,8 +693,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                 </div>
 
                 {/* 3. Wallets */}
-                <div className="p-1">
-                  <div className="px-2.5 py-1 text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-wider">
+                <div>
+                  <div className="px-2.5 pt-1 pb-1 text-[11.5px] font-normal text-[#8e8e93]">
                     Wallets
                   </div>
                   <div className="space-y-0.5">
@@ -679,13 +712,13 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                               updateData({ currentWalletId: w.id });
                               setIsSearchFocused(false);
                             }}
-                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-[6px] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors group ${
-                              isActive ? 'bg-[var(--bg-surface-hover)]/70 text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-[6px] hover:bg-[#1a1a1f] cursor-pointer transition-colors group ${
+                              isActive ? 'bg-[#1a1a1f]/70 text-[#f4f4f5]' : 'text-[#d4d4d8] hover:text-[#f4f4f5]'
                             }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <WalletIcon size={15} strokeWidth={1.5} className={isActive ? 'text-[var(--accent)] shrink-0' : 'text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0 transition-colors'} />
-                              <span className="truncate">{w.name}</span>
+                              <WalletIcon size={15} strokeWidth={1.5} className={isActive ? 'text-[var(--accent)] shrink-0' : 'text-[#8e8e93] group-hover:text-[#f4f4f5] shrink-0 transition-colors'} />
+                              <span className="truncate text-[13px]">{highlightMatch(w.name, commandText)}</span>
                               {isActive && (
                                 <span className="pill pill--accent text-[10px] py-0.5 px-2">
                                   Active
@@ -693,10 +726,10 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                               )}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="font-mono text-[11.5px] text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]">
+                              <span className="font-mono text-[11.5px] text-[#71717a] group-hover:text-[#a1a1aa]">
                                 {formatMoney(wBal, currency)}
                               </span>
-                              {isActive && <Check size={12} weight="bold" className="text-[var(--accent)]" />}
+                              <ArrowRight size={13} strokeWidth={1.5} className="text-[#71717a] group-hover:text-[#f4f4f5] opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-1" />
                             </div>
                           </div>
                         );
@@ -705,21 +738,26 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Suggestions Footer Navigation Hints */}
-              <div className="px-3 py-2 bg-[var(--bg-subtle)]/40 flex items-center justify-between text-[11px] text-[var(--text-muted)] select-none">
-                <div className="flex items-center gap-3">
-                  <span>
-                    <kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] font-mono text-[9.5px]">↑</kbd>{' '}
-                    <kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] font-mono text-[9.5px]">↓</kbd> navigate
+              {/* Suggestions Footer Navigation Hints (Cloudflare Minimal) */}
+              <div className="px-2.5 pt-2 pb-1 flex items-center justify-between text-[11px] text-[#71717a] select-none">
+                <div className="hidden sm:flex items-center gap-3">
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1 py-0.5 rounded bg-[#18181c] border border-[#26262b] font-mono text-[9px] text-[#a1a1aa]">↑</kbd>
+                    <kbd className="px-1 py-0.5 rounded bg-[#18181c] border border-[#26262b] font-mono text-[9px] text-[#a1a1aa]">↓</kbd>
+                    <span className="ml-0.5">to navigate</span>
                   </span>
-                  <span>
-                    <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] font-mono text-[9.5px]">↵</kbd> select
+                  <span className="flex items-center gap-1">
+                    <kbd className="px-1.5 py-0.5 rounded bg-[#18181c] border border-[#26262b] font-mono text-[9px] text-[#a1a1aa]">↵</kbd>
+                    <span className="ml-0.5">to select</span>
                   </span>
-                  <span>
-                    <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] font-mono text-[9.5px]">Esc</kbd> close
-                  </span>
+                  {Boolean(data.settings?.enableAiParsing) && (
+                    <span className="flex items-center gap-1">
+                      <kbd className="px-1.5 py-0.5 rounded bg-[#18181c] border border-[#26262b] font-mono text-[9px] text-[#a1a1aa]">Tab</kbd>
+                      <span className="ml-0.5">to ask AI</span>
+                    </span>
+                  )}
                 </div>
-                <div className="font-mono text-[10.5px]">
+                <div className="font-mono text-[10.5px] text-[#71717a] ml-auto sm:ml-0">
                   {data.wallets.length} {data.wallets.length === 1 ? 'wallet' : 'wallets'}
                 </div>
               </div>

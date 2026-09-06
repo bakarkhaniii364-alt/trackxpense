@@ -8,8 +8,9 @@ import {
   Calendar
 } from '@phosphor-icons/react';
 import { Haptics } from '../../services/haptics';
-import { CustomSelect } from './CustomSelect';
+import { CustomSelect, SelectOption } from './CustomSelect';
 export { CustomSelect };
+export type { SelectOption };
 
 export const COLOR_PRESETS = [
   '#5e5ce6', // Indigo
@@ -145,7 +146,7 @@ export const CustomConfirmModal: React.FC<CustomConfirmModalProps> = ({
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
       <div
-        className="fixed inset-0 bg-black/75 backdrop-blur-xs transition-opacity"
+        className="fixed inset-0 bg-black/75 transition-opacity"
         onClick={onClose}
       />
       <div className="relative bg-[var(--bg-surface)] w-full max-w-[380px] rounded-[12px] p-6 border border-[var(--border-default)] shadow-2xl animate-in zoom-in-95 duration-150 space-y-4">
@@ -181,10 +182,11 @@ export const CustomConfirmModal: React.FC<CustomConfirmModalProps> = ({
 export interface GlassSelectProps {
   value: string;
   onChange: (val: string) => void;
-  options: { label: string; value: string }[] | string[];
+  options: (SelectOption | string)[];
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  searchable?: boolean;
 }
 
 export const GlassSelect: React.FC<GlassSelectProps> = ({ 
@@ -193,7 +195,8 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
   options, 
   placeholder, 
   className = "", 
-  disabled = false 
+  disabled = false,
+  searchable,
 }) => {
   return (
     <CustomSelect
@@ -203,6 +206,7 @@ export const GlassSelect: React.FC<GlassSelectProps> = ({
       placeholder={placeholder}
       className={className}
       disabled={disabled}
+      searchable={searchable}
       size="md"
     />
   );

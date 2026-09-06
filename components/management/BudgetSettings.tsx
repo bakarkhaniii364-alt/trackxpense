@@ -22,6 +22,7 @@ import {
 import { COLOR_PRESETS, GlassSelect, GlassCheckbox } from '../shared/CommonUI';
 import { TablePaginationFooter } from '../shared/TablePaginationFooter';
 import { SegmentedSubTabs } from '../shared/SegmentedSubTabs';
+import { CategoryIcon } from '../shared/CategoryIcon';
 
 export interface BudgetSettingsProps {
   data: AppData;
@@ -856,7 +857,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       {renamingCategory && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75"
             onClick={() => setRenamingCategory(null)} 
             aria-hidden="true"
           />
@@ -914,7 +915,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       {isMergeModalOpen && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75"
             onClick={() => setIsMergeModalOpen(false)} 
             aria-hidden="true"
           />
@@ -1025,7 +1026,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       {isBatchDeleteModalOpen && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75"
             onClick={() => setIsBatchDeleteModalOpen(false)} 
             aria-hidden="true"
           />
@@ -1079,7 +1080,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       {isAddBudgetModalOpen && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75"
             onClick={() => setIsAddBudgetModalOpen(false)} 
             aria-hidden="true"
           />
@@ -1107,7 +1108,14 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 <GlassSelect
                   value={budgetCat}
                   onChange={setBudgetCat}
-                  options={availableForBudget}
+                  options={availableForBudget.map(catName => {
+                    const catObj = data.categories?.find((c: CategoryItem) => c.name === catName);
+                    return {
+                      label: catName,
+                      value: catName,
+                      icon: <CategoryIcon category={catName} color={catObj?.color} size={15} strokeWidth={1.5} />
+                    };
+                  })}
                   placeholder="Choose category..."
                   disabled={!!editingCat}
                 />
@@ -1171,7 +1179,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       {isAddCategoryModalOpen && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75"
             onClick={() => setIsAddCategoryModalOpen(false)} 
             aria-hidden="true"
           />
@@ -1267,7 +1275,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
       {deletingCategory && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/75 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/75"
             onClick={() => setDeletingCategory(null)} 
             aria-hidden="true"
           />

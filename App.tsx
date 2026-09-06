@@ -17,7 +17,10 @@ const AnalyticsView = React.lazy(() => import('./components/AnalyticsView').then
 const DesktopIdentity = React.lazy(() => import('./components/pc/DesktopManagement').then(m => ({ default: m.DesktopIdentity })));
 const DesktopControl = React.lazy(() => import('./components/pc/DesktopManagement').then(m => ({ default: m.DesktopControl })));
 const ProvisioningCenter = React.lazy(() => import('./components/ProvisioningCenter').then(m => ({ default: m.ProvisioningCenter })));
-const SubscriptionManager = React.lazy(() => import('./components/SubscriptionManager').then(m => ({ default: m.SubscriptionManager })));
+import { SubscriptionManager } from './components/SubscriptionManager';
+import { PrivacyPolicyView } from './components/views/PrivacyPolicyView';
+import { SecurityPolicyView } from './components/views/SecurityPolicyView';
+import { TermsOfServiceView } from './components/views/TermsOfServiceView';
 import { OnboardingModal } from './components/OnboardingModal';
 import { StealthOverlay } from './components/StealthOverlay';
 import { CommandPalette } from './components/CommandPalette';
@@ -46,7 +49,7 @@ import { ExchangeRateService } from './services/ExchangeRateService';
 import { AuditLogger } from './services/auditLog';
 import { validateAmount, sanitizeNote } from './utils/validation';
 
-import { DeleteConfirmationModal, UnsavedChangesModal } from './components/shared/ConfirmModals';
+import { DeleteConfirmationModal, UnsavedChangesModal, DeleteConversationModal } from './components/shared/ConfirmModals';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useRecurringEngine } from './hooks/useRecurringEngine';
 import { useNetWorth } from './hooks/useNetWorth';
@@ -74,6 +77,13 @@ export default function App() {
     id: string | null;
     itemDetails?: { title?: string; amount?: string | number; category?: string; date?: string };
   }>({ isOpen: false, id: null });
+  const [deleteConvModal, setDeleteConvModal] = useState<{
+    isOpen: boolean;
+    convId: string | null;
+    title: string;
+    loggedCount: number;
+    loggedTxIds: string[];
+  }>({ isOpen: false, convId: null, title: '', loggedCount: 0, loggedTxIds: [] });
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 
   const [isDirty, setIsDirty] = useState(false);
@@ -141,9 +151,45 @@ export default function App() {
     requestViewChange('rabbai');
   };
 
-  const handleDeleteRabbAiConversation = (id: string, e: React.MouseEvent) => {
+  const requestDeleteRabbAiConversation = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     Haptics.light();
+    const targetConv = conversations.find(c => c.id === id);
+    if (!targetConv) return;
+
+    // Identify all transactions logged during this conversation
+    const loggedTxIds = (targetConv.messages || [])
+      .map(m => m.extractedTransaction?.loggedTransactionId)
+      .filter((txId): txId is string => Boolean(txId));
+
+    // Check how many of those logged transactions currently exist in ledger
+    const existingCount = data?.transactions?.filter(t => loggedTxIds.includes(t.id)).length || 0;
+
+    setDeleteConvModal({
+      isOpen: true,
+      convId: id,
+      title: targetConv.title || 'Conversation',
+      loggedCount: existingCount,
+      loggedTxIds
+    });
+    setIsRabbaiConvDropdownOpen(false);
+  };
+
+  const handleConfirmDeleteConv = (deleteLogs: boolean) => {
+    if (!deleteConvModal.convId) return;
+    const id = deleteConvModal.convId;
+    Haptics.light();
+
+    // If user explicitly chose "Delete Chat & Logs", delete those transactions too
+    if (deleteLogs && deleteConvModal.loggedTxIds.length > 0 && data) {
+      const txIdsToDelete = new Set(deleteConvModal.loggedTxIds);
+      const updatedTransactions = data.transactions.filter(t => !txIdsToDelete.has(t.id));
+      updateData({ transactions: updatedTransactions });
+      deleteConvModal.loggedTxIds.forEach(txId => {
+        AuditLogger.log('TX_DELETE', txId, 'Deleted transaction from RabbAi conversation rollback', user?.id);
+      });
+    }
+
     const filtered = conversations.filter(c => c.id !== id);
     if (filtered.length === 0) {
       const fresh: RabbAiConversation = {
@@ -163,6 +209,14 @@ export default function App() {
         setActiveConvId(filtered[0].id);
       }
     }
+
+    setDeleteConvModal({
+      isOpen: false,
+      convId: null,
+      title: '',
+      loggedCount: 0,
+      loggedTxIds: []
+    });
   };
 
   useEffect(() => {
@@ -180,6 +234,37 @@ export default function App() {
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isRabbaiConvDropdownOpen]);
+
+  // Mobile Visual Viewport Detection: Adjust window height when software keyboard opens (e.g. RabbAi chat) instead of scrolling
+  const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const handleVisualViewportChange = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+
+      if (window.innerWidth < 1024) {
+        setVisualViewportHeight(vv.height);
+        // Prevent outer window scrolling when virtual keyboard opens
+        if (window.scrollY !== 0) {
+          window.scrollTo(0, 0);
+        }
+      } else {
+        setVisualViewportHeight(null);
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+    window.visualViewport.addEventListener('scroll', handleVisualViewportChange);
+    handleVisualViewportChange();
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleVisualViewportChange);
+      window.visualViewport?.removeEventListener('scroll', handleVisualViewportChange);
+    };
+  }, []);
 
   // Notification Toast State
   const [notificationToast, setNotificationToast] = useState<{ message: string; type?: 'error' | 'success' | 'info' } | null>(null);
@@ -329,9 +414,12 @@ export default function App() {
       control: 'Budgets & Categories',
       provisions: 'Upcoming Expenses',
       subscriptions: 'Subscriptions',
+      'privacy-policy': 'Privacy Policy',
+      'security-policy': 'Security Policy',
+      'terms-of-service': 'Terms of Service',
       menu: 'Menu'
     };
-    document.title = `TrackXpense | ${titles[view] || 'Finance'}`;
+    document.title = `${titles[view] || 'Finance'} | TrackXpense`;
     
     // Sync canonical route with view and subTab
     navigateTo(view, activeSubTab, { replace: true });
@@ -935,6 +1023,30 @@ export default function App() {
       }
   };
 
+  if (view === 'privacy-policy') {
+    return (
+      <PrivacyPolicyView 
+        onNavigate={requestViewChange} 
+      />
+    );
+  }
+
+  if (view === 'security-policy') {
+    return (
+      <SecurityPolicyView 
+        onNavigate={requestViewChange} 
+      />
+    );
+  }
+
+  if (view === 'terms-of-service') {
+    return (
+      <TermsOfServiceView 
+        onNavigate={requestViewChange} 
+      />
+    );
+  }
+
   if (authLoading || !data) return <AppSkeleton />;
   
   if (!isAuthenticated) {
@@ -942,7 +1054,9 @@ export default function App() {
   }
 
     return (
-        <div className="h-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full max-w-full bg-[var(--bg-page)] text-main font-sans selection:bg-primary/30 transition-colors duration-300 flex flex-col lg:flex-row overflow-hidden overflow-x-hidden relative">
+        <div 
+          style={view === 'rabbai' && visualViewportHeight ? { height: `${visualViewportHeight}px`, maxHeight: `${visualViewportHeight}px`, minHeight: `${visualViewportHeight}px` } : undefined}
+          className="h-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full max-w-full bg-[var(--bg-page)] text-main font-sans selection:bg-primary/30 transition-colors duration-300 flex flex-col lg:flex-row overflow-hidden overflow-x-hidden relative">
           {isDesktop && (
             <svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }} aria-hidden>
               <defs>
@@ -972,11 +1086,15 @@ export default function App() {
       <div className={`flex-1 min-w-0 min-h-0 w-full max-w-full flex flex-col overflow-hidden overflow-x-hidden h-full relative z-10 ${view === 'rabbai' ? 'dot-matrix-canvas' : ''}`}>
         {/* Header - Mobile (Cloudflare Technical Design) */}
         {!isDesktop && (
-          <header className="flex-none pt-[calc(env(safe-area-inset-top,0px)+6px)] pb-2 px-3 bg-[var(--bg-surface)]/95 backdrop-blur-md border-b border-[var(--border-default)] z-40 select-none">
+          <header className={`flex-none pt-[calc(env(safe-area-inset-top,0px)+6px)] pb-2 px-3 border-b z-40 select-none ${
+            view === 'rabbai'
+              ? 'bg-transparent border-transparent'
+              : 'bg-[var(--bg-surface)]/95 backdrop-blur-md border-[var(--border-default)]'
+          }`}>
             <div className="flex items-center justify-between gap-2 max-w-md mx-auto">
               {view === 'rabbai' ? (
                 <>
-                  {/* Left: New conversation dropdown (container-free) */}
+                  {/* Left: History dropdown (container-free) */}
                   <div className="flex items-center gap-1 min-w-0">
                     <div ref={rabbaiDropdownRef} className="relative">
                       <button
@@ -988,17 +1106,12 @@ export default function App() {
                         <ChevronDown size={12} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
                       </button>
 
-                      {/* Dropdown Popover */}
+                      {/* Dropdown Popover (History Only) */}
                       {isRabbaiConvDropdownOpen && (
                         <div className="absolute left-0 top-full mt-1.5 w-64 bg-[#141418] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-1.5 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-100">
-                          <button
-                            type="button"
-                            onClick={handleCreateNewRabbAiConversation}
-                            className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[6px] text-[var(--text-primary)] hover:bg-white/5 font-medium cursor-pointer transition-colors border-b border-[var(--border-default)] mb-1"
-                          >
-                            <NotePencil size={14} strokeWidth={1.5} />
-                            <span>New conversation</span>
-                          </button>
+                          <div className="px-2 py-1 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                            Chat History
+                          </div>
 
                           <div className="max-h-56 overflow-y-auto space-y-0.5 no-scrollbar">
                             {conversations.map(c => {
@@ -1020,7 +1133,7 @@ export default function App() {
                                   </div>
                                   <button
                                     type="button"
-                                    onClick={(e) => handleDeleteRabbAiConversation(c.id, e)}
+                                    onClick={(e) => requestDeleteRabbAiConversation(c.id, e)}
                                     className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-red-400 p-0.5 transition-opacity"
                                     title="Delete chat"
                                   >
@@ -1141,10 +1254,10 @@ export default function App() {
         )}
 
         {isDesktop && (
-          <div className="flex-none h-[52px] bg-transparent flex items-center justify-between px-8 relative z-50">
+          <div className={`flex-none ${view === 'rabbai' ? 'h-[48px]' : 'h-[52px]'} bg-transparent flex items-center justify-between px-8 relative z-50`}>
             {view === 'rabbai' ? (
               <div className="flex items-center justify-between w-full">
-                {/* Left: New conversation dropdown */}
+                {/* Left: History dropdown */}
                 <div ref={rabbaiDesktopDropdownRef} className="relative">
                   <button
                     type="button"
@@ -1155,17 +1268,12 @@ export default function App() {
                     <ChevronDown size={12} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
                   </button>
 
-                  {/* Dropdown Popover */}
+                  {/* Dropdown Popover (History Only) */}
                   {isRabbaiConvDropdownOpen && (
                     <div className="absolute left-0 top-full mt-1.5 w-64 bg-[#141418] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-1.5 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-100">
-                      <button
-                        type="button"
-                        onClick={handleCreateNewRabbAiConversation}
-                        className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[6px] text-[var(--text-primary)] hover:bg-white/5 font-medium cursor-pointer transition-colors border-b border-[var(--border-default)] mb-1"
-                      >
-                        <NotePencil size={14} strokeWidth={1.5} />
-                        <span>New conversation</span>
-                      </button>
+                      <div className="px-2 py-1 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                        Chat History
+                      </div>
 
                       <div className="max-h-56 overflow-y-auto space-y-0.5 no-scrollbar">
                         {conversations.map(c => {
@@ -1187,7 +1295,7 @@ export default function App() {
                               </div>
                               <button
                                 type="button"
-                                onClick={(e) => handleDeleteRabbAiConversation(c.id, e)}
+                                onClick={(e) => requestDeleteRabbAiConversation(c.id, e)}
                                 className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-red-400 p-0.5 transition-opacity"
                                 title="Delete chat"
                               >
@@ -1303,7 +1411,7 @@ export default function App() {
           ref={mainRef}
           className={`flex-1 min-w-0 min-h-0 w-full max-w-full ${
             view === 'rabbai'
-              ? 'max-w-none p-0 m-0 flex flex-col overflow-hidden overflow-x-hidden'
+              ? 'max-w-none p-0 m-0 flex flex-col overflow-hidden overflow-x-hidden h-full'
               : isDesktop 
                 ? 'max-w-none px-8 overflow-y-auto pb-4 no-scrollbar' 
                 : 'max-w-md mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-2 sm:pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] no-scrollbar'
@@ -1339,7 +1447,7 @@ export default function App() {
                   />
               </div>
             ) : (
-              <div className="w-full max-w-5xl py-4 mx-auto view-transition">
+              <div className={`w-full max-w-5xl py-4 mx-auto ${view === 'identity' ? '' : 'view-transition'}`}>
                  {view === 'dashboard' && (
                     <DesktopDashboard 
                         data={data} 
@@ -1432,7 +1540,7 @@ export default function App() {
               )}
 
               {view === 'dashboard' && (
-                <div className="w-full max-w-full overflow-x-hidden view-transition">
+                <div className="w-full max-w-full view-transition">
                   <div className="h-auto p-0 lg:p-4">
                       <DesktopDashboard 
                           data={data} 
@@ -1578,6 +1686,15 @@ export default function App() {
         }} 
       />
 
+      <DeleteConversationModal
+        isOpen={deleteConvModal.isOpen}
+        title={deleteConvModal.title}
+        loggedCount={deleteConvModal.loggedCount}
+        onClose={() => setDeleteConvModal(prev => ({ ...prev, isOpen: false }))}
+        onDeleteChatOnly={() => handleConfirmDeleteConv(false)}
+        onDeleteChatAndLogs={() => handleConfirmDeleteConv(true)}
+      />
+
         {/* Wallet Dropdown Menu */}
         {isWalletModalOpen && (
           <div className="fixed inset-0 z-[5000] pointer-events-auto">
@@ -1651,7 +1768,7 @@ export default function App() {
         {/* Create Wallet Modal (2-Step Flow) */}
         {isCreateWalletModalOpen && createPortal(
           <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-150" onClick={() => setIsCreateWalletModalOpen(false)} />
+            <div className="fixed inset-0 bg-black/80 transition-opacity animate-in fade-in duration-150" onClick={() => setIsCreateWalletModalOpen(false)} />
             
             <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] rounded-[8px] p-6 border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)] animate-in zoom-in-95 duration-150 space-y-4">
               {/* Modal Header */}

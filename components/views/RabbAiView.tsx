@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { 
   ArrowUp, 
   Microphone, 
@@ -88,15 +88,66 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [isActivelyTyping, setIsActivelyTyping] = useState(false);
+  const typingTimerRef = useRef<any>(null);
+
+  const isTypingActive = (isFocused && inputText.trim().length > 0) || isActivelyTyping;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const interimTranscriptRef = useRef<string>('');
+
+  // Mobile Visual Viewport Detection: Auto-detect keyboard height to adjust chat layout instead of scrolling the page
+  const [mobileViewportHeight, setMobileViewportHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const handleVisualViewportChange = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+
+      if (window.innerWidth < 1024) {
+        setMobileViewportHeight(vv.height);
+        // Ensure browser window does not scroll when keyboard opens
+        if (window.scrollY !== 0) {
+          window.scrollTo(0, 0);
+        }
+      } else {
+        setMobileViewportHeight(null);
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleVisualViewportChange);
+    window.visualViewport.addEventListener('scroll', handleVisualViewportChange);
+    handleVisualViewportChange();
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleVisualViewportChange);
+      window.visualViewport?.removeEventListener('scroll', handleVisualViewportChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (mobileViewportHeight && typeof window !== 'undefined' && window.innerWidth < 1024) {
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+      setTimeout(() => {
+        if (chatBottomRef.current) {
+          chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, [mobileViewportHeight]);
 
   const activeConv = conversations.find(c => c.id === activeConvId) || (conversations.length > 0 ? conversations[0] : null);
   const messages = activeConv?.messages || [];
@@ -118,6 +169,32 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
   const hasMessages = displayMessages.length > 0;
   const isAnalyzing = isLoading || Boolean(initialQuery || initialImage);
+
+  // Identify the most recent message sent by the user
+  const lastUserMsgId = useMemo(() => {
+    for (let i = displayMessages.length - 1; i >= 0; i--) {
+      if (displayMessages[i].sender === 'user') {
+        return displayMessages[i].id;
+      }
+    }
+    return null;
+  }, [displayMessages]);
+
+  // Smooth scroll so the user's latest message sits at the top of the visible screen
+  const scrollToLastUserMessage = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    if (lastUserMessageRef.current && chatContainerRef.current) {
+      const container = chatContainerRef.current;
+      const userMsgEl = lastUserMessageRef.current;
+      // Scroll to position user's message 28px from the top of the visible viewport
+      const targetTop = userMsgEl.offsetTop - 28;
+      container.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior
+      });
+    } else if (chatBottomRef.current) {
+      chatBottomRef.current.scrollIntoView({ behavior });
+    }
+  }, []);
 
   // Time & Shabbat-based Jewish cultural greeting
   const greeting = useMemo(() => {
@@ -146,14 +223,25 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     }
   };
 
-  // Auto-scroll on new messages
+  // Auto-scroll on new messages so user's last message is on top of visible screen
   useEffect(() => {
     if (hasMessages) {
-      setTimeout(() => {
-        chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 60);
+      const timer = setTimeout(() => {
+        scrollToLastUserMessage('smooth');
+      }, 50);
+      return () => clearTimeout(timer);
     }
-  }, [displayMessages.length, hasMessages]);
+  }, [displayMessages.length, hasMessages, scrollToLastUserMessage]);
+
+  // When switching conversations, position the last message smoothly
+  useEffect(() => {
+    if (hasMessages) {
+      const timer = setTimeout(() => {
+        scrollToLastUserMessage('auto');
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [activeConvId]);
 
   // Auto-send query if forwarded from search box or dashboard compose box (instant dispatch in a fresh conversation)
   useEffect(() => {
@@ -170,6 +258,13 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     if (val.length > 6000) return;
     setInputText(val);
 
+    // Trigger active typing state with debounce
+    setIsActivelyTyping(true);
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      setIsActivelyTyping(false);
+    }, 1200);
+
     // If user types @, show tag suggestions
     if (val.endsWith('@')) {
       setTagMenuOpen(true);
@@ -178,8 +273,14 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     }
 
     const target = e.target;
-    target.style.height = 'auto';
-    target.style.height = `${Math.min(Math.max(target.scrollHeight, 28), 160)}px`;
+    if (!val || val.length === 0) {
+      target.style.height = '28px';
+    } else {
+      target.style.height = '28px';
+      if (target.scrollHeight > 38) {
+        target.style.height = `${Math.min(target.scrollHeight, 140)}px`;
+      }
+    }
   };
 
   const handleInsertTag = (tag: string) => {
@@ -202,9 +303,10 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Cleanup audio tracks on unmount
+  // Cleanup audio tracks and typing timer on unmount
   useEffect(() => {
     return () => {
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
       if (recognitionRef.current) {
         try { recognitionRef.current.stop(); } catch {}
       }
@@ -522,11 +624,14 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
     if (!userText && !userImg) return;
 
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    setIsActivelyTyping(false);
+    setIsFocused(false);
     setInputText('');
     setSelectedImage(null);
     setTagMenuOpen(false);
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = '28px';
     }
 
     const baseMsgs = baseMessagesOverride !== undefined ? baseMessagesOverride : (activeConv?.messages || []);
@@ -585,7 +690,18 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      setIsActivelyTyping(false);
       handleSend();
+      return;
+    }
+
+    if (e.key !== 'Escape' && e.key !== 'Tab') {
+      setIsActivelyTyping(true);
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = setTimeout(() => {
+        setIsActivelyTyping(false);
+      }, 1200);
     }
   };
 
@@ -851,8 +967,23 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
   return (
     <div 
-      className="w-full flex-1 flex flex-col h-full relative overflow-hidden select-none bg-transparent"
+      className="w-full flex-1 min-h-0 flex flex-col h-full relative overflow-hidden select-none bg-transparent"
     >
+
+      {/* Dynamic Glowing Dots Canvas (Exact 1:1 Phase Match with .dot-matrix-canvas) */}
+      <div 
+        aria-hidden="true"
+        className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ease-out z-0 ${
+          isTypingActive ? 'opacity-100' : 'opacity-0'
+        }`}
+        style={{
+          backgroundImage: 'radial-gradient(circle at center, #FFA048 1.25px, transparent 1.25px)',
+          backgroundSize: '16px 16px',
+          backgroundPosition: '0 0',
+          maskImage: 'radial-gradient(ellipse 520px 140px at 50% calc(100% - 38px), black 25%, transparent 75%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 520px 140px at 50% calc(100% - 38px), black 25%, transparent 75%)',
+        }}
+      />
 
       {/* Hidden File Input for Receipt Attachment */}
       <input
@@ -867,7 +998,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       {/* CENTER WORKSPACE: Dot-Matrix Canvas with Landing State or Message Stream   */}
       {/* ========================================================================= */}
       <div 
-        className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full px-3 py-2 relative flex flex-col no-scrollbar"
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full px-3 py-2 relative flex flex-col no-scrollbar z-10"
         style={{
           WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 48px, black calc(100% - 24px), transparent 100%)',
           maskImage: 'linear-gradient(to bottom, transparent 0%, black 48px, black calc(100% - 24px), transparent 100%)'
@@ -932,9 +1064,14 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
               const isUser = msg.sender === 'user';
               
               if (isUser) {
+                const isLastUser = msg.id === lastUserMsgId;
                 const isEditing = editingMsgId === msg.id;
                 return (
-                  <div key={msg.id} className="flex flex-col items-end space-y-1.5 group w-full max-w-full">
+                  <div 
+                    key={msg.id} 
+                    ref={isLastUser ? lastUserMessageRef : undefined}
+                    className="flex flex-col items-end space-y-1.5 group w-full max-w-full scroll-mt-10"
+                  >
                     {isEditing ? (
                       <div className="w-full max-w-[85%] bg-[#141418] border border-[var(--accent)]/50 rounded-[12px] p-3 space-y-2.5 text-left shadow-lg">
                         <textarea
@@ -1238,7 +1375,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       {/* ========================================================================= */}
       {/* CLOUDFLARE COMPOSE BOX (EXACT SCREENSHOT STYLE)                             */}
       {/* ========================================================================= */}
-      <div className="p-2 sm:p-3 pb-[calc(8px+env(safe-area-inset-bottom,0px))] sm:pb-[calc(12px+env(safe-area-inset-bottom,0px))] shrink-0 z-20">
+      <div className="px-2 sm:px-3 pt-0 pb-[calc(2px+env(safe-area-inset-bottom,0px))] sm:pb-[calc(4px+env(safe-area-inset-bottom,0px))] shrink-0 z-20">
         <div className="w-full max-w-2xl mx-auto">
           {/* Selected Image Preview */}
           {selectedImage && (
@@ -1286,20 +1423,66 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
             </div>
           )}
 
-          {/* The Outer Box with Cloudflare Orange / Active Border */}
-          <div className="w-full bg-[#0e0e12] border border-[var(--accent)]/40 hover:border-[var(--accent)]/70 focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)]/30 rounded-[10px] sm:rounded-[12px] p-2 sm:p-2.5 transition-all">
-            
-            {/* Expanding Textarea */}
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              value={inputText}
-              onChange={handleTextChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Type @ to tag a resource or ? for shortcuts"
-              className="input-reset w-full bg-transparent border-0 outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none leading-relaxed overflow-y-auto max-h-[100px] sm:max-h-[140px] py-0.5"
-              style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
+          {/* The Compose Box with Dynamic Gradient Glow & Lit-up Dots while Typing */}
+          <div className="relative w-full">
+            {/* 1. Ambient Diffused Glow Aura (No scaling to eliminate height jitter) */}
+            <div 
+              aria-hidden="true"
+              className={`absolute -inset-[2px] sm:-inset-[3px] rounded-[13px] sm:rounded-[15px] blur-[14px] sm:blur-[18px] transition-opacity duration-300 pointer-events-none ${
+                isTypingActive ? 'opacity-70' : 'opacity-0'
+              }`}
+              style={{
+                background: 'linear-gradient(135deg, #F6821F 0%, #FF7A00 25%, #FF3D71 55%, #A855F7 80%, #F6821F 100%)',
+                backgroundSize: '250% 250%',
+                animation: isTypingActive ? 'gradientGlowShift 4s ease infinite' : 'none',
+              }}
             />
+
+            {/* 3. Crisp 1px Gradient Border Frame */}
+            <div 
+              aria-hidden="true"
+              className={`absolute -inset-[1px] rounded-[11px] sm:rounded-[13px] transition-opacity duration-300 pointer-events-none ${
+                isTypingActive ? 'opacity-100' : 'opacity-0'
+              }`}
+              style={{
+                background: 'linear-gradient(135deg, #F6821F 0%, #FF7A00 25%, #FF3D71 55%, #A855F7 80%, #F6821F 100%)',
+                backgroundSize: '250% 250%',
+                animation: isTypingActive ? 'gradientGlowShift 4s ease infinite' : 'none',
+              }}
+            />
+
+            {/* 4. The Main Compose Box Interior (Stable 1px border, transitions colors only) */}
+            <div 
+              className={`relative z-10 w-full bg-[#0e0e12] rounded-[10px] sm:rounded-[12px] p-2 sm:p-2.5 transition-colors duration-200 border ${
+                isTypingActive 
+                  ? 'border-transparent shadow-[0_0_24px_rgba(246,130,31,0.2)]' 
+                  : 'border-[var(--accent)]/40 hover:border-[var(--accent)]/70'
+              }`}
+            >
+              
+              {/* Expanding Textarea (Locked 28px height to eliminate height jitter) */}
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                value={inputText}
+                onChange={handleTextChange}
+                onKeyDown={handleKeyDown}
+                onFocus={() => {
+                  setIsFocused(true);
+                  if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                    window.scrollTo(0, 0);
+                    setTimeout(() => {
+                      if (chatBottomRef.current) {
+                        chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }, 150);
+                  }
+                }}
+                onBlur={() => setIsFocused(false)}
+                placeholder="Type @ to tag a resource or ? for shortcuts"
+                className="input-reset w-full bg-transparent border-0 outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] resize-none leading-relaxed overflow-y-auto max-h-[140px] py-0.5"
+                style={{ minHeight: '28px', height: '28px', border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
+              />
 
             {/* Bottom Toolbar inside the box */}
             <div className="flex items-center justify-between pt-1.5 sm:pt-2">
@@ -1353,6 +1536,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
             </div>
           </div>
+        </div>
 
           {/* Real-time Voice Listening Prompt */}
           {isListening && (
@@ -1397,7 +1581,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       {/* SUPPORT & FAQ MODAL                                                       */}
       {/* ========================================================================= */}
       {isSupportModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4">
           <div className="bg-[#141418] border border-[var(--border-default)] rounded-[12px] shadow-2xl max-w-md w-full p-4 space-y-3.5 text-[12.5px] animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-2.5">
               <div className="flex items-center gap-2">

@@ -62,7 +62,7 @@
 
 /* Technical Dotted Canvas Matrix */
 .dot-matrix-canvas {
-  background-image: radial-gradient(#24242c 1px, transparent 1px);
+  background-image: radial-gradient(circle at center, #24242c 1px, transparent 1px);
   background-size: 16px 16px;
   background-position: 0 0;
 }
@@ -785,6 +785,19 @@ textarea[class*="border-none"]:focus,
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Dynamic Gradient Glow Keyframes for Compose Box */
+@keyframes gradientGlowShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Shining Light Trail Beam for Compose Box */

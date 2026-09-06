@@ -221,7 +221,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     <div className="fixed inset-0 z-[10000] flex items-start justify-center pt-[12vh] px-4">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity duration-150" 
+        className="absolute inset-0 bg-black/70 transition-opacity duration-150" 
         onClick={onClose} 
         aria-hidden="true"
       />

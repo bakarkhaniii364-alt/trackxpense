@@ -59,7 +59,7 @@ export const VaultLock: React.FC<VaultLockProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[var(--z-stealth,10000)] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 select-none">
+    <div className="fixed inset-0 z-[var(--z-stealth,10000)] bg-black/90 flex items-center justify-center p-4 select-none">
       <div className={`w-full max-w-xs bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] p-6 flex flex-col items-center text-center animate-in zoom-in-95 duration-200 shadow-2xl ${error ? 'animate-shake' : ''}`}>
         
         {/* Unboxed Header Icon */}

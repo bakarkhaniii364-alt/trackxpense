@@ -110,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const ConfirmationOverlay = ({ action }: { action: 'logout' | 'delete' }) => createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 animate-in fade-in duration-200">
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-xs" onClick={() => setConfirmAction(null)} />
+      <div className="absolute inset-0 bg-black/75" onClick={() => setConfirmAction(null)} />
       <div className="relative bg-[var(--bg-surface)] p-6 rounded-[12px] w-full max-w-[320px] border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)]">
         <div className="flex flex-col items-center text-center">
             <div className={`mb-3 ${action === 'delete' ? 'text-rose-500' : 'text-[var(--accent)]'}`}>

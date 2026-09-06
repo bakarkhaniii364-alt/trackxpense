@@ -645,7 +645,7 @@ export const DebtView: React.FC<DebtProps> = ({
       {isAddOpen && createPortal(
         <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-150" 
+            className="fixed inset-0 bg-black/80 transition-opacity animate-in fade-in duration-150" 
             onClick={() => setIsAddOpen(false)} 
           />
           <div className="relative z-10 w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 text-[var(--text-primary)]">
@@ -754,7 +754,7 @@ export const DebtView: React.FC<DebtProps> = ({
       {isPaymentOpen && createPortal(
         <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-150" 
+            className="fixed inset-0 bg-black/80 transition-opacity animate-in fade-in duration-150" 
             onClick={() => setIsPaymentOpen(false)} 
           />
           <div className="relative z-10 w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 text-[var(--text-primary)]">
