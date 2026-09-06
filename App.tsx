@@ -1513,11 +1513,6 @@ export default function App() {
                 {/* Main Content */}
         <main 
           ref={mainRef}
-          onScroll={(e) => {
-            if (view === 'rabbai' && e.currentTarget.scrollTop !== 0) {
-              e.currentTarget.scrollTop = 0;
-            }
-          }}
           className={`flex-1 min-w-0 min-h-0 w-full max-w-full ${
             view === 'rabbai'
               ? 'max-w-none p-0 m-0 flex flex-col overflow-hidden overflow-x-hidden h-full'

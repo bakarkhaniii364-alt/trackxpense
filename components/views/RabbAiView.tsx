@@ -274,6 +274,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       block: 'start',
       behavior
     });
+
     scrolledUserMsgIdRef.current = targetId;
     return true;
   }, [lastUserMsgId, updateBottomSpacer]);
@@ -332,26 +333,22 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     setShowScrollLatest(isScrolledUpFromLatest);
   }, [lastUserMsgId]);
 
-  // Streaming Auto-Follow: when RabbAi response is streaming and exceeds viewport,
-  // follow downward gently UNLESS the user has scrolled up to read earlier text
+  // Streaming Auto-Follow: tracks ONLY active streaming text, ignoring thinking loader
   useEffect(() => {
     if (!chatContainerRef.current) return;
     const container = chatContainerRef.current;
 
-    const activeStreamEl = container.querySelector<HTMLElement>('[data-is-streaming="true"]') 
-      || container.querySelector<HTMLElement>('[data-is-analyzing="true"]');
+    // Only track text while actually streaming characters, not during thinking loader
+    const activeStreamEl = container.querySelector<HTMLElement>('[data-is-streaming="true"]');
 
     if (!activeStreamEl) return;
 
     const observer = new ResizeObserver(() => {
-      updateBottomSpacer();
-
       if (isUserReadingHistoryRef.current) return;
 
       const containerRect = container.getBoundingClientRect();
       const streamRect = activeStreamEl.getBoundingClientRect();
 
-      // If the bottom of the streaming text gets within 72px of container bottom (near compose bar)
       const overflowBottom = streamRect.bottom - (containerRect.bottom - 72);
       if (overflowBottom > 0) {
         container.scrollTop += overflowBottom + 8;
@@ -363,7 +360,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [isLoading, displayMessages, updateBottomSpacer]);
+  }, [isLoading, displayMessages]);
 
   // Time & Shabbat-based Jewish cultural greeting
   const greeting = useMemo(() => {
@@ -407,11 +404,16 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     }
   }, [effectiveViewportHeight, lastUserMsgId, scrollToLatestPrompt]);
 
-  // When switching conversations, position at the latest exchange
+  const prevActiveConvIdRef = useRef<string | undefined>(undefined);
+
+  // When switching conversations (or initial load), instantly position at the latest exchange with 'auto'
   useEffect(() => {
-    if (activeConvId && lastUserMsgId) {
-      scrolledUserMsgIdRef.current = lastUserMsgId;
-      dispatchTopAnchorScroll(lastUserMsgId, 'auto');
+    if (prevActiveConvIdRef.current !== activeConvId) {
+      prevActiveConvIdRef.current = activeConvId;
+      if (lastUserMsgId) {
+        scrolledUserMsgIdRef.current = lastUserMsgId;
+        dispatchTopAnchorScroll(lastUserMsgId, 'auto');
+      }
     }
   }, [activeConvId, lastUserMsgId, dispatchTopAnchorScroll]);
 
@@ -1178,6 +1180,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
         onScroll={handleChatScroll}
         className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full max-w-full px-3 py-2 relative flex flex-col no-scrollbar z-10 scroll-smooth"
         style={{
+          overflowAnchor: 'none',
           WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 40px, black calc(100% - 72px), transparent 100%)',
           maskImage: 'linear-gradient(to bottom, transparent 0%, black 40px, black calc(100% - 72px), transparent 100%)'
         }}
