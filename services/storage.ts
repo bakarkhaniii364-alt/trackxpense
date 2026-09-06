@@ -68,7 +68,8 @@ const DEFAULT_DATA: AppData = {
     stealthHotkey: 'Escape',
     hapticsEnabled: true,
     groqApiKey: '', // Key is managed server-side; not stored on client
-    enableAiParsing: false
+    enableAiParsing: false,
+    keepLastMessageOnTop: true
   },
   profile: {
     name: 'User',
@@ -148,7 +149,8 @@ export const getAppData = async (): Promise<AppData> => {
         const migratedSettings = {
             ...rawSettings,
             theme: (!rawSettings.theme || rawSettings.theme === 'indigo') ? 'amber' : rawSettings.theme,
-            enableAiParsing: Boolean(result.settings?.enableAiParsing)
+            enableAiParsing: Boolean(result.settings?.enableAiParsing),
+            keepLastMessageOnTop: result.settings?.keepLastMessageOnTop !== undefined ? Boolean(result.settings.keepLastMessageOnTop) : true
         };
 
         const mergedData: AppData = {

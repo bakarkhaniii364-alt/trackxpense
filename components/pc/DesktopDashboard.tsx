@@ -25,8 +25,14 @@ import {
   Sliders,
   Calendar,
   UserCircle,
-  Prohibit as Ban
+  Prohibit as Ban,
+  Database,
+  ShieldCheck,
+  FileText
 } from '@phosphor-icons/react';
+import Papa from 'papaparse';
+import { saveAs } from 'file-saver';
+import { AuditLogger } from '../../services/auditLog';
 import { SpotifyIcon } from '../shared/SpotifyIcon';
 import { parseTransactionWithAI, AIParsedTransaction } from '../../services/aiService';
 import { Transaction, TransactionType, AppData, Wallet, Category } from '../../types';
@@ -104,6 +110,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const jsonImportInputRef = useRef<HTMLInputElement>(null);
 
   const [isMobileScreen, setIsMobileScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth < 640);
 
@@ -162,7 +170,6 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     };
   }, [activeMenu]);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
 
   const currency = data.settings.currencySymbol;
@@ -334,6 +341,60 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // JSON Backup File Restore / Import
+  const handleJsonImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    Haptics.light();
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const imported = JSON.parse(event.target?.result as string);
+        if (imported && typeof imported === 'object') {
+          updateData(imported);
+          alert("Backup successfully restored.");
+        }
+      } catch {
+        alert("Failed to parse JSON backup file.");
+      }
+    };
+    reader.readAsText(file);
+    if (jsonImportInputRef.current) jsonImportInputRef.current.value = '';
+  };
+
+  // Direct CSV Export
+  const exportTransactionsCSV = () => {
+    Haptics.light();
+    const txs = (data.transactions || []).map(t => ({
+      Date: t.date,
+      Type: t.type,
+      Category: t.category,
+      Amount: t.amount,
+      Note: t.note || '',
+      Wallet: data.wallets?.find(w => w.id === t.walletId)?.name || 'Default',
+      Tags: (t.tags || []).join(', '),
+      Status: t.isPending ? 'Pending' : 'Cleared'
+    }));
+    const csv = Papa.unparse(txs);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `trackxpense_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  // Direct JSON Full Backup Export
+  const exportBackupJSON = () => {
+    Haptics.light();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    saveAs(blob, `trackxpense_backup_${new Date().toISOString().split('T')[0]}.json`);
+  };
+
+  // Direct Activity Audit Log Export
+  const exportAuditLog = () => {
+    Haptics.light();
+    const csv = AuditLogger.exportAsCsv();
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `trackxpense_audit_log_${Date.now()}.csv`);
+  };
+
   // Web Speech API Voice Recognition
   const toggleListening = () => {
     Haptics.light();
@@ -470,6 +531,211 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     return <span>{before}<span className="text-[#ff9f43] bg-[#7a3800]/40 rounded-[2px] font-medium">{match}</span>{after}</span>;
   };
 
+  // Complete Registry of all TrackXpense Components, Views, Settings & Direct Actions
+  const allComponents = useMemo(() => [
+    // ── Primary Financial Views ──
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      subtitle: 'Financial Overview & Metrics',
+      category: 'Views',
+      icon: LayoutGrid,
+      keywords: ['dashboard', 'home', 'overview', 'runway', 'metrics', 'summary', 'health', 'net worth', 'main'],
+      action: () => { setView('dashboard'); setIsSearchFocused(false); }
+    },
+    {
+      id: 'history',
+      label: 'Transactions',
+      subtitle: 'Ledger & Spending Records',
+      category: 'Views',
+      icon: Activity,
+      keywords: ['transactions', 'ledger', 'history', 'expenses', 'income', 'records', 'spending', 'payments', 'entries'],
+      action: () => { setView('history'); setIsSearchFocused(false); }
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      subtitle: 'Reports & Spending Trends',
+      category: 'Views',
+      icon: TrendingUp,
+      keywords: ['analytics', 'reports', 'charts', 'trends', 'insights', 'spending breakdown', 'graphs', 'visuals'],
+      action: () => { setView('analytics'); setIsSearchFocused(false); }
+    },
+    {
+      id: 'control',
+      label: 'Budgets',
+      subtitle: 'Category Limits & Thresholds',
+      category: 'Views',
+      icon: Sliders,
+      keywords: ['budgets', 'categories', 'limits', 'control', 'thresholds', 'allocations', 'spending limit'],
+      action: () => { setView('control'); setIsSearchFocused(false); }
+    },
+    {
+      id: 'debts',
+      label: 'Debts & Loans',
+      subtitle: 'Lent, Borrowed & IOUs',
+      category: 'Views',
+      icon: HandCoins,
+      keywords: ['debts', 'loans', 'lent', 'borrowed', 'credit', 'iou', 'liabilities', 'payback', 'borrow'],
+      action: () => { setView('debts'); setIsSearchFocused(false); }
+    },
+    {
+      id: 'provisions',
+      label: 'Upcoming Expenses',
+      subtitle: 'Bills & Provisions Calendar',
+      category: 'Views',
+      icon: Calendar,
+      keywords: ['provisions', 'bills', 'upcoming', 'scheduled', 'reminders', 'fixed costs', 'rent', 'utilities'],
+      action: () => { setView('provisions'); setIsSearchFocused(false); }
+    },
+    {
+      id: 'subscriptions',
+      label: 'Subscriptions',
+      subtitle: 'Recurring Charges & SaaS',
+      category: 'Views',
+      icon: SpotifyIcon,
+      keywords: ['subscriptions', 'recurring', 'netflix', 'spotify', 'saas', 'monthly charges', 'memberships'],
+      action: () => { setView('subscriptions'); setIsSearchFocused(false); }
+    },
+    {
+      id: 'rabbai',
+      label: 'RabbAi Assistant',
+      subtitle: 'AI Financial Intelligence & Copilot',
+      category: 'AI & Tools',
+      icon: Sparkle,
+      keywords: ['rabbai', 'ai', 'assistant', 'chat', 'copilot', 'advisor', 'intelligence', 'ask ai', 'prompt'],
+      action: () => { setView('rabbai'); setIsSearchFocused(false); }
+    },
+
+    // ── Data Management & Export (Direct Actions) ──
+    {
+      id: 'export-csv',
+      label: 'Export Transactions (CSV)',
+      subtitle: 'Download Ledger Spreadsheet (.csv)',
+      category: 'Data & Backup',
+      icon: ArrowDownRight,
+      keywords: ['export', 'export csv', 'csv', 'spreadsheet', 'download csv', 'download ledger', 'excel', 'export transactions'],
+      action: () => {
+        exportTransactionsCSV();
+        setIsSearchFocused(false);
+      }
+    },
+    {
+      id: 'export-json',
+      label: 'Export Full Backup (JSON)',
+      subtitle: 'Complete Database Backup (.json)',
+      category: 'Data & Backup',
+      icon: Database,
+      keywords: ['export json', 'json backup', 'download backup', 'full backup', 'export data', 'backup database', 'save backup'],
+      action: () => {
+        exportBackupJSON();
+        setIsSearchFocused(false);
+      }
+    },
+    {
+      id: 'export-log',
+      label: 'Export Activity Log',
+      subtitle: 'Security & Audit Trail (.csv)',
+      category: 'Data & Backup',
+      icon: ClockCounterClockwise,
+      keywords: ['export log', 'audit log', 'activity log', 'security log', 'download log', 'audit trail'],
+      action: () => {
+        exportAuditLog();
+        setIsSearchFocused(false);
+      }
+    },
+    {
+      id: 'restore-backup',
+      label: 'Restore Backup',
+      subtitle: 'Import JSON Database File',
+      category: 'Data & Backup',
+      icon: ArrowUpRight,
+      keywords: ['restore', 'import', 'restore backup', 'import backup', 'upload backup', 'recover data'],
+      action: () => {
+        jsonImportInputRef.current?.click();
+        setIsSearchFocused(false);
+      }
+    },
+
+    // ── Settings & Management ──
+    {
+      id: 'settings-backup',
+      label: 'Data & Backup Settings',
+      subtitle: 'Manage Exports, Sync & Storage',
+      category: 'Settings',
+      icon: SlidersHorizontal,
+      keywords: ['data', 'backup', 'export settings', 'import settings', 'data security', 'sync', 'storage', 'data management'],
+      action: () => { setView('identity'); setIsSearchFocused(false); }
+    },
+    {
+      id: 'settings-profile',
+      label: 'Profile & Settings',
+      subtitle: 'Account Preferences & Currency',
+      category: 'Settings',
+      icon: UserCircle,
+      keywords: ['settings', 'profile', 'identity', 'preferences', 'currency', 'account', 'user', 'name'],
+      action: () => { setView('identity'); setIsSearchFocused(false); }
+    },
+    {
+      id: 'settings-wallets',
+      label: 'Wallets & Accounts',
+      subtitle: 'Manage Cards, Cash & Banks',
+      category: 'Settings',
+      icon: WalletIcon,
+      keywords: ['wallets', 'accounts', 'cards', 'banks', 'cash', 'create wallet', 'add account', 'payment methods'],
+      action: () => { setView('identity'); setIsSearchFocused(false); }
+    },
+    {
+      id: 'policy-portal',
+      label: 'Policy Portal',
+      subtitle: 'Expense Policies & Terms',
+      category: 'Compliance',
+      icon: ShieldCheck,
+      keywords: ['policy', 'privacy', 'terms', 'security', 'compliance', 'legal', 'rules', 'gdpr'],
+      action: () => { setView('policy_portal'); setIsSearchFocused(false); }
+    },
+
+    // ── Quick Actions ──
+    {
+      id: 'action-add',
+      label: 'Add Transaction',
+      subtitle: 'Quick Log Expense or Income',
+      category: 'Actions',
+      icon: Plus,
+      keywords: ['add', 'add transaction', 'new transaction', 'log expense', 'add expense', 'record income', 'deposit'],
+      action: () => { onAddTransactionRequest(TransactionType.EXPENSE); setIsSearchFocused(false); }
+    },
+    {
+      id: 'action-receipt',
+      label: 'Attach Receipt Image',
+      subtitle: 'Upload Receipt for Parsing',
+      category: 'Actions',
+      icon: Paperclip,
+      keywords: ['receipt', 'scan receipt', 'upload receipt', 'attach image', 'bill image', 'camera', 'photo'],
+      action: () => { fileInputRef.current?.click(); setIsSearchFocused(false); }
+    }
+  ], [data, updateData, setView, onAddTransactionRequest]);
+
+  const filteredComponents = useMemo(() => {
+    const q = commandText.trim().toLowerCase();
+    if (!q) {
+      // Default resting state: 5 primary recents
+      return allComponents.slice(0, 5);
+    }
+    return allComponents.filter(item =>
+      item.label.toLowerCase().includes(q) ||
+      item.subtitle.toLowerCase().includes(q) ||
+      item.category.toLowerCase().includes(q) ||
+      (item.keywords && item.keywords.some(k => k.toLowerCase().includes(q)))
+    );
+  }, [allComponents, commandText]);
+
+  const filteredWallets = useMemo(() => {
+    const q = commandText.trim().toLowerCase();
+    if (!q) return data.wallets;
+    return data.wallets.filter((w: Wallet) => w.name.toLowerCase().includes(q));
+  }, [data.wallets, commandText]);
+
   const recentFiveTransactions = useMemo(() => {
     return data.transactions.slice(0, 5);
   }, [data.transactions]);
@@ -486,6 +752,15 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
         className="hidden"
       />
 
+      {/* Hidden File Input for JSON Restore / Import */}
+      <input
+        type="file"
+        ref={jsonImportInputRef}
+        accept=".json"
+        onChange={handleJsonImport}
+        className="hidden"
+      />
+
       {/* ========================================================================= */}
       {/* CLOUDFLARE HERO SECTION: Title (NO pills) + Universal Centered Bar        */}
       {/* Orchestrated Entrance: Compose box pops first, title slides UP, rest DOWN */}
@@ -497,12 +772,12 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
           Spent anything today, {userName}?
         </h1>
 
-        {/* Smart Search & Command Box with Suggestions */}
-        <div ref={searchBoxRef} className={`animate-hero-compose w-full space-y-2 relative ${isSearchFocused ? 'z-50' : 'z-40'}`}>
+        {/* Smart Search & Command Box with Suggestions (Cloudflare Technical Exact Layout) */}
+        <div ref={searchBoxRef} className={`animate-hero-compose w-full relative ${isSearchFocused ? 'z-50' : 'z-40'}`}>
           
           {/* Selected Receipt Image Preview */}
           {selectedReceipt && (
-            <div className="relative inline-block">
+            <div className="relative inline-block mb-2">
               <img src={selectedReceipt} alt="Receipt preview" className="w-14 h-14 object-cover rounded-[6px] border border-[var(--border-default)] shadow-xs" />
               <button
                 onClick={() => setSelectedReceipt(null)}
@@ -513,194 +788,178 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
             </div>
           )}
 
-          {/* Thinner & Sleek Smart Search Container with Shining Beam & Typing Gradient Glow */}
-          <div className="relative w-full">
-            {/* Ambient Diffused Glow while typing - extends through padding and fades softly so it never clips */}
-            <div 
-              aria-hidden="true"
-              className={`absolute -top-3 -bottom-2.5 -left-3.5 -right-3.5 sm:-inset-[4px] rounded-[16px] blur-[16px] sm:blur-[22px] transition-opacity duration-300 pointer-events-none ${
-                commandText.trim().length > 0 
-                  ? 'opacity-80' 
-                  : 'opacity-0'
-              }`}
-              style={{
-                background: 'linear-gradient(90deg, transparent 0%, rgba(246,130,31,0.85) 10%, #FF7A00 28%, #FF3D71 55%, #A855F7 80%, rgba(246,130,31,0.85) 90%, transparent 100%)',
-                backgroundSize: '200% 100%',
-                animation: commandText.trim().length > 0 ? 'gradientGlowShift 4s ease infinite' : 'none',
+          {/* Top Standalone Search Bar (Matches Cloudflare: h-40px, rounded-8px, crisp 1px border, balanced toolbar) */}
+          <div 
+            className={`w-full h-[40px] pl-3 pr-2 flex items-center gap-2 rounded-[8px] bg-[#000000] border transition-colors ${
+              isSearchFocused 
+                ? 'border-[#383838]' 
+                : 'border-[#1e1e1e] hover:border-[#2a2a2a]'
+            }`}
+          >
+            {/* Search Icon */}
+            <Search size={16} strokeWidth={1.5} className="text-[#a0a0a0] shrink-0" />
+
+            {/* Single-Line Smart Search Input */}
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={commandText}
+              onChange={handleCommandChange}
+              onFocus={() => setIsSearchFocused(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (commandText.trim() || selectedReceipt) {
+                    handleSendCommand();
+                  }
+                } else if (e.key === 'Escape') {
+                  setIsSearchFocused(false);
+                  searchInputRef.current?.blur();
+                }
               }}
+              placeholder="Search"
+              className="input-reset flex-1 min-w-0 bg-transparent border-0 outline-none text-[14px] font-normal text-white placeholder:text-[#a1a1a1] leading-normal py-0.5"
+              style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
             />
 
-            <div className="relative z-10 shining-beam-wrapper">
-            <div className="shining-beam-inner py-1.5 px-2.5 sm:px-3 transition-colors flex items-center gap-1.5 sm:gap-2">
-              
-              {/* Search Icon */}
-              <Search size={16} strokeWidth={1.5} className="text-[var(--text-muted)] shrink-0" />
-
-              {/* Single-Line Smart Search Input */}
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={commandText}
-                onChange={handleCommandChange}
-                onFocus={() => setIsSearchFocused(true)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (commandText.trim() || selectedReceipt) {
-                      handleSendCommand();
-                    }
-                  } else if (e.key === 'Escape') {
-                    setIsSearchFocused(false);
-                    searchInputRef.current?.blur();
-                  }
-                }}
-                placeholder={
-                  isMobileScreen 
-                    ? (Boolean(data.settings?.enableAiParsing) ? "Search or log expense..." : "Search records...") 
-                    : (Boolean(data.settings?.enableAiParsing) ? "Search or jump to... (e.g. '$15 for lunch', or press Ctrl+K)" : "Search records, wallets, or jump to... (press Ctrl+K)")
-                }
-                className="input-reset flex-1 min-w-0 bg-transparent border-0 outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)] leading-normal py-1"
-                style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
-              />
-
-              {/* Right Toolbar Controls */}
-              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-                {/* Attach Receipt & Voice Mic Buttons (Only when AI Assistant is enabled) */}
-                {Boolean(data.settings?.enableAiParsing) && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="h-[26px] w-[26px] sm:w-auto px-0 sm:px-2 rounded-[6px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors flex items-center justify-center sm:gap-1.5 text-[11.5px] cursor-pointer shrink-0"
-                      title="Attach receipt image"
-                    >
-                      <Paperclip size={13} strokeWidth={1.5} />
-                      <span className="hidden sm:inline">Receipt</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={toggleListening}
-                      className={`h-[26px] w-[26px] rounded-[6px] flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                        isListening
-                          ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/40'
-                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
-                      }`}
-                      title={isListening ? 'Listening... click to stop' : 'Click to speak'}
-                    >
-                      <Microphone size={14} strokeWidth={1.5} />
-                    </button>
-                  </>
-                )}
-
-                {/* Keyboard Shortcut Pill or Clear */}
-                {commandText ? (
+            {/* Right Toolbar Controls (Receipt, Mic, Esc/Ctrl K, Log) - Perfectly Sized & Centered */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {Boolean(data.settings?.enableAiParsing) && (
+                <>
                   <button
                     type="button"
-                    onClick={() => { setCommandText(''); setIsSearchFocused(false); }}
-                    className="h-[22px] px-1.5 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded bg-[var(--bg-subtle)] border border-[var(--border-default)] cursor-pointer shrink-0 flex items-center justify-center"
-                    title="Clear search"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="h-[24px] px-1.5 rounded-[5px] text-[#a1a1a1] hover:text-white hover:bg-[#262626] transition-colors flex items-center gap-1 text-[11px] cursor-pointer shrink-0"
+                    title="Attach receipt image"
                   >
-                    <span className="hidden sm:inline">Esc</span>
-                    <X size={12} strokeWidth={2} className="sm:hidden" />
+                    <Paperclip size={13} strokeWidth={1.5} className="text-[#a0a0a0]" />
+                    <span className="hidden sm:inline">Receipt</span>
                   </button>
-                ) : (
-                  <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-default)] text-[var(--text-muted)] select-none shrink-0">
-                    Ctrl K
-                  </kbd>
-                )}
 
-                {/* Send / Log Button */}
+                  <button
+                    type="button"
+                    onClick={toggleListening}
+                    className={`h-[24px] w-[24px] rounded-[5px] flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                      isListening
+                        ? 'bg-red-500/20 text-red-400 animate-pulse border border-red-500/40'
+                        : 'text-[#a0a0a0] hover:text-white hover:bg-[#262626]'
+                    }`}
+                    title={isListening ? 'Listening... click to stop' : 'Click to speak'}
+                  >
+                    <Microphone size={13} strokeWidth={1.5} />
+                  </button>
+                </>
+              )}
+
+              {/* Keyboard Shortcut Pill or Clear */}
+              {commandText ? (
                 <button
                   type="button"
-                  onClick={handleSendCommand}
-                  disabled={(!commandText.trim() && !selectedReceipt) || isAiLoading}
-                  className="btn btn--primary h-[26px] px-2 sm:px-2.5 text-[11px] sm:text-[11.5px] rounded-[6px] flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
-                  title="Submit command"
+                  onClick={() => { setCommandText(''); setIsSearchFocused(false); }}
+                  className="h-[22px] px-1.5 text-[10px] text-[#a1a1a1] hover:text-white rounded bg-[#18181a] border border-[#1e1e1e] cursor-pointer shrink-0 flex items-center justify-center"
+                  title="Clear search"
                 >
-                  <span>Log</span>
-                  <ArrowUp size={12} weight="bold" />
+                  <span>Esc</span>
                 </button>
-              </div>
+              ) : (
+                <kbd className="hidden sm:inline-flex items-center text-[10px] font-mono px-1.5 py-0.5 rounded bg-[#18181a] border border-[#1e1e1e] text-[#a1a1a1] select-none shrink-0">
+                  Ctrl K
+                </kbd>
+              )}
+
+              {/* Send / Log Button - Precision Nested Inside Box Without Overflow */}
+              <button
+                type="button"
+                onClick={handleSendCommand}
+                disabled={(!commandText.trim() && !selectedReceipt) || isAiLoading}
+                className="h-[26px] px-2.5 rounded-[5px] bg-[#E3993D] hover:bg-[#f3a447] text-black font-semibold text-[11px] tracking-wide flex items-center gap-1 transition-all duration-150 disabled:opacity-30 disabled:hover:bg-[#E3993D] disabled:cursor-not-allowed cursor-pointer shrink-0 select-none shadow-xs active:scale-[0.98]"
+                title="Submit command"
+              >
+                <span>Log</span>
+                <ArrowUp size={11} weight="bold" />
+              </button>
             </div>
           </div>
-        </div>
 
-          {/* Anchored Suggestions Dropdown Menu (Cloudflare Dark & Minimal, No Horizontal Dividers) */}
+          {/* Suggestions Dropdown Card (Matches Cloudflare Image 2: mt-1.5, fill #0f0f0f, outline #1e1e1e, rounded-10px) */}
           {isSearchFocused && (
-            <div 
-              style={{ backgroundColor: '#111114' }}
-              className="absolute left-0 right-0 top-full mt-1.5 bg-[#111114] border border-[#232328] rounded-[10px] shadow-[0_20px_60px_rgba(0,0,0,0.9)] z-[100] overflow-hidden text-[12.5px] animate-in fade-in zoom-in-95 duration-100 p-1.5"
+            <div
+              style={{ backgroundColor: '#0f0f0f', borderColor: '#1e1e1e' }}
+              className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-[#0f0f0f] border border-[#1e1e1e] rounded-[10px] shadow-[0_20px_60px_rgba(0,0,0,0.95)] animate-in fade-in zoom-in-95 duration-100 overflow-hidden"
             >
-              <div className="max-h-[340px] overflow-y-auto space-y-2 no-scrollbar">
+              <div className="max-h-[340px] overflow-y-auto space-y-1.5 p-1.5 pr-1 scrollbar-thin">
                 
                 {/* 1. Actions / Dynamic Query */}
                 {commandText.trim() && (
                   <div>
-                    <div className="px-2.5 pt-1 pb-1 text-[11.5px] font-normal text-[#8e8e93]">
+                    <div className="px-3 pt-1 pb-1 text-[12px] font-medium text-[#a1a1a1]">
                       Actions
                     </div>
                     <div
                       onClick={handleSendCommand}
-                      className="flex items-center justify-between px-2.5 py-1.5 rounded-[6px] hover:bg-[#1a1a1f] cursor-pointer text-[#f4f4f5] transition-colors group"
+                      className="h-[36px] px-3 flex items-center justify-between rounded-[6px] hover:bg-[#262626] cursor-pointer text-[#f4f4f5] transition-colors group"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <ArrowUp size={14} className="text-[var(--accent)] shrink-0" weight="bold" />
-                        <span className="truncate text-[13px] text-[#d4d4d8]">
-                          Execute command: <span className="text-[var(--text-primary)] font-medium">"{commandText.trim()}"</span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <ArrowUp size={15} className="text-[#E3993D] shrink-0" weight="bold" />
+                        <span className="truncate text-[14px] text-[#f4f4f5]">
+                          Execute command: <span className="text-white font-medium">"{commandText.trim()}"</span>
                         </span>
                       </div>
-                      <ArrowRight size={13} strokeWidth={1.5} className="text-[#71717a] group-hover:text-[#f4f4f5] opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-2" />
+                      <ArrowRight size={13} strokeWidth={1.5} className="text-[#a0a0a0] group-hover:text-white opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-2" />
                     </div>
                   </div>
                 )}
 
-                {/* 2. Navigation Suggestions (Go to) */}
-                <div>
-                  <div className="px-2.5 pt-1 pb-1 text-[11.5px] font-normal text-[#8e8e93]">
-                    Go to
-                  </div>
-                  <div className="space-y-0.5">
-                    {[
-                      { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutGrid, action: () => { setView('dashboard'); setIsSearchFocused(false); } },
-                      { id: 'history', label: 'Ledger & Transactions', icon: Activity, action: () => { setView('history'); setIsSearchFocused(false); } },
-                      { id: 'analytics', label: 'Financial Analytics', icon: TrendingUp, action: () => { setView('analytics'); setIsSearchFocused(false); } },
-                      { id: 'debts', label: 'Debts & Loans', icon: HandCoins, action: () => { setView('debts'); setIsSearchFocused(false); } },
-                      { id: 'control', label: 'Budgets & Categories', icon: Sliders, action: () => { setView('control'); setIsSearchFocused(false); } },
-                      { id: 'bills', label: 'Upcoming Bills & Expenses', icon: Calendar, action: () => { setView('provisions'); setIsSearchFocused(false); } },
-                      { id: 'subscriptions', label: 'Subscriptions & Recurring', icon: SpotifyIcon, action: () => { setView('subscriptions'); setIsSearchFocused(false); } },
-                      { id: 'settings', label: 'Profile & Settings', icon: UserCircle, action: () => { setView('identity'); setIsSearchFocused(false); } },
-                    ]
-                      .filter(item => !commandText.trim() || item.label.toLowerCase().includes(commandText.toLowerCase()))
-                      .slice(0, commandText.trim() ? 6 : 5)
-                      .map((item) => {
+                {/* 2. Components & Navigation List (Lists Every Component, View & Export Action in TrackXpense) */}
+                {filteredComponents.length > 0 && (
+                  <div>
+                    <div className="px-3 pt-1 pb-1 text-[12px] font-medium text-[#a1a1a1]">
+                      {commandText.trim() ? 'Components & Actions' : 'Recents'}
+                    </div>
+                    <div className="space-y-0.5">
+                      {filteredComponents.map((item, idx) => {
                         const Icon = item.icon;
+                        const isFirst = idx === 0 && !commandText.trim();
                         return (
                           <div
                             key={item.id}
                             onClick={item.action}
-                            className="flex items-center justify-between px-2.5 py-1.5 rounded-[6px] hover:bg-[#1a1a1f] cursor-pointer text-[#d4d4d8] hover:text-[#f4f4f5] transition-colors group"
+                            className={`h-[36px] px-3 flex items-center justify-between rounded-[6px] hover:bg-[#262626] cursor-pointer text-[#f4f4f5] transition-colors group ${
+                              isFirst ? 'bg-[#262626]' : ''
+                            }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <Icon size={15} strokeWidth={1.5} className="text-[#8e8e93] group-hover:text-[#f4f4f5] shrink-0 transition-colors" />
-                              <span className="truncate text-[13px]">{highlightMatch(item.label, commandText)}</span>
+                              <Icon size={16} strokeWidth={1.5} className="text-[#a0a0a0] group-hover:text-white shrink-0 transition-colors" />
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className="text-[14px] font-normal text-[#f4f4f5]">{highlightMatch(item.label, commandText)}</span>
+                                {item.subtitle && (
+                                  <span className="text-[13px] text-[#a1a1a1]">— {item.subtitle}</span>
+                                )}
+                              </div>
                             </div>
-                            <ArrowRight size={13} strokeWidth={1.5} className="text-[#71717a] group-hover:text-[#f4f4f5] opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-2" />
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                              {item.category && commandText.trim() && (
+                                <span className="text-[10.5px] font-mono text-[#71717a] hidden sm:inline">
+                                  {item.category}
+                                </span>
+                              )}
+                              <ArrowRight size={13} strokeWidth={1.5} className={`text-[#a0a0a0] group-hover:text-white transition-all shrink-0 ${isFirst ? 'opacity-100 text-white' : 'opacity-0 group-hover:opacity-100'}`} />
+                            </div>
                           </div>
                         );
                       })}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* 3. Wallets */}
-                <div>
-                  <div className="px-2.5 pt-1 pb-1 text-[11.5px] font-normal text-[#8e8e93]">
-                    Wallets
-                  </div>
-                  <div className="space-y-0.5">
-                    {data.wallets
-                      .filter((w: Wallet) => !commandText.trim() || w.name.toLowerCase().includes(commandText.toLowerCase()))
-                      .map((w: Wallet) => {
+                {/* 3. Wallets List (Filtered by query or shown completely when query is empty) */}
+                {filteredWallets.length > 0 && (
+                  <div>
+                    <div className="px-3 pt-1.5 pb-1 text-[12px] font-medium text-[#a1a1a1]">
+                      Wallets
+                    </div>
+                    <div className="space-y-0.5">
+                      {filteredWallets.map((w: Wallet) => {
                         const isActive = w.id === data.currentWalletId;
                         const wBal = data.transactions
                           .filter(t => t.walletId === w.id)
@@ -712,52 +971,56 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                               updateData({ currentWalletId: w.id });
                               setIsSearchFocused(false);
                             }}
-                            className={`flex items-center justify-between px-2.5 py-1.5 rounded-[6px] hover:bg-[#1a1a1f] cursor-pointer transition-colors group ${
-                              isActive ? 'bg-[#1a1a1f]/70 text-[#f4f4f5]' : 'text-[#d4d4d8] hover:text-[#f4f4f5]'
+                            className={`h-[36px] px-3 flex items-center justify-between rounded-[6px] hover:bg-[#262626] cursor-pointer transition-colors group ${
+                              isActive ? 'bg-[#262626]/60 text-[#f4f4f5]' : 'text-[#f4f4f5]'
                             }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <WalletIcon size={15} strokeWidth={1.5} className={isActive ? 'text-[var(--accent)] shrink-0' : 'text-[#8e8e93] group-hover:text-[#f4f4f5] shrink-0 transition-colors'} />
-                              <span className="truncate text-[13px]">{highlightMatch(w.name, commandText)}</span>
+                              <WalletIcon size={16} strokeWidth={1.5} className={isActive ? 'text-[#E3993D] shrink-0' : 'text-[#a0a0a0] group-hover:text-white shrink-0 transition-colors'} />
+                              <span className="truncate text-[14px] font-normal">{highlightMatch(w.name, commandText)}</span>
                               {isActive && (
-                                <span className="pill pill--accent text-[10px] py-0.5 px-2">
+                                <span className="text-[9.5px] py-0.5 px-1.5 rounded-full bg-[#E3993D]/15 text-[#E3993D] font-medium">
                                   Active
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="font-mono text-[11.5px] text-[#71717a] group-hover:text-[#a1a1aa]">
+                              <span className="font-mono text-[12px] text-[#a1a1a1] group-hover:text-[#d4d4d8]">
                                 {formatMoney(wBal, currency)}
                               </span>
-                              <ArrowRight size={13} strokeWidth={1.5} className="text-[#71717a] group-hover:text-[#f4f4f5] opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-1" />
+                              <ArrowRight size={13} strokeWidth={1.5} className="text-[#a0a0a0] group-hover:text-white opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-1" />
                             </div>
                           </div>
                         );
                       })}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* Suggestions Footer Navigation Hints (Cloudflare Minimal) */}
-              <div className="px-2.5 pt-2 pb-1 flex items-center justify-between text-[11px] text-[#71717a] select-none">
+              {/* Suggestions Footer Navigation Hints (Dark lower section matching Cloudflare) */}
+              <div 
+                style={{ backgroundColor: '#050505', borderColor: '#1e1e1e' }}
+                className="border-t border-[#1e1e1e] px-3.5 py-2 flex items-center justify-between text-[11px] text-[#a1a1a1] select-none bg-[#050505]"
+              >
                 <div className="hidden sm:flex items-center gap-3">
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1 py-0.5 rounded bg-[#18181c] border border-[#26262b] font-mono text-[9px] text-[#a1a1aa]">↑</kbd>
-                    <kbd className="px-1 py-0.5 rounded bg-[#18181c] border border-[#26262b] font-mono text-[9px] text-[#a1a1aa]">↓</kbd>
-                    <span className="ml-0.5">to navigate</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-[#141414] border border-[#222222] font-mono text-[9px] text-[#a1a1a1]">↑</kbd>
+                    <kbd className="px-1.5 py-0.5 rounded bg-[#141414] border border-[#222222] font-mono text-[9px] text-[#a1a1a1]">↓</kbd>
+                    <span className="ml-1">to navigate</span>
                   </span>
                   <span className="flex items-center gap-1">
-                    <kbd className="px-1.5 py-0.5 rounded bg-[#18181c] border border-[#26262b] font-mono text-[9px] text-[#a1a1aa]">↵</kbd>
-                    <span className="ml-0.5">to select</span>
+                    <kbd className="px-1.5 py-0.5 rounded bg-[#141414] border border-[#222222] font-mono text-[9px] text-[#a1a1a1]">↵</kbd>
+                    <span className="ml-1">to select</span>
                   </span>
                   {Boolean(data.settings?.enableAiParsing) && (
                     <span className="flex items-center gap-1">
-                      <kbd className="px-1.5 py-0.5 rounded bg-[#18181c] border border-[#26262b] font-mono text-[9px] text-[#a1a1aa]">Tab</kbd>
-                      <span className="ml-0.5">to ask AI</span>
+                      <kbd className="px-1.5 py-0.5 rounded bg-[#141414] border border-[#222222] font-mono text-[9px] text-[#a1a1a1]">Tab</kbd>
+                      <span className="ml-1">to ask AI</span>
                     </span>
                   )}
                 </div>
-                <div className="font-mono text-[10.5px] text-[#71717a] ml-auto sm:ml-0">
+                <div className="font-mono text-[10.5px] text-[#a1a1a1] ml-auto sm:ml-0">
                   {data.wallets.length} {data.wallets.length === 1 ? 'wallet' : 'wallets'}
                 </div>
               </div>

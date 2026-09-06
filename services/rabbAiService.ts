@@ -2,6 +2,23 @@ import { AppData, TransactionType } from '../types';
 import { GroqClient } from './groqClient';
 import { PredictiveEngine } from './PredictiveEngine';
 
+/**
+ * Universal safe UUID generator that works reliably in secure contexts,
+ * non-secure contexts (e.g. mobile devices over LAN HTTP: http://192.168.x.x), and older webviews.
+ */
+export function safeUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try {
+      return crypto.randomUUID();
+    } catch {}
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export type RabbAiAction =
   | { type: 'ADD_WALLET'; payload: { name: string; currency: string }; executed?: boolean }
   | { type: 'DELETE_WALLET'; payload: { name: string }; executed?: boolean }
@@ -99,7 +116,7 @@ export async function sendRabbAiTextMessage(
   // Hard Killswitch: Zero AI processing when AI is disabled (off by default)
   if (!data.settings?.enableAiParsing) {
     return {
-      id: `msg_${crypto.randomUUID()}`,
+      id: `msg_${safeUUID()}`,
       sender: 'rabbai',
       text: "RabbAi Assistant is currently turned off. To use natural language expense logging, receipt scanning, or financial advice, you can enable RabbAi anytime in Settings.",
       timestamp: new Date().toISOString()
@@ -449,7 +466,7 @@ Keep it to 1 sentence pointing to the screen:
         const displayText = cleanText || (hasAction ? 'Recorded transaction to your ledger.' : 'I processed your request.');
 
         return {
-          id: `msg_${crypto.randomUUID()}`,
+          id: `msg_${safeUUID()}`,
           sender: 'rabbai',
           text: displayText,
           timestamp: new Date().toISOString(),
@@ -530,6 +547,65 @@ function parseLocalFallbackCommand(userText: string, data: AppData, history?: Ra
         text: wittyGreets[Math.floor(Math.random() * wittyGreets.length)],
         timestamp: new Date().toISOString()
       };
+    }
+
+    // Export CSV / Data Backup command matching
+    if (
+      lower.includes('export') ||
+      lower.includes('csv') ||
+      lower.includes('backup') ||
+      lower.includes('download transactions') ||
+      lower.includes('download data') ||
+      lower.includes('download ledger')
+    ) {
+      return {
+        id: `msg_${safeUUID()}`,
+        sender: 'rabbai',
+        text: "Here's the export you asked for:",
+        timestamp: new Date().toISOString(),
+        aiAction: {
+          type: 'EXPORT_CSV',
+          payload: {}
+        }
+      };
+    }
+
+    // Wipe / Delete All Data command matching
+    if (
+      lower.includes('delete all data') ||
+      lower.includes('wipe all data') ||
+      lower.includes('clear all data') ||
+      lower.includes('reset ledger') ||
+      lower.includes('factory reset')
+    ) {
+      return {
+        id: `msg_${safeUUID()}`,
+        sender: 'rabbai',
+        text: "Are you sure you want to delete all transactions, budgets, and ledger history? This action is permanent and cannot be undone.",
+        timestamp: new Date().toISOString(),
+        aiAction: {
+          type: 'DELETE_ALL_DATA',
+          payload: { userName: data.profile?.name || 'User' }
+        }
+      };
+    }
+
+    // Add wallet command matching
+    const addWalletMatch = text.match(/(?:add|create|new)\s+wallet\s+([a-zA-Z0-9\s_-]+)/i);
+    if (addWalletMatch) {
+      const walletName = addWalletMatch[1].trim();
+      if (walletName) {
+        return {
+          id: `msg_${safeUUID()}`,
+          sender: 'rabbai',
+          text: `Proposed creating a new wallet **${walletName}**. Click confirm below to add it.`,
+          timestamp: new Date().toISOString(),
+          aiAction: {
+            type: 'ADD_WALLET',
+            payload: { name: walletName, currency: curr }
+          }
+        };
+      }
     }
 
     // Delete transaction command matching
@@ -1040,7 +1116,7 @@ export async function sendRabbAiImageMessage(
   // Hard Killswitch: Zero AI processing when AI is disabled (off by default)
   if (!data.settings?.enableAiParsing) {
     return {
-      id: `msg_${crypto.randomUUID()}`,
+      id: `msg_${safeUUID()}`,
       sender: 'rabbai',
       text: "Receipt scanning and image analysis are disabled because RabbAi is turned off. Please enable RabbAi in Settings to scan receipts.",
       timestamp: new Date().toISOString()
@@ -1152,7 +1228,7 @@ Provide a concise 1-sentence explanation above the JSON block. If no date is fou
         }
 
         return {
-          id: `msg_${crypto.randomUUID()}`,
+          id: `msg_${safeUUID()}`,
           sender: 'rabbai',
           text: displayText,
           timestamp: new Date().toISOString(),
@@ -1165,7 +1241,7 @@ Provide a concise 1-sentence explanation above the JSON block. If no date is fou
 
   // Fallback response if vision model is busy, offline, or returns safety refusal
   return {
-    id: `msg_${crypto.randomUUID()}`,
+    id: `msg_${safeUUID()}`,
     sender: 'rabbai',
     text: "I scanned your receipt but could not find a date on it. Please specify the date below to record this purchase.",
     timestamp: new Date().toISOString(),

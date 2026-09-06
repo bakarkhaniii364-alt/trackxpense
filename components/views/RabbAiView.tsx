@@ -18,7 +18,8 @@ import {
   Copy,
   PencilSimple,
   ArrowCounterClockwise,
-  Waveform
+  Waveform,
+  ArrowDown
 } from '@phosphor-icons/react';
 import { SpotifyIcon } from '../shared/SpotifyIcon';
 import { AiStarIcon } from '../shared/AiStarIcon';
@@ -27,13 +28,15 @@ import { AppData, TransactionType, CategoryItem, WalletType } from '../../types'
 import { 
   RabbAiConversation, 
   RabbAiMessage, 
-  RabbAiAction,
+  RabbAiAction, 
   sendRabbAiTextMessage, 
   sendRabbAiImageMessage 
 } from '../../services/rabbAiService';
 import { GroqClient } from '../../services/groqClient';
 import { MarkdownRenderer } from '../shared/MarkdownRenderer';
+import { StreamedMarkdownRenderer } from '../shared/StreamedMarkdownRenderer';
 import { Haptics } from '../../services/haptics';
+import { saveAs } from 'file-saver';
 
 interface RabbAiViewProps {
   data: AppData;
@@ -54,6 +57,7 @@ interface RabbAiViewProps {
   onSelectConversation?: (id: string) => void;
   onClose?: () => void;
   onOpenSettings?: () => void;
+  visualViewportHeight?: number | null;
 }
 
 export const RabbAiView: React.FC<RabbAiViewProps> = ({
@@ -74,7 +78,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
   onClearInitialQuery,
   onSelectConversation,
   onClose,
-  onOpenSettings
+  onOpenSettings,
+  visualViewportHeight
 }) => {
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -96,6 +101,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const spacerRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const lastUserMessageRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -105,10 +111,12 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
   const audioChunksRef = useRef<Blob[]>([]);
   const interimTranscriptRef = useRef<string>('');
 
-  // Mobile Visual Viewport Detection: Auto-detect keyboard height to adjust chat layout instead of scrolling the page
-  const [mobileViewportHeight, setMobileViewportHeight] = useState<number | null>(null);
+  // Mobile Visual Viewport: Use parent's visualViewportHeight if provided, else listen locally
+  const [localViewportHeight, setLocalViewportHeight] = useState<number | null>(null);
+  const effectiveViewportHeight = visualViewportHeight !== undefined ? visualViewportHeight : localViewportHeight;
 
   useEffect(() => {
+    if (visualViewportHeight !== undefined) return;
     if (typeof window === 'undefined' || !window.visualViewport) return;
 
     const handleVisualViewportChange = () => {
@@ -116,13 +124,10 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       if (!vv) return;
 
       if (window.innerWidth < 1024) {
-        setMobileViewportHeight(vv.height);
-        // Ensure browser window does not scroll when keyboard opens
-        if (window.scrollY !== 0) {
-          window.scrollTo(0, 0);
-        }
+        setLocalViewportHeight(vv.height);
+        if (window.scrollY !== 0) window.scrollTo(0, 0);
       } else {
-        setMobileViewportHeight(null);
+        setLocalViewportHeight(null);
       }
     };
 
@@ -134,23 +139,54 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       window.visualViewport?.removeEventListener('resize', handleVisualViewportChange);
       window.visualViewport?.removeEventListener('scroll', handleVisualViewportChange);
     };
+  }, [visualViewportHeight]);
+
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 1024 : false;
+  const isKeyboardOpen = isMobile && (
+    isFocused || 
+    (effectiveViewportHeight !== null && typeof window !== 'undefined' && effectiveViewportHeight < window.innerHeight - 80)
+  );
+
+  // Track message IDs that have already finished typewriter streaming to avoid re-streaming past messages
+  const [streamedMessageIds, setStreamedMessageIds] = useState<Set<string>>(() => {
+    const targetConv = conversations.find(c => c.id === activeConvId) || (conversations.length > 0 ? conversations[0] : null);
+    return new Set(targetConv?.messages?.map(m => m.id) || []);
+  });
+
+  const handleStreamComplete = useCallback((msgId: string) => {
+    setStreamedMessageIds(prev => {
+      if (prev.has(msgId)) return prev;
+      const next = new Set(prev);
+      next.add(msgId);
+      return next;
+    });
   }, []);
 
-  useEffect(() => {
-    if (mobileViewportHeight && typeof window !== 'undefined' && window.innerWidth < 1024) {
-      if (window.scrollY !== 0) {
-        window.scrollTo(0, 0);
-      }
-      setTimeout(() => {
-        if (chatBottomRef.current) {
-          chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
-    }
-  }, [mobileViewportHeight]);
+  // User scroll state tracking
+  const [showScrollLatest, setShowScrollLatest] = useState(false);
+  const isUserReadingHistoryRef = useRef(false);
+  const scrolledUserMsgIdRef = useRef<string | null>(null);
+  const lastScrollTopRef = useRef<number>(0);
 
   const activeConv = conversations.find(c => c.id === activeConvId) || (conversations.length > 0 ? conversations[0] : null);
   const messages = activeConv?.messages || [];
+
+  // Mark existing messages as streamed when switching conversations
+  useEffect(() => {
+    if (activeConv?.messages) {
+      setStreamedMessageIds(prev => {
+        let changed = false;
+        const next = new Set(prev);
+        activeConv.messages.forEach(m => {
+          if (!next.has(m.id)) {
+            next.add(m.id);
+            changed = true;
+          }
+        });
+        return changed ? next : prev;
+      });
+    }
+  }, [activeConvId]);
 
   // Provide immediate fallback for queries forwarded from dashboard before state hooks settle
   const displayMessages = useMemo(() => {
@@ -180,21 +216,154 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     return null;
   }, [displayMessages]);
 
-  // Smooth scroll so the user's latest message sits at the top of the visible screen
-  const scrollToLastUserMessage = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    if (lastUserMessageRef.current && chatContainerRef.current) {
-      const container = chatContainerRef.current;
-      const userMsgEl = lastUserMessageRef.current;
-      // Scroll to position user's message 28px from the top of the visible viewport
-      const targetTop = userMsgEl.offsetTop - 28;
-      container.scrollTo({
-        top: Math.max(0, targetTop),
-        behavior
-      });
-    } else if (chatBottomRef.current) {
-      chatBottomRef.current.scrollIntoView({ behavior });
+  // Dynamic bottom spacer calculation:
+  // Dynamically expands only enough so the latest prompt can scroll to the top (48px below fade mask),
+  // and dynamically collapses to 0 as the AI response streams in.
+  // This completely eliminates any empty "void" at the bottom of the chat container.
+  const updateBottomSpacer = useCallback((targetMsgId?: string) => {
+    if (!chatContainerRef.current || !spacerRef.current) return;
+    const container = chatContainerRef.current;
+    const idToAnchor = targetMsgId || lastUserMsgId;
+    if (!idToAnchor) {
+      spacerRef.current.style.height = '0px';
+      return;
     }
-  }, []);
+
+    const userMsgEl = container.querySelector<HTMLElement>(`[data-msg-id="${idToAnchor}"]`);
+    if (!userMsgEl) {
+      // If the target element isn't in DOM yet, grant buffer height so the container CAN scroll when it mounts!
+      spacerRef.current.style.height = `${Math.max(350, container.clientHeight - 80)}px`;
+      return;
+    }
+
+    const userRect = userMsgEl.getBoundingClientRect();
+    const bottomEl = chatBottomRef.current;
+    const bottomRect = bottomEl ? bottomEl.getBoundingClientRect() : userRect;
+    const exchangeHeight = Math.max(0, bottomRect.bottom - userRect.top);
+
+    // Target visible area between top anchor (48px) and bottom padding (56px)
+    const targetVisibleHeight = Math.max(0, container.clientHeight - 48 - 56);
+    const needed = Math.max(0, Math.round(targetVisibleHeight - exchangeHeight));
+    spacerRef.current.style.height = `${needed}px`;
+  }, [lastUserMsgId]);
+
+  // Recalculate spacer whenever window resizes or messages change
+  useEffect(() => {
+    updateBottomSpacer();
+    const handleResize = () => updateBottomSpacer();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [updateBottomSpacer, displayMessages, isLoading]);
+
+  // Top-anchored scroll: Positions the user's prompt right near the top of the reading pane (48px below top)
+  const scrollToLatestPrompt = useCallback((msgId?: string, behavior: ScrollBehavior = 'smooth'): boolean => {
+    if (!chatContainerRef.current) return false;
+    const container = chatContainerRef.current;
+    const targetId = msgId || lastUserMsgId;
+    if (!targetId) return false;
+
+    // Strictly match the target message element by ID
+    const userMsgEl = container.querySelector<HTMLElement>(`[data-msg-id="${targetId}"]`);
+    if (!userMsgEl) return false;
+
+    // Ensure spacer is updated for this specific target message before scrolling
+    updateBottomSpacer(targetId);
+
+    // Native scrollIntoView with scroll-mt-12 pins the prompt cleanly at the top with smooth animation
+    userMsgEl.scrollIntoView({
+      block: 'start',
+      behavior
+    });
+    scrolledUserMsgIdRef.current = targetId;
+    return true;
+  }, [lastUserMsgId, updateBottomSpacer]);
+
+  // Guaranteed scroll dispatch: attempts immediately, then retries on RAF/timeouts until element exists in DOM
+  const dispatchTopAnchorScroll = useCallback((targetId: string, behavior: ScrollBehavior = 'smooth') => {
+    isUserReadingHistoryRef.current = false;
+    setShowScrollLatest(false);
+
+    // Ensure immediate scroll room for the pending message
+    updateBottomSpacer(targetId);
+
+    const tryScroll = (attemptsLeft: number) => {
+      updateBottomSpacer(targetId);
+      if (scrollToLatestPrompt(targetId, behavior)) return;
+      if (attemptsLeft > 0) {
+        requestAnimationFrame(() => {
+          setTimeout(() => tryScroll(attemptsLeft - 1), 35);
+        });
+      }
+    };
+
+    tryScroll(10);
+  }, [scrollToLatestPrompt, updateBottomSpacer]);
+
+  const handleChatScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const currentScrollTop = el.scrollTop;
+    const scrollDelta = currentScrollTop - lastScrollTopRef.current;
+    lastScrollTopRef.current = currentScrollTop;
+
+    if (!lastUserMsgId) {
+      setShowScrollLatest(false);
+      return;
+    }
+
+    const userMsgEl = el.querySelector<HTMLElement>(`[data-msg-id="${lastUserMsgId}"]`);
+    if (!userMsgEl) {
+      setShowScrollLatest(false);
+      return;
+    }
+
+    const containerRect = el.getBoundingClientRect();
+    const userRect = userMsgEl.getBoundingClientRect();
+    const promptOffsetFromTop = userRect.top - containerRect.top;
+
+    // If user scrolled up such that the latest exchange was pushed down by more than 160px
+    const isScrolledUpFromLatest = promptOffsetFromTop > 160;
+
+    if (scrollDelta < -5) {
+      isUserReadingHistoryRef.current = true;
+    } else if (Math.abs(promptOffsetFromTop - 48) < 40) {
+      isUserReadingHistoryRef.current = false;
+    }
+
+    setShowScrollLatest(isScrolledUpFromLatest);
+  }, [lastUserMsgId]);
+
+  // Streaming Auto-Follow: when RabbAi response is streaming and exceeds viewport,
+  // follow downward gently UNLESS the user has scrolled up to read earlier text
+  useEffect(() => {
+    if (!chatContainerRef.current) return;
+    const container = chatContainerRef.current;
+
+    const activeStreamEl = container.querySelector<HTMLElement>('[data-is-streaming="true"]') 
+      || container.querySelector<HTMLElement>('[data-is-analyzing="true"]');
+
+    if (!activeStreamEl) return;
+
+    const observer = new ResizeObserver(() => {
+      updateBottomSpacer();
+
+      if (isUserReadingHistoryRef.current) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const streamRect = activeStreamEl.getBoundingClientRect();
+
+      // If the bottom of the streaming text gets within 72px of container bottom (near compose bar)
+      const overflowBottom = streamRect.bottom - (containerRect.bottom - 72);
+      if (overflowBottom > 0) {
+        container.scrollTop += overflowBottom + 8;
+      }
+    });
+
+    observer.observe(activeStreamEl);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [isLoading, displayMessages, updateBottomSpacer]);
 
   // Time & Shabbat-based Jewish cultural greeting
   const greeting = useMemo(() => {
@@ -223,25 +392,38 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     }
   };
 
-  // Auto-scroll on new messages so user's last message is on top of visible screen
+  // Adjust scroll when virtual keyboard opens or screen resizes (with debounce to wait for keyboard animation)
   useEffect(() => {
-    if (hasMessages) {
+    if (effectiveViewportHeight && typeof window !== 'undefined' && window.innerWidth < 1024) {
+      if (window.scrollY !== 0) window.scrollTo(0, 0);
+      if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+      if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
       const timer = setTimeout(() => {
-        scrollToLastUserMessage('smooth');
-      }, 50);
+        if (lastUserMsgId) {
+          scrollToLatestPrompt(lastUserMsgId, 'smooth');
+        }
+      }, 150);
       return () => clearTimeout(timer);
     }
-  }, [displayMessages.length, hasMessages, scrollToLastUserMessage]);
+  }, [effectiveViewportHeight, lastUserMsgId, scrollToLatestPrompt]);
 
-  // When switching conversations, position the last message smoothly
+  // When switching conversations, position at the latest exchange
   useEffect(() => {
-    if (hasMessages) {
-      const timer = setTimeout(() => {
-        scrollToLastUserMessage('auto');
-      }, 100);
-      return () => clearTimeout(timer);
+    if (activeConvId && lastUserMsgId) {
+      scrolledUserMsgIdRef.current = lastUserMsgId;
+      dispatchTopAnchorScroll(lastUserMsgId, 'auto');
     }
-  }, [activeConvId]);
+  }, [activeConvId, lastUserMsgId, dispatchTopAnchorScroll]);
+
+  // Auto-scroll whenever lastUserMsgId updates (e.g. newly dispatched prompt)
+  useEffect(() => {
+    if (!lastUserMsgId) return;
+
+    if (scrolledUserMsgIdRef.current !== lastUserMsgId) {
+      scrolledUserMsgIdRef.current = lastUserMsgId;
+      dispatchTopAnchorScroll(lastUserMsgId, 'smooth');
+    }
+  }, [lastUserMsgId, dispatchTopAnchorScroll]);
 
   // Auto-send query if forwarded from search box or dashboard compose box (instant dispatch in a fresh conversation)
   useEffect(() => {
@@ -566,6 +748,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       onSelectConversation?.(updatedConv.id);
     }
     setIsLoading(true);
+    dispatchTopAnchorScroll(userMsg.id, 'smooth');
 
     try {
       let aiMsg: RabbAiMessage;
@@ -593,6 +776,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
       const finalMessages = [...updatedMessages, aiMsg];
       const finalConv = { ...updatedConv, messages: finalMessages, updatedAt: new Date().toISOString() };
+      Haptics.light();
       onUpdateConversations(newConversations.map(c => c.id === finalConv.id ? finalConv : c));
     } catch {
       const errorMsg: RabbAiMessage = {
@@ -758,7 +942,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
         onAddCategory({
           name: action.payload.name,
           type: action.payload.categoryType === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE,
-          color: '#E3993D'
+          color: '#F6821F'
         });
         break;
       case 'DELETE_CATEGORY': {
@@ -826,14 +1010,9 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
           `"${(t.note || '').replace(/"/g, '""')}"`,
           data.wallets.find(w => w.id === t.walletId)?.name || 'Default'
         ]);
-        const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement('a');
-        link.setAttribute('href', encodedUri);
-        link.setAttribute('download', `trackxpense_export_${new Date().toISOString().split('T')[0]}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        saveAs(blob, `trackxpense_export_${new Date().toISOString().split('T')[0]}.csv`);
         break;
       }
       case 'DELETE_ALL_DATA': {
@@ -967,19 +1146,16 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
   return (
     <div 
-      className="w-full flex-1 min-h-0 flex flex-col h-full relative overflow-hidden select-none bg-transparent"
+      className="w-full flex-1 min-h-0 flex flex-col h-full relative overflow-hidden select-none dot-matrix-canvas"
     >
 
       {/* Dynamic Glowing Dots Canvas (Exact 1:1 Phase Match with .dot-matrix-canvas) */}
       <div 
         aria-hidden="true"
-        className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ease-out z-0 ${
+        className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ease-out z-0 dot-matrix-canvas--glow ${
           isTypingActive ? 'opacity-100' : 'opacity-0'
         }`}
         style={{
-          backgroundImage: 'radial-gradient(circle at center, #FFA048 1.25px, transparent 1.25px)',
-          backgroundSize: '16px 16px',
-          backgroundPosition: '0 0',
           maskImage: 'radial-gradient(ellipse 520px 140px at 50% calc(100% - 38px), black 25%, transparent 75%)',
           WebkitMaskImage: 'radial-gradient(ellipse 520px 140px at 50% calc(100% - 38px), black 25%, transparent 75%)',
         }}
@@ -999,10 +1175,11 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       {/* ========================================================================= */}
       <div 
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full px-3 py-2 relative flex flex-col no-scrollbar z-10"
+        onScroll={handleChatScroll}
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full max-w-full px-3 py-2 relative flex flex-col no-scrollbar z-10 scroll-smooth"
         style={{
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 48px, black calc(100% - 24px), transparent 100%)',
-          maskImage: 'linear-gradient(to bottom, transparent 0%, black 48px, black calc(100% - 24px), transparent 100%)'
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 40px, black calc(100% - 72px), transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, transparent 0%, black 40px, black calc(100% - 72px), transparent 100%)'
         }}
       >
         
@@ -1015,7 +1192,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
               <img 
                 src="/rabAi icon.png" 
                 alt="RabbAi" 
-                className="w-14 h-14 sm:w-24 sm:h-24 object-contain select-none" 
+                className={`${isMobile && (isFocused || isKeyboardOpen) ? 'w-10 h-10' : 'w-14 h-14 sm:w-24 sm:h-24'} object-contain select-none transition-all duration-200`} 
               />
             </div>
 
@@ -1029,8 +1206,12 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
               </p>
             </div>
 
-            {/* 5 Suggestion Pill Cards Stack */}
-            <div className="w-full space-y-1.5 sm:space-y-2 pt-0.5 sm:pt-1">
+            {/* 5 Suggestion Pill Cards Stack - Disappears on phone when keyboard/compose box goes up */}
+            <div className={`w-full space-y-1.5 sm:space-y-2 pt-0.5 sm:pt-1 transition-all duration-200 ${
+              isMobile && (isFocused || isKeyboardOpen)
+                ? 'hidden opacity-0 pointer-events-none'
+                : 'block opacity-100'
+            }`}>
               {suggestionCards.map((card, idx) => {
                 const IconComp = card.icon;
                 return (
@@ -1038,7 +1219,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => handleSend(card.prompt)}
-                    className="w-full p-2 px-2.5 sm:p-2.5 sm:px-3 rounded-[8px] sm:rounded-[10px] bg-[#121216]/80 hover:bg-[#18181e] border border-[var(--border-default)] hover:border-[var(--border-active)] flex items-center gap-2.5 sm:gap-3 transition-all cursor-pointer text-left group"
+                    style={{ animationDelay: `${idx * 40}ms` }}
+                    className="w-full p-2 px-2.5 sm:p-2.5 sm:px-3 rounded-[8px] sm:rounded-[10px] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] border border-[var(--border-default)] hover:border-[var(--border-active)] flex items-center gap-2.5 sm:gap-3 transition-all cursor-pointer text-left group animate-in fade-in slide-in-from-bottom-2"
                   >
                     <IconComp size={15} strokeWidth={1.5} className="text-[var(--text-muted)] group-hover:text-[var(--text-primary)] shrink-0 transition-colors" />
                     <div className="min-w-0 flex-1">
@@ -1059,7 +1241,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
         {/* Message Stream */}
         {hasMessages && (
-          <div className="w-full max-w-2xl mx-auto space-y-5 pt-8 pb-6 overflow-x-hidden">
+          <div className="w-full max-w-2xl mx-auto space-y-5 pt-8 pb-12 sm:pb-14 overflow-x-hidden">
             {displayMessages.map((msg) => {
               const isUser = msg.sender === 'user';
               
@@ -1069,11 +1251,13 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                 return (
                   <div 
                     key={msg.id} 
+                    data-msg-id={msg.id}
                     ref={isLastUser ? lastUserMessageRef : undefined}
-                    className="flex flex-col items-end space-y-1.5 group w-full max-w-full scroll-mt-10"
+                    data-user-message-last={isLastUser ? 'true' : undefined}
+                    className="flex flex-col items-end space-y-1.5 group w-full max-w-full scroll-mt-12"
                   >
                     {isEditing ? (
-                      <div className="w-full max-w-[85%] bg-[#141418] border border-[var(--accent)]/50 rounded-[12px] p-3 space-y-2.5 text-left shadow-lg">
+                      <div className="w-full max-w-[85%] bg-[var(--bg-surface)] border border-[var(--accent)]/50 rounded-[12px] p-3 space-y-2.5 text-left shadow-lg">
                         <textarea
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
@@ -1108,7 +1292,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                         </div>
                       </div>
                     ) : (
-                      <div className="max-w-[85%] bg-[#1a1a22] border border-[var(--border-default)] rounded-[12px] px-3.5 py-2.5 space-y-2 shadow-sm text-left break-words">
+                      <div className="max-w-[85%] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] px-3.5 py-2.5 space-y-2 shadow-sm text-left break-words">
                         {msg.imageUrl && (
                           <div className="rounded-[8px] overflow-hidden border border-[var(--border-default)] max-w-[240px]">
                             <img src={msg.imageUrl} alt="Uploaded receipt" className="w-full h-auto object-cover" />
@@ -1160,8 +1344,16 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                 );
               }
 
+              const isLastAssistant = !isUser && msg.id === displayMessages[displayMessages.length - 1]?.id;
+              const isStreamingNow = isLastAssistant && !streamedMessageIds.has(msg.id);
+
               return (
-                <div key={msg.id} className="flex flex-col items-start space-y-1.5 text-left group w-full max-w-full overflow-hidden">
+                <div 
+                  key={msg.id} 
+                  data-msg-id={msg.id} 
+                  data-is-streaming={isStreamingNow ? 'true' : undefined}
+                  className="flex flex-col items-start space-y-1.5 text-left group w-full max-w-full overflow-hidden"
+                >
                   {/* Assistant Header */}
                   <div className="flex items-center gap-2.5 text-[12px] font-medium text-[var(--text-muted)] pl-0.5">
                     <img 
@@ -1177,14 +1369,20 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Prose Body */}
-                  <div className="text-[13px] text-[#E4E4E7] leading-relaxed pl-[42px] max-w-full break-words overflow-hidden">
-                    <MarkdownRenderer content={msg.text} />
+                  {/* Prose Body with Streamed Markdown */}
+                  <div className="text-[13px] text-[var(--text-primary)] leading-relaxed pl-[42px] max-w-full break-words overflow-hidden">
+                    <StreamedMarkdownRenderer 
+                      content={msg.text} 
+                      isStreaming={!streamedMessageIds.has(msg.id)}
+                      onComplete={() => handleStreamComplete(msg.id)}
+                      charsPerTick={5}
+                      tickIntervalMs={24}
+                    />
                   </div>
 
                   {/* Extracted Transaction Card */}
                   {msg.extractedTransaction && (
-                    <div className="ml-[42px] w-[calc(100%-42px)] max-w-sm rounded-[10px] bg-[#141418] border border-[var(--border-default)] p-3.5 space-y-2.5 box-border">
+                    <div className="ml-[42px] w-[calc(100%-42px)] max-w-sm rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] p-3.5 space-y-2.5 box-border">
                       <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-1.5">
                         <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-muted)] flex items-center gap-1.5">
                           <Receipt size={12} strokeWidth={1.5} />
@@ -1360,17 +1558,43 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
             })}
 
             {isAnalyzing && (
-              <div className="flex items-center gap-2.5 text-[12px] text-[var(--text-secondary)] pl-0.5">
+              <div 
+                data-is-analyzing="true"
+                className="flex items-center gap-2.5 text-[12px] text-[var(--text-secondary)] pl-0.5 pt-2"
+              >
                 <CoinFlipLoader size={20} />
                 <span className="text-[12px] text-[var(--text-secondary)]">RabbAi is thinking...</span>
               </div>
             )}
 
-            <div ref={chatBottomRef} />
+            <div ref={chatBottomRef} className="h-1 w-full" />
+
+            {/* Dynamic Clamped Bottom Spacer: bridges only the gap needed to top-anchor the prompt, collapsing to 0 as AI answers */}
+            <div ref={spacerRef} className="w-full pointer-events-none shrink-0" aria-hidden="true" />
           </div>
         )}
 
       </div>
+
+      {/* Centered Scroll-to-Latest Floating Action Pill */}
+      {showScrollLatest && (
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-[88px] sm:bottom-[96px] z-30 pointer-events-auto">
+          <button
+            type="button"
+            onClick={() => {
+              Haptics.light();
+              isUserReadingHistoryRef.current = false;
+              setShowScrollLatest(false);
+              dispatchTopAnchorScroll(lastUserMsgId || '', 'smooth');
+            }}
+            aria-label="Jump to latest exchange"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] hover:border-[var(--border-active)] shadow-lg backdrop-blur-md transition-all duration-200 text-[11px] font-medium cursor-pointer animate-in fade-in slide-in-from-bottom-2 select-none"
+          >
+            <ArrowDown size={13} strokeWidth={1.5} />
+            <span>Latest</span>
+          </button>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* CLOUDFLARE COMPOSE BOX (EXACT SCREENSHOT STYLE)                             */}
@@ -1392,7 +1616,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
           {/* Tagging autocomplete popover if user types @ */}
           {tagMenuOpen && (
-            <div className="mb-2 p-1.5 bg-[#141418] border border-[var(--border-default)] rounded-[8px] shadow-xl text-[12px] space-y-1">
+            <div className="mb-2 p-1.5 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] shadow-xl text-[12px] space-y-1">
               <div className="text-[10px] uppercase font-mono text-[var(--text-muted)] px-2 py-0.5">
                 Tag a wallet or category
               </div>
@@ -1402,7 +1626,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                     key={w.id}
                     type="button"
                     onClick={() => handleInsertTag(w.name)}
-                    className="px-2 py-1 rounded-[4px] bg-[#1e1e24] hover:bg-[var(--accent)] hover:text-white text-[11px] text-[var(--text-primary)] transition-colors cursor-pointer flex items-center gap-1.5"
+                    className="px-2 py-1 rounded-[4px] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] text-[11px] text-[var(--text-primary)] transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <CreditCard size={12} strokeWidth={1.5} />
                     <span>{w.name}</span>
@@ -1413,7 +1637,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                     key={c.id || c.name}
                     type="button"
                     onClick={() => handleInsertTag(c.name)}
-                    className="px-2 py-1 rounded-[4px] bg-[#1e1e24] hover:bg-[var(--accent)] hover:text-white text-[11px] text-[var(--text-primary)] transition-colors cursor-pointer flex items-center gap-1.5"
+                    className="px-2 py-1 rounded-[4px] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] text-[11px] text-[var(--text-primary)] transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <FolderSimple size={12} strokeWidth={1.5} />
                     <span>{c.name}</span>
@@ -1453,7 +1677,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
             {/* 4. The Main Compose Box Interior (Stable 1px border, transitions colors only) */}
             <div 
-              className={`relative z-10 w-full bg-[#0e0e12] rounded-[10px] sm:rounded-[12px] p-2 sm:p-2.5 transition-colors duration-200 border ${
+              className={`relative z-10 w-full bg-[var(--bg-surface)] rounded-[10px] sm:rounded-[12px] p-2 sm:p-2.5 transition-colors duration-200 border ${
                 isTypingActive 
                   ? 'border-transparent shadow-[0_0_24px_rgba(246,130,31,0.2)]' 
                   : 'border-[var(--accent)]/40 hover:border-[var(--accent)]/70'
@@ -1470,12 +1694,12 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                 onFocus={() => {
                   setIsFocused(true);
                   if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-                    window.scrollTo(0, 0);
-                    setTimeout(() => {
-                      if (chatBottomRef.current) {
-                        chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }, 150);
+                    if (window.scrollY !== 0) window.scrollTo(0, 0);
+                    if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+                    if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
+                    if (hasMessages) {
+                      setTimeout(() => scrollToLatestPrompt(lastUserMsgId || undefined, 'smooth'), 120);
+                    }
                   }
                 }}
                 onBlur={() => setIsFocused(false)}
@@ -1582,7 +1806,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       {/* ========================================================================= */}
       {isSupportModalOpen && (
         <div className="fixed inset-0 bg-black/70 z-[100] flex items-center justify-center p-4">
-          <div className="bg-[#141418] border border-[var(--border-default)] rounded-[12px] shadow-2xl max-w-md w-full p-4 space-y-3.5 text-[12.5px] animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] shadow-2xl max-w-md w-full p-4 space-y-3.5 text-[12.5px] animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-2.5">
               <div className="flex items-center gap-2">
                 <Info size={16} className="text-[var(--accent)]" />

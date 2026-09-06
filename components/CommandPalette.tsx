@@ -231,12 +231,12 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         role="dialog" 
         aria-modal="true" 
         aria-label="Command Palette"
-        style={{ backgroundColor: '#121216' }}
-        className="relative w-full max-w-xl bg-[#121216] border border-[var(--border-default)] rounded-[10px] shadow-2xl overflow-hidden flex flex-col z-10 text-[var(--text-primary)]"
+        style={{ backgroundColor: '#0f0f0f', borderColor: '#1e1e1e' }}
+        className="relative w-full max-w-xl bg-[#0f0f0f] border border-[#1e1e1e] rounded-[10px] shadow-2xl overflow-hidden flex flex-col z-10 text-[#f4f4f5]"
       >
         {/* Top Input Bar */}
-        <div className="h-[48px] px-3 sm:px-4 flex items-center gap-2 sm:gap-3 border-b border-[var(--border-default)] shrink-0">
-          <Search size={16} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+        <div className="h-[48px] px-3 sm:px-4 flex items-center gap-2 sm:gap-3 border-b border-[#1e1e1e] shrink-0">
+          <Search size={16} className="text-[#a0a0a0] shrink-0 stroke-[1.5px]" />
           <input 
             ref={inputRef}
             type="text" 
@@ -244,14 +244,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
             onKeyDown={handleKeyDown}
-            className="flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] font-normal text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+            className="flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] font-normal text-[#f4f4f5] placeholder:text-[#a1a1a1]"
           />
-          <span className="hidden sm:inline-flex text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-subtle)] px-1.5 py-0.5 rounded border border-[var(--border-default)] shrink-0">
+          <span className="hidden sm:inline-flex text-[10px] font-mono text-[#a1a1a1] bg-[#18181a] px-1.5 py-0.5 rounded border border-[#1e1e1e] shrink-0">
             Ctrl K
           </span>
           <button 
             onClick={onClose}
-            className="px-1.5 py-0.5 rounded-[4px] border border-[var(--border-default)] bg-[var(--bg-subtle)]/50 text-[10px] text-[var(--text-muted)] font-mono hover:text-[var(--text-primary)] transition-colors shrink-0"
+            className="px-1.5 py-0.5 rounded-[4px] border border-[#1e1e1e] bg-[#18181a] text-[10px] text-[#a1a1a1] font-mono hover:text-white transition-colors shrink-0 cursor-pointer"
           >
             Esc
           </button>
@@ -260,7 +260,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           {results.length > 0 ? (
             Array.from(sectionsMap.entries()).map(([sectionName, items]) => (
               <div key={sectionName} className="mb-2 last:mb-0">
-                <h3 className="px-3 pt-2 pb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] flex items-center gap-1.5">
+                <h3 className="px-3 pt-2 pb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#a1a1a1] flex items-center gap-1.5">
                   {sectionName === 'RabbAi Intelligence' && <Zap size={12} className="text-amber-400" />}
                   {sectionName}
                 </h3>
@@ -276,20 +276,20 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                         key={item.id}
                         onClick={() => { item.action(); onClose(); }}
                         onMouseEnter={() => setSelectedIndex(currentIndex)}
-                        className={`w-full h-[40px] px-3 flex items-center justify-between rounded-[6px] transition-colors text-left text-[13px] ${
+                        className={`w-full h-[40px] px-3 flex items-center justify-between rounded-[6px] transition-colors text-left text-[13px] cursor-pointer ${
                           isDenial
                             ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                             : isSelected 
-                              ? 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)]' 
-                              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)] hover:text-[var(--text-primary)]'
+                              ? 'bg-[#262626] text-[#f4f4f5]' 
+                              : 'text-[#f4f4f5] hover:bg-[#262626]'
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <item.icon size={15} className={`${isDenial ? 'text-rose-400' : 'text-[var(--text-muted)]'} shrink-0 stroke-[1.5px]`} />
+                          <item.icon size={15} className={`${isDenial ? 'text-rose-400' : 'text-[#a0a0a0]'} shrink-0 stroke-[1.5px]`} />
                           <div className="flex flex-col min-w-0">
-                            <span className="font-medium text-[var(--text-primary)] truncate">{item.label}</span>
+                            <span className="font-medium text-[#f4f4f5] truncate">{item.label}</span>
                             {(item as any).subtitle && (
-                              <span className="text-[11px] text-[var(--text-muted)] font-normal truncate">{(item as any).subtitle}</span>
+                              <span className="text-[11px] text-[#a1a1a1] font-normal truncate">{(item as any).subtitle}</span>
                             )}
                           </div>
                         </div>
@@ -300,7 +300,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                             </span>
                           )}
                           {isSelected && (
-                            <ChevronRight size={14} className="text-[var(--text-muted)] shrink-0" />
+                            <ChevronRight size={14} className="text-[#a0a0a0] shrink-0" />
                           )}
                         </div>
                       </button>
@@ -310,29 +310,29 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               </div>
             ))
           ) : (
-            <div className="py-10 flex flex-col items-center justify-center text-[var(--text-muted)] gap-2">
-              <Sparkles size={20} className="stroke-[1.5px] opacity-60" />
+            <div className="py-10 flex flex-col items-center justify-center text-[#a1a1a1] gap-2">
+              <Sparkles size={20} className="stroke-[1.5px] opacity-60 text-[#a0a0a0]" />
               <p className="text-[12px]">No matching action or query found</p>
             </div>
           )}
 
           {/* Search tips section if no query */}
           {query.trim() === '' && (
-            <div className="mt-2 pt-2 border-t border-[var(--border-default)]/40 px-3 pb-1">
-              <h3 className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em] mb-1.5 flex items-center gap-1">
+            <div className="mt-2 pt-2 border-t border-[#1e1e1e] px-3 pb-1">
+              <h3 className="text-[11px] font-medium text-[#a1a1a1] uppercase tracking-[0.06em] mb-1.5 flex items-center gap-1">
                 <Zap size={11} className="text-amber-400" /> Quick Entry & Search Examples
               </h3>
-              <div className="space-y-1 text-[12px] text-[var(--text-muted)]">
+              <div className="space-y-1 text-[12px] text-[#a1a1a1]">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[11px] text-[var(--text-primary)]">"Spent 200 on coffee today"</span>
+                  <span className="font-mono text-[11px] text-[#f4f4f5]">"Spent 200 on coffee today"</span>
                   <span>— extracts $200, Expense, Coffee</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[11px] text-[var(--text-primary)]">"I didn't spend 200 on coffee"</span>
+                  <span className="font-mono text-[11px] text-[#f4f4f5]">"I didn't spend 200 on coffee"</span>
                   <span>— detects negation & cancels logging</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[11px] text-[var(--text-primary)]">"Received 1500 freelance payment"</span>
+                  <span className="font-mono text-[11px] text-[#f4f4f5]">"Received 1500 freelance payment"</span>
                   <span>— records $1,500 income</span>
                 </div>
               </div>
@@ -341,19 +341,22 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         </div>
 
         {/* Footer Navigation Bar */}
-        <div className="px-4 py-2 bg-[var(--bg-subtle)]/40 border-t border-[var(--border-default)] flex items-center justify-between text-[11px] text-[var(--text-muted)] shrink-0">
+        <div 
+          style={{ backgroundColor: '#050505', borderColor: '#1e1e1e' }}
+          className="px-4 py-2 bg-[#050505] border-t border-[#1e1e1e] flex items-center justify-between text-[11px] text-[#a1a1a1] shrink-0"
+        >
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
-              <kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] text-[10px] font-mono">↑</kbd>
-              <kbd className="px-1 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] text-[10px] font-mono">↓</kbd>
+              <kbd className="px-1 py-0.5 rounded bg-[#141414] border border-[#222222] text-[10px] font-mono text-[#a1a1a1]">↑</kbd>
+              <kbd className="px-1 py-0.5 rounded bg-[#141414] border border-[#222222] text-[10px] font-mono text-[#a1a1a1]">↓</kbd>
               <span className="ml-1">to navigate</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="px-1.5 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-default)] text-[10px] font-mono">↵</kbd>
+              <kbd className="px-1.5 py-0.5 rounded bg-[#141414] border border-[#222222] text-[10px] font-mono text-[#a1a1a1]">↵</kbd>
               <span className="ml-1">to select</span>
             </span>
           </div>
-          <span className="text-[10px] font-mono text-[var(--text-muted)] opacity-70">
+          <span className="text-[10px] font-mono text-[#a1a1a1] opacity-70">
             Esc to close
           </span>
         </div>

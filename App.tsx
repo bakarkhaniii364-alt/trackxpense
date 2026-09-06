@@ -111,8 +111,11 @@ export default function App() {
   });
   const [rabbaiPendingQuery, setRabbaiPendingQuery] = useState<{ text: string; image?: string } | null>(null);
   const [isRabbaiConvDropdownOpen, setIsRabbaiConvDropdownOpen] = useState(false);
+  const [isRabbaiOptionsOpen, setIsRabbaiOptionsOpen] = useState(false);
   const rabbaiDropdownRef = useRef<HTMLDivElement>(null);
   const rabbaiDesktopDropdownRef = useRef<HTMLDivElement>(null);
+  const rabbaiOptionsRef = useRef<HTMLDivElement>(null);
+  const rabbaiDesktopOptionsRef = useRef<HTMLDivElement>(null);
 
   const activeRabbAiConv = conversations.find(c => c.id === activeConvId) || conversations[0];
 
@@ -228,18 +231,24 @@ export default function App() {
       ) {
         setIsRabbaiConvDropdownOpen(false);
       }
+      if (
+        (!rabbaiOptionsRef.current || !rabbaiOptionsRef.current.contains(target)) &&
+        (!rabbaiDesktopOptionsRef.current || !rabbaiDesktopOptionsRef.current.contains(target))
+      ) {
+        setIsRabbaiOptionsOpen(false);
+      }
     };
-    if (isRabbaiConvDropdownOpen) {
+    if (isRabbaiConvDropdownOpen || isRabbaiOptionsOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isRabbaiConvDropdownOpen]);
+  }, [isRabbaiConvDropdownOpen, isRabbaiOptionsOpen]);
 
   // Mobile Visual Viewport Detection: Adjust window height when software keyboard opens (e.g. RabbAi chat) instead of scrolling
   const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.visualViewport) return;
+    if (typeof window === 'undefined') return;
 
     const handleVisualViewportChange = () => {
       const vv = window.visualViewport;
@@ -247,24 +256,35 @@ export default function App() {
 
       if (window.innerWidth < 1024) {
         setVisualViewportHeight(vv.height);
-        // Prevent outer window scrolling when virtual keyboard opens
-        if (window.scrollY !== 0) {
-          window.scrollTo(0, 0);
-        }
+        // Prevent outer window and document scrolling when virtual keyboard opens
+        if (window.scrollY !== 0) window.scrollTo(0, 0);
+        if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+        if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
+        if (mainRef.current && mainRef.current.scrollTop !== 0) mainRef.current.scrollTop = 0;
       } else {
         setVisualViewportHeight(null);
       }
     };
 
-    window.visualViewport.addEventListener('resize', handleVisualViewportChange);
-    window.visualViewport.addEventListener('scroll', handleVisualViewportChange);
+    const handleWindowScroll = () => {
+      if (view === 'rabbai' && window.innerWidth < 1024) {
+        if (window.scrollY !== 0) window.scrollTo(0, 0);
+        if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+        if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
+      }
+    };
+
+    window.visualViewport?.addEventListener('resize', handleVisualViewportChange);
+    window.visualViewport?.addEventListener('scroll', handleVisualViewportChange);
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
     handleVisualViewportChange();
 
     return () => {
       window.visualViewport?.removeEventListener('resize', handleVisualViewportChange);
       window.visualViewport?.removeEventListener('scroll', handleVisualViewportChange);
+      window.removeEventListener('scroll', handleWindowScroll);
     };
-  }, []);
+  }, [view]);
 
   // Notification Toast State
   const [notificationToast, setNotificationToast] = useState<{ message: string; type?: 'error' | 'success' | 'info' } | null>(null);
@@ -1083,7 +1103,7 @@ export default function App() {
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
       
-      <div className={`flex-1 min-w-0 min-h-0 w-full max-w-full flex flex-col overflow-hidden overflow-x-hidden h-full relative z-10 ${view === 'rabbai' ? 'dot-matrix-canvas' : ''}`}>
+      <div className="flex-1 min-w-0 min-h-0 w-full max-w-full flex flex-col overflow-hidden overflow-x-hidden h-full relative z-10">
         {/* Header - Mobile (Cloudflare Technical Design) */}
         {!isDesktop && (
           <header className={`flex-none pt-[calc(env(safe-area-inset-top,0px)+6px)] pb-2 px-3 border-b z-40 select-none ${
@@ -1148,8 +1168,50 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Right: NotePencil (new conversation) and ✕ (close / return to dashboard) */}
+                  {/* Right: Options (Keep last message on top toggle popover), NotePencil (new conversation), and ✕ (close) */}
                   <div className="flex items-center gap-1 shrink-0">
+                    {/* In-Chat Options Popover */}
+                    <div ref={rabbaiOptionsRef} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsRabbaiOptionsOpen(!isRabbaiOptionsOpen)}
+                        className={`p-1.5 transition-all cursor-pointer ${
+                          isRabbaiOptionsOpen 
+                            ? 'text-white' 
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        }`}
+                        title="Chat options"
+                      >
+                        <Sliders size={18} strokeWidth={1.5} />
+                      </button>
+
+                      {isRabbaiOptionsOpen && (
+                        <div className="absolute right-0 top-full mt-1.5 w-60 bg-[#141418] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-3 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-100">
+                          <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)] mb-2.5">
+                            <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Assistant</span>
+                            <span className="text-[10px] text-emerald-400 font-mono">Top-Anchored</span>
+                          </div>
+
+                          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                            Questions automatically anchor to the top of the reading pane with answers streaming below.
+                          </p>
+
+                          <div className="mt-2.5 pt-2 border-t border-[var(--border-default)] flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsRabbaiOptionsOpen(false);
+                                requestViewChange('identity');
+                              }}
+                              className="text-[11px] text-[var(--text-secondary)] hover:text-white transition-colors cursor-pointer"
+                            >
+                              All Settings →
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <button
                       type="button"
                       onClick={handleCreateNewRabbAiConversation}
@@ -1337,8 +1399,50 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Right: + New Chat */}
+                {/* Right: Options & + New Chat */}
                 <div className="flex items-center gap-2">
+                  <div ref={rabbaiDesktopOptionsRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsRabbaiOptionsOpen(!isRabbaiOptionsOpen)}
+                      className={`h-[32px] px-2.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] flex items-center gap-1.5 text-[12px] transition-colors cursor-pointer ${
+                        isRabbaiOptionsOpen 
+                          ? 'text-white border-[var(--border-active)]' 
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                      title="Chat options"
+                    >
+                      <Sliders size={14} strokeWidth={1.5} />
+                      <span>Options</span>
+                    </button>
+
+                    {isRabbaiOptionsOpen && (
+                      <div className="absolute right-0 top-full mt-1.5 w-60 bg-[#141418] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-3 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-100">
+                        <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)] mb-2.5">
+                          <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Assistant</span>
+                          <span className="text-[10px] text-emerald-400 font-mono">Top-Anchored</span>
+                        </div>
+
+                        <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                          Questions automatically anchor to the top of the reading pane with answers streaming below.
+                        </p>
+
+                        <div className="mt-2.5 pt-2 border-t border-[var(--border-default)] flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsRabbaiOptionsOpen(false);
+                              requestViewChange('identity');
+                            }}
+                            className="text-[11px] text-[var(--text-secondary)] hover:text-white transition-colors cursor-pointer"
+                          >
+                            All Settings →
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <button
                     type="button"
                     onClick={handleCreateNewRabbAiConversation}
@@ -1409,6 +1513,11 @@ export default function App() {
                 {/* Main Content */}
         <main 
           ref={mainRef}
+          onScroll={(e) => {
+            if (view === 'rabbai' && e.currentTarget.scrollTop !== 0) {
+              e.currentTarget.scrollTop = 0;
+            }
+          }}
           className={`flex-1 min-w-0 min-h-0 w-full max-w-full ${
             view === 'rabbai'
               ? 'max-w-none p-0 m-0 flex flex-col overflow-hidden overflow-x-hidden h-full'
@@ -1444,6 +1553,7 @@ export default function App() {
                     onSelectConversation={setActiveConvId}
                     onClose={() => requestViewChange('dashboard')}
                     onOpenSettings={() => requestViewChange('identity')}
+                    visualViewportHeight={visualViewportHeight}
                   />
               </div>
             ) : (
@@ -1535,6 +1645,7 @@ export default function App() {
                     onSelectConversation={setActiveConvId}
                     onClose={() => requestViewChange('dashboard')}
                     onOpenSettings={() => requestViewChange('identity')}
+                    visualViewportHeight={visualViewportHeight}
                   />
                 </div>
               )}

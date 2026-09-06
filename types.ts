@@ -149,6 +149,7 @@ export interface UserSettings {
   hapticsEnabled?: boolean;
   groqApiKey?: string;
   enableAiParsing?: boolean;
+  keepLastMessageOnTop?: boolean;
 }
 
 export interface UserProfile {

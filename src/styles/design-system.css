@@ -11,7 +11,7 @@
 
 :root {
   /* Pitch Black Technical Palette (Matching User's Screenshot & Cloudflare Dark Mode) */
-  --ds-bg: #000000;             /* Pure pitch black canvas */
+  --ds-bg: #030303;             /* Canvas background #030303 per user request */
   --ds-panel: #0D0D10;          /* Deep structural card surface */
   --ds-panel-alt: #16161A;      /* Surface hover / row hover */
   --ds-border: #202026;         /* Crisp 1px hairline border */
@@ -47,8 +47,8 @@
   --color-primary: 246 130 31;
   --color-primary-hex: #F6821F;
 
-  --bg-page: #000000;
-  --bg-sidebar: #000000;
+  --bg-page: #030303;
+  --bg-sidebar: #030303;
   --bg-surface: #0D0D10;
   --bg-surface-hover: #16161A;
   --bg-subtle: #121216;
@@ -65,6 +65,23 @@
   background-image: radial-gradient(circle at center, #24242c 1px, transparent 1px);
   background-size: 16px 16px;
   background-position: 0 0;
+}
+
+.dot-matrix-canvas--glow {
+  background-image: radial-gradient(circle at center, var(--accent) 1px, transparent 1px);
+  background-size: 16px 16px;
+  background-position: 0 0;
+}
+
+/* Technical Sharp Icon & Stroke Vertex Geometry (Global Sharp Linecaps & Miter Joins) */
+svg:not(.recharts-surface) line,
+svg:not(.recharts-surface) polyline,
+svg:not(.recharts-surface) path:not([class*="recharts"]),
+svg:not(.recharts-surface) polygon,
+svg:not(.recharts-surface) rect {
+  stroke-linecap: butt !important;
+  stroke-linejoin: miter !important;
+  stroke-miterlimit: 4 !important;
 }
 
 :root {
