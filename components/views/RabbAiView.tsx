@@ -218,8 +218,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
   // Dynamic bottom spacer calculation:
   // Dynamically expands only enough so the latest prompt can scroll to the top (48px below fade mask),
-  // and dynamically collapses to 0 as the AI response streams in.
-  // This completely eliminates any empty "void" at the bottom of the chat container.
+  // and dynamically collapses as the AI response streams in.
+  // Clamps maxScrollTop precisely to targetScrollTop so the user can never scroll down past the active exchange into empty void.
   const updateBottomSpacer = useCallback((targetMsgId?: string) => {
     if (!chatContainerRef.current || !spacerRef.current) return;
     const container = chatContainerRef.current;
@@ -231,29 +231,45 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
     const userMsgEl = container.querySelector<HTMLElement>(`[data-msg-id="${idToAnchor}"]`);
     if (!userMsgEl) {
-      // If the target element isn't in DOM yet, grant buffer height so the container CAN scroll when it mounts!
-      spacerRef.current.style.height = `${Math.max(350, container.clientHeight - 80)}px`;
+      spacerRef.current.style.height = '0px';
       return;
     }
 
+    const containerRect = container.getBoundingClientRect();
     const userRect = userMsgEl.getBoundingClientRect();
-    const bottomEl = chatBottomRef.current;
-    const bottomRect = bottomEl ? bottomEl.getBoundingClientRect() : userRect;
-    const exchangeHeight = Math.max(0, bottomRect.bottom - userRect.top);
 
-    // Target visible area between top anchor (48px) and bottom padding (56px)
-    const targetVisibleHeight = Math.max(0, container.clientHeight - 48 - 56);
-    const needed = Math.max(0, Math.round(targetVisibleHeight - exchangeHeight));
+    // Invariant absolute top position of the target user prompt inside container's scroll content
+    const userTopInContent = (userRect.top - containerRect.top) + container.scrollTop;
+
+    // Target scrollTop to anchor the prompt 48px from top
+    const targetScrollTop = Math.max(0, Math.round(userTopInContent - 48));
+
+    // If the prompt is already at or near the top (e.g. first message in conversation),
+    // no spacer is ever needed. This eliminates scrolling down into empty space!
+    if (targetScrollTop <= 0) {
+      spacerRef.current.style.height = '0px';
+      return;
+    }
+
+    // Measure the actual scroll height of the container without the spacer
+    const currentSpacerHeight = spacerRef.current ? spacerRef.current.getBoundingClientRect().height : 0;
+    const scrollHeightWithoutSpacer = Math.max(0, container.scrollHeight - currentSpacerHeight);
+
+    // Required scrollHeight so that container.scrollTop can reach targetScrollTop:
+    // (targetScrollTop + container.clientHeight)
+    const requiredScrollHeight = targetScrollTop + container.clientHeight;
+    const needed = Math.max(0, Math.round(requiredScrollHeight - scrollHeightWithoutSpacer));
+
     spacerRef.current.style.height = `${needed}px`;
   }, [lastUserMsgId]);
 
-  // Recalculate spacer whenever window resizes or messages change
+  // Recalculate spacer whenever window resizes, messages change, or mobile keyboard toggles
   useEffect(() => {
     updateBottomSpacer();
     const handleResize = () => updateBottomSpacer();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [updateBottomSpacer, displayMessages, isLoading]);
+  }, [updateBottomSpacer, displayMessages, isLoading, effectiveViewportHeight]);
 
   // Top-anchored scroll: Positions the user's prompt right near the top of the reading pane (48px below top)
   const scrollToLatestPrompt = useCallback((msgId?: string, behavior: ScrollBehavior = 'smooth'): boolean => {
@@ -344,6 +360,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     if (!activeStreamEl) return;
 
     const observer = new ResizeObserver(() => {
+      updateBottomSpacer();
+
       if (isUserReadingHistoryRef.current) return;
 
       const containerRect = container.getBoundingClientRect();
@@ -360,7 +378,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [isLoading, displayMessages]);
+  }, [isLoading, displayMessages, updateBottomSpacer]);
 
   // Time & Shabbat-based Jewish cultural greeting
   const greeting = useMemo(() => {
