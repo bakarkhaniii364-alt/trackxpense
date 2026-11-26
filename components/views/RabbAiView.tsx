@@ -34,6 +34,7 @@ import {
   sendRabbAiImageMessage 
 } from '../../services/rabbAiService';
 import { ExchangeRateService } from '../../services/ExchangeRateService';
+import { syncEngine } from '../../services/SyncEngine';
 import { GroqClient } from '../../services/groqClient';
 import { MarkdownRenderer } from '../shared/MarkdownRenderer';
 import { StreamedMarkdownRenderer } from '../shared/StreamedMarkdownRenderer';
@@ -1091,7 +1092,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
           const toW = data.wallets.find(w => w.name.toLowerCase() === action.payload.to.toLowerCase());
           if (fromW && toW && fromW.id !== toW.id) {
             const outTx = {
-              id: `tx_${safeUUID()}`,
+              id: safeUUID(),
               amount: action.payload.amount,
               type: TransactionType.EXPENSE,
               category: 'Transfer',
@@ -1101,7 +1102,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
               updated_at: nowIso
             };
             const inTx = {
-              id: `tx_${safeUUID()}`,
+              id: safeUUID(),
               amount: action.payload.amount,
               type: TransactionType.INCOME,
               category: 'Transfer',
@@ -1189,6 +1190,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
         if (updateData) {
           const { updates } = await ExchangeRateService.convertAppDataCurrency(data, action.payload.currency, true);
           updateData(updates);
+          await syncEngine.flush();
         }
         break;
       }

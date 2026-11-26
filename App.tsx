@@ -73,6 +73,7 @@ export default function App() {
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
   
   const [data, setData] = useState<AppData | null>(null);
+  const dataRef = useRef<AppData | null>(null);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
@@ -330,6 +331,7 @@ export default function App() {
       if (!user) {
         // If not logged in, just load whatever is in IndexedDB
         const localData = await StorageService.getAppData();
+        dataRef.current = localData;
         setData(localData);
         if (localData.settings.vaultPasscode && localData.settings.isVaultLocked) {
           setIsLocked(true);
@@ -340,6 +342,16 @@ export default function App() {
       // If user is logged in:
       const needsMigration = localStorage.getItem('tx_needs_migration') === 'true';
       const localData = await StorageService.getAppData();
+
+      if (localData?.settings?.hasOnboarded) {
+        dataRef.current = localData;
+        setData(localData);
+      }
+
+      // Flush any pending local writes BEFORE pulling from cloud so reload never clobbers recent edits
+      if (!needsMigration) {
+        await syncEngine.flush();
+      }
 
       if (needsMigration) {
         console.log('Migrating guest data to Supabase for user:', user.id);
@@ -380,12 +392,21 @@ export default function App() {
         await syncEngine.flush();
       }
 
+      // Check if local queue still has unsynced writes (e.g. offline); never overwrite unsynced edits
+      const hasUnsyncedLocal = await syncEngine.hasPendingChanges();
+      if (hasUnsyncedLocal) {
+        dataRef.current = localData;
+        setData(localData);
+        return;
+      }
+
       // Now, pull fresh consolidated data from the cloud
       const cloudData = await syncEngine.pull(user.id);
 
       if (cloudData) {
         // Save cloud data to local IndexedDB and update state
         await StorageService.saveAppData(cloudData);
+        dataRef.current = cloudData;
         setData(cloudData);
         if (cloudData.settings.vaultPasscode && cloudData.settings.isVaultLocked) {
           setIsLocked(true);
@@ -396,6 +417,7 @@ export default function App() {
         await syncEngine.push('users', 'UPDATE', { ...localData.profile, id: user.id });
         await syncEngine.push('settings', 'UPDATE', { ...localData.settings, user_id: user.id });
         await syncEngine.flush();
+        dataRef.current = localData;
         setData(localData);
       }
     };
@@ -406,9 +428,13 @@ export default function App() {
   useEffect(() => {
     if (user) {
         syncEngine.initializeRealtime(user.id, async () => {
+            if (syncEngine.shouldIgnoreRealtimeEcho() || await syncEngine.hasPendingChanges()) {
+                return;
+            }
             const cloudData = await syncEngine.pull(user.id);
             if (cloudData) {
                 await StorageService.saveAppData(cloudData);
+                dataRef.current = cloudData;
                 setData(cloudData);
             }
         });
@@ -491,175 +517,178 @@ export default function App() {
   };
 
   const updateData = (newData: Partial<AppData>) => {
-    setData(prev => {
-      if (!prev) return null;
+    const prev = dataRef.current;
+    if (!prev) return;
 
-      if (user) {
-        // 1. Wallets diff
-        if (newData.wallets && newData.wallets !== prev.wallets) {
-          const prevMap = new Map(prev.wallets.map(w => [w.id, w]));
-          const nextMap = new Map(newData.wallets.map(w => [w.id, w]));
-          newData.wallets.forEach(w => {
-            const prevW = prevMap.get(w.id);
-            if (!prevW) {
-              syncEngine.push('wallets', 'INSERT', w);
-            } else if (hasEntityChanged(prevW, w)) {
-              syncEngine.push('wallets', 'UPDATE', w);
-            }
-          });
-          prev.wallets.forEach(w => {
-            if (!nextMap.has(w.id)) {
-              syncEngine.push('wallets', 'DELETE', w);
-            }
-          });
-        }
+    const next: AppData = { ...prev, ...newData };
+    dataRef.current = next;
+    setData(next);
+    StorageService.saveAppData(next);
 
-        // 2. Transactions diff
-        if (newData.transactions && newData.transactions !== prev.transactions) {
-          const prevMap = new Map(prev.transactions.map(t => [t.id, t]));
-          const nextMap = new Map(newData.transactions.map(t => [t.id, t]));
-          newData.transactions.forEach(t => {
-            const prevT = prevMap.get(t.id);
-            if (!prevT) {
-              syncEngine.push('transactions', 'INSERT', t);
-            } else if (hasEntityChanged(prevT, t)) {
-              syncEngine.push('transactions', 'UPDATE', t);
-            }
-          });
-          prev.transactions.forEach(t => {
-            if (!nextMap.has(t.id)) {
-              syncEngine.push('transactions', 'DELETE', t);
-            }
-          });
-        }
-
-        // 3. Debts diff
-        if (newData.debts && newData.debts !== prev.debts) {
-          const prevMap = new Map(prev.debts.map(d => [d.id, d]));
-          const nextMap = new Map(newData.debts.map(d => [d.id, d]));
-          newData.debts.forEach(d => {
-            const prevD = prevMap.get(d.id);
-            if (!prevD) {
-              syncEngine.push('debts', 'INSERT', d);
-            } else if (hasEntityChanged(prevD, d)) {
-              syncEngine.push('debts', 'UPDATE', d);
-            }
-          });
-          prev.debts.forEach(d => {
-            if (!nextMap.has(d.id)) {
-              syncEngine.push('debts', 'DELETE', d);
-            }
-          });
-        }
-
-        // 4. Recurring Rules diff
-        if (newData.recurringRules && newData.recurringRules !== prev.recurringRules) {
-          const prevMap = new Map((prev.recurringRules || []).map(r => [r.id, r]));
-          const nextMap = new Map((newData.recurringRules || []).map(r => [r.id, r]));
-          (newData.recurringRules || []).forEach(r => {
-            const prevR = prevMap.get(r.id);
-            if (!prevR) {
-              syncEngine.push('subscriptions', 'INSERT', r);
-            } else if (hasEntityChanged(prevR, r)) {
-              syncEngine.push('subscriptions', 'UPDATE', r);
-            }
-          });
-          (prev.recurringRules || []).forEach(r => {
-            if (!nextMap.has(r.id)) {
-              syncEngine.push('subscriptions', 'DELETE', r);
-            }
-          });
-        }
-
-        // 5. Provisions diff
-        if (newData.provisions && newData.provisions !== prev.provisions) {
-          const prevMap = new Map(prev.provisions.map(p => [p.id, p]));
-          const nextMap = new Map(newData.provisions.map(p => [p.id, p]));
-          newData.provisions.forEach(p => {
-            const prevP = prevMap.get(p.id);
-            if (!prevP) {
-              syncEngine.push('provisions', 'INSERT', p);
-            } else if (hasEntityChanged(prevP, p)) {
-              syncEngine.push('provisions', 'UPDATE', p);
-            }
-          });
-          prev.provisions.forEach(p => {
-            if (!nextMap.has(p.id)) {
-              syncEngine.push('provisions', 'DELETE', p);
-            }
-          });
-        }
-
-        // 6. Templates diff
-        if (newData.templates && newData.templates !== prev.templates) {
-          const prevMap = new Map(prev.templates.map(t => [t.id, t]));
-          const nextMap = new Map(newData.templates.map(t => [t.id, t]));
-          newData.templates.forEach(t => {
-            const prevT = prevMap.get(t.id);
-            if (!prevT) {
-              syncEngine.push('templates', 'INSERT', t);
-            } else if (hasEntityChanged(prevT, t)) {
-              syncEngine.push('templates', 'UPDATE', t);
-            }
-          });
-          prev.templates.forEach(t => {
-            if (!nextMap.has(t.id)) {
-              syncEngine.push('templates', 'DELETE', t);
-            }
-          });
-        }
-
-        // 7. Balance Snapshots diff
-        if (newData.balanceHistory && newData.balanceHistory !== prev.balanceHistory) {
-          const prevMap = new Map<string, any>(prev.balanceHistory.map(b => [b.date, b] as [string, any]));
-          const nextMap = new Map<string, any>(newData.balanceHistory.map(b => [b.date, b] as [string, any]));
-          newData.balanceHistory.forEach(b => {
-            const prevB = prevMap.get(b.date);
-            if (!prevB) {
-              syncEngine.push('balance_snapshots', 'INSERT', { amount: b.amount, date: b.date });
-            } else if (prevB.amount !== b.amount) {
-              syncEngine.push('balance_snapshots', 'UPDATE', { amount: b.amount, date: b.date });
-            }
-          });
-          prev.balanceHistory.forEach(b => {
-            if (!nextMap.has(b.date)) {
-              syncEngine.push('balance_snapshots', 'DELETE', { date: b.date });
-            }
-          });
-        }
-
-        // 8. Settings diff
-        if (newData.settings && JSON.stringify(prev.settings) !== JSON.stringify(newData.settings)) {
-          syncEngine.push('settings', 'UPDATE', newData.settings);
-        }
-
-        // 9. Profile diff
-        if (newData.profile && JSON.stringify(prev.profile) !== JSON.stringify(newData.profile)) {
-          syncEngine.push('users', 'UPDATE', newData.profile);
-        }
-
-        // 10. Categories diff
-        if (newData.categories && newData.categories !== prev.categories) {
-          const prevMap = new Map(prev.categories.map(c => [c.id, c]));
-          const nextMap = new Map(newData.categories.map(c => [c.id, c]));
-          newData.categories.forEach(c => {
-            const prevC = prevMap.get(c.id);
-            if (!prevC) {
-              syncEngine.push('categories', 'INSERT', c);
-            } else if (hasEntityChanged(prevC, c)) {
-              syncEngine.push('categories', 'UPDATE', c);
-            }
-          });
-          prev.categories.forEach(c => {
-            if (!nextMap.has(c.id)) {
-              syncEngine.push('categories', 'DELETE', c);
-            }
-          });
-        }
+    if (user) {
+      // 1. Wallets diff
+      if (newData.wallets && newData.wallets !== prev.wallets) {
+        const prevMap = new Map(prev.wallets.map(w => [w.id, w]));
+        const nextMap = new Map(newData.wallets.map(w => [w.id, w]));
+        newData.wallets.forEach(w => {
+          const prevW = prevMap.get(w.id);
+          if (!prevW) {
+            syncEngine.push('wallets', 'INSERT', w);
+          } else if (hasEntityChanged(prevW, w)) {
+            syncEngine.push('wallets', 'UPDATE', w);
+          }
+        });
+        prev.wallets.forEach(w => {
+          if (!nextMap.has(w.id)) {
+            syncEngine.push('wallets', 'DELETE', w);
+          }
+        });
       }
 
-      return { ...prev, ...newData };
-    });
+      // 2. Transactions diff
+      if (newData.transactions && newData.transactions !== prev.transactions) {
+        const prevMap = new Map(prev.transactions.map(t => [t.id, t]));
+        const nextMap = new Map(newData.transactions.map(t => [t.id, t]));
+        newData.transactions.forEach(t => {
+          const prevT = prevMap.get(t.id);
+          if (!prevT) {
+            syncEngine.push('transactions', 'INSERT', t);
+          } else if (hasEntityChanged(prevT, t)) {
+            syncEngine.push('transactions', 'UPDATE', t);
+          }
+        });
+        prev.transactions.forEach(t => {
+          if (!nextMap.has(t.id)) {
+            syncEngine.push('transactions', 'DELETE', t);
+          }
+        });
+      }
+
+      // 3. Debts diff
+      if (newData.debts && newData.debts !== prev.debts) {
+        const prevMap = new Map(prev.debts.map(d => [d.id, d]));
+        const nextMap = new Map(newData.debts.map(d => [d.id, d]));
+        newData.debts.forEach(d => {
+          const prevD = prevMap.get(d.id);
+          if (!prevD) {
+            syncEngine.push('debts', 'INSERT', d);
+          } else if (hasEntityChanged(prevD, d)) {
+            syncEngine.push('debts', 'UPDATE', d);
+          }
+        });
+        prev.debts.forEach(d => {
+          if (!nextMap.has(d.id)) {
+            syncEngine.push('debts', 'DELETE', d);
+          }
+        });
+      }
+
+      // 4. Recurring Rules diff
+      if (newData.recurringRules && newData.recurringRules !== prev.recurringRules) {
+        const prevMap = new Map((prev.recurringRules || []).map(r => [r.id, r]));
+        const nextMap = new Map((newData.recurringRules || []).map(r => [r.id, r]));
+        (newData.recurringRules || []).forEach(r => {
+          const prevR = prevMap.get(r.id);
+          if (!prevR) {
+            syncEngine.push('subscriptions', 'INSERT', r);
+          } else if (hasEntityChanged(prevR, r)) {
+            syncEngine.push('subscriptions', 'UPDATE', r);
+          }
+        });
+        (prev.recurringRules || []).forEach(r => {
+          if (!nextMap.has(r.id)) {
+            syncEngine.push('subscriptions', 'DELETE', r);
+          }
+        });
+      }
+
+      // 5. Provisions diff
+      if (newData.provisions && newData.provisions !== prev.provisions) {
+        const prevMap = new Map(prev.provisions.map(p => [p.id, p]));
+        const nextMap = new Map(newData.provisions.map(p => [p.id, p]));
+        newData.provisions.forEach(p => {
+          const prevP = prevMap.get(p.id);
+          if (!prevP) {
+            syncEngine.push('provisions', 'INSERT', p);
+          } else if (hasEntityChanged(prevP, p)) {
+            syncEngine.push('provisions', 'UPDATE', p);
+          }
+        });
+        prev.provisions.forEach(p => {
+          if (!nextMap.has(p.id)) {
+            syncEngine.push('provisions', 'DELETE', p);
+          }
+        });
+      }
+
+      // 6. Templates diff
+      if (newData.templates && newData.templates !== prev.templates) {
+        const prevMap = new Map(prev.templates.map(t => [t.id, t]));
+        const nextMap = new Map(newData.templates.map(t => [t.id, t]));
+        newData.templates.forEach(t => {
+          const prevT = prevMap.get(t.id);
+          if (!prevT) {
+            syncEngine.push('templates', 'INSERT', t);
+          } else if (hasEntityChanged(prevT, t)) {
+            syncEngine.push('templates', 'UPDATE', t);
+          }
+        });
+        prev.templates.forEach(t => {
+          if (!nextMap.has(t.id)) {
+            syncEngine.push('templates', 'DELETE', t);
+          }
+        });
+      }
+
+      // 7. Balance Snapshots diff
+      if (newData.balanceHistory && newData.balanceHistory !== prev.balanceHistory) {
+        const snapWalletId = next.currentWalletId || next.wallets?.[0]?.id || 'main';
+        const prevMap = new Map<string, any>(prev.balanceHistory.map(b => [b.date, b] as [string, any]));
+        const nextMap = new Map<string, any>(newData.balanceHistory.map(b => [b.date, b] as [string, any]));
+        newData.balanceHistory.forEach(b => {
+          const prevB = prevMap.get(b.date);
+          if (!prevB) {
+            syncEngine.push('balance_snapshots', 'INSERT', { amount: b.amount, date: b.date, walletId: snapWalletId });
+          } else if (prevB.amount !== b.amount) {
+            syncEngine.push('balance_snapshots', 'UPDATE', { amount: b.amount, date: b.date, walletId: snapWalletId });
+          }
+        });
+        prev.balanceHistory.forEach(b => {
+          if (!nextMap.has(b.date)) {
+            syncEngine.push('balance_snapshots', 'DELETE', { id: `snap_${snapWalletId}_${b.date}`, date: b.date });
+          }
+        });
+      }
+
+      // 8. Settings diff
+      if (newData.settings && JSON.stringify(prev.settings) !== JSON.stringify(newData.settings)) {
+        syncEngine.push('settings', 'UPDATE', newData.settings);
+      }
+
+      // 9. Profile diff
+      if (newData.profile && JSON.stringify(prev.profile) !== JSON.stringify(newData.profile)) {
+        syncEngine.push('users', 'UPDATE', newData.profile);
+      }
+
+      // 10. Categories diff
+      if (newData.categories && newData.categories !== prev.categories) {
+        const prevMap = new Map(prev.categories.map(c => [c.id, c]));
+        const nextMap = new Map(newData.categories.map(c => [c.id, c]));
+        newData.categories.forEach(c => {
+          const prevC = prevMap.get(c.id);
+          if (!prevC) {
+            syncEngine.push('categories', 'INSERT', c);
+          } else if (hasEntityChanged(prevC, c)) {
+            syncEngine.push('categories', 'UPDATE', c);
+          }
+        });
+        prev.categories.forEach(c => {
+          if (!nextMap.has(c.id)) {
+            syncEngine.push('categories', 'DELETE', c);
+          }
+        });
+      }
+    }
   };
 
   // Net Worth Snapshot Logic with Multi-Currency Normalization
@@ -708,7 +737,7 @@ export default function App() {
       // Create initial balance transaction if amount > 0
       if (balance > 0) {
           const initTx: Transaction = {
-              id: 'init_balance_' + Date.now(),
+              id: crypto.randomUUID(),
               amount: balance,
               type: TransactionType.INCOME,
               category: 'Other',
@@ -789,7 +818,7 @@ export default function App() {
 
     const newTx: Transaction = { 
       ...t, 
-      id: t.id ? String(t.id) : `tx_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      id: t.id ? String(t.id) : crypto.randomUUID(),
       amount: valid.sanitizedAmount, 
       note: sanitizeNote(t.note), 
       updated_at: new Date().toISOString() 
@@ -2029,7 +2058,7 @@ export default function App() {
           onViewChange={(v) => requestViewChange(v)}
           onQuickAdd={(type, quickData) => {
             const newTx: Transaction = {
-              id: `tx_${crypto.randomUUID()}`,
+              id: crypto.randomUUID(),
               amount: quickData.amount,
               type,
               category: quickData.category || 'Other',

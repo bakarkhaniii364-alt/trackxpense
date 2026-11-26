@@ -480,7 +480,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       let newTxId: string | undefined;
       if (aiMsg.extractedTransaction && aiMsg.extractedTransaction.isLogged) {
         const ext = aiMsg.extractedTransaction;
-        newTxId = `tx_${Date.now()}`;
+        newTxId = crypto.randomUUID();
         const newTx: Transaction = {
           id: newTxId,
           amount: ext.amount,

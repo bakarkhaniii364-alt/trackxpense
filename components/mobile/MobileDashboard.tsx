@@ -250,7 +250,7 @@ export const MobileDashboard: React.FC<MobileDashboardProps> = ({
       if (aiMsg.extractedTransaction && aiMsg.extractedTransaction.isLogged) {
         const ext = aiMsg.extractedTransaction;
         const newTx: Transaction = {
-          id: `tx_${Date.now()}`,
+          id: crypto.randomUUID(),
           amount: ext.amount,
           type: ext.type,
           category: ext.category,

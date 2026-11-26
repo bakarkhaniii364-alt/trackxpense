@@ -1,10 +1,55 @@
 import { supabase } from './supabase';
 import * as StorageService from './storage';
 import { AppData, SyncStatus, TransactionType, CategoryItem } from '../types';
+import { ExchangeRateService } from './ExchangeRateService';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Deterministically converts any legacy non-UUID string (e.g. 'main', 'tx_123',
+ * 'init_balance_123') into a valid RFC-4122 UUID so PostgreSQL UUID columns accept it.
+ */
+export const toValidUuid = (rawId: string | undefined | null, namespace: string = 'default'): string => {
+  const trimmed = (rawId || '').trim();
+  if (UUID_REGEX.test(trimmed)) return trimmed.toLowerCase();
+
+  const seed = `${namespace}:${trimmed || 'root'}`;
+  const hashChunk = (input: string, init: number): string => {
+    let h = init >>> 0;
+    for (let i = 0; i < input.length; i++) {
+      h ^= input.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h.toString(16).padStart(8, '0');
+  };
+
+  const p1 = hashChunk(seed + ':a', 0x811c9dc5);
+  const p2 = hashChunk(seed + ':b', 0x9e3779b1);
+  const p3 = hashChunk(seed + ':c', 0x85ebca6b);
+  const p4 = hashChunk(seed + ':d', 0xc2b2ae35);
+
+  const hex = `${p1}${p2}${p3}${p4}`;
+  const versionNib = '4';
+  const variantNibs = ['8', '9', 'a', 'b'];
+  const variantNib = variantNibs[parseInt(hex[16], 16) % 4];
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${versionNib}${hex.slice(13, 16)}-${variantNib}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+};
+
+const PERMANENT_PG_ERRORS = new Set([
+  '22P02', // invalid_text_representation (e.g. malformed UUID)
+  '23502', // not_null_violation
+  '23503', // foreign_key_violation
+  '42703'  // undefined_column
+]);
 
 class SyncEngine {
   private isSyncing = false;
+  private activeFlush: Promise<void> | null = null;
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
+  private queueOpChain: Promise<void> = Promise.resolve();
+  private lastLocalWriteAt = 0;
   private lastSyncedAt: string | null = null;
+  private realtimeChannel: any = null;
   private onStatusChange: (status: SyncStatus) => void = () => {};
 
   public setStatusListener(listener: (status: SyncStatus) => void) {
@@ -22,6 +67,15 @@ class SyncEngine {
     });
   }
 
+  public shouldIgnoreRealtimeEcho(): boolean {
+    return this.isSyncing || Date.now() - this.lastLocalWriteAt < 4500;
+  }
+
+  public async hasPendingChanges(): Promise<boolean> {
+    const queue = await StorageService.getSyncQueue();
+    return queue.length > 0;
+  }
+
   private mapLocalToDb(table: string, payload: any, userId: string): any {
     switch (table) {
       case 'categories':
@@ -36,8 +90,8 @@ class SyncEngine {
         };
       case 'transactions':
         return {
-          id: payload.id,
-          wallet_id: payload.walletId,
+          id: toValidUuid(payload.id, userId),
+          wallet_id: toValidUuid(payload.walletId || 'main', userId),
           amount: payload.amount,
           type: payload.type,
           category: payload.category,
@@ -49,16 +103,16 @@ class SyncEngine {
         };
       case 'wallets':
         return {
-          id: payload.id,
+          id: toValidUuid(payload.id || 'main', userId),
           name: payload.name,
           type: payload.type || 'STANDARD',
           target_amount: payload.targetAmount || 0,
-          currency: payload.currency || 'BDT',
+          currency: payload.currency || '৳',
           updated_at: payload.updated_at || new Date().toISOString()
         };
       case 'debts':
         return {
-          id: payload.id,
+          id: toValidUuid(payload.id, userId),
           person: payload.person,
           amount: payload.amount,
           type: payload.type,
@@ -70,8 +124,8 @@ class SyncEngine {
         };
       case 'subscriptions':
         return {
-          id: payload.id,
-          wallet_id: payload.walletId || 'main',
+          id: toValidUuid(payload.id, userId),
+          wallet_id: toValidUuid(payload.walletId || 'main', userId),
           name: payload.name,
           amount: payload.amount,
           category: payload.category,
@@ -83,7 +137,7 @@ class SyncEngine {
         };
       case 'provisions':
         return {
-          id: payload.id,
+          id: toValidUuid(payload.id, userId),
           name: payload.name,
           amount: payload.amount,
           date: payload.date,
@@ -91,18 +145,18 @@ class SyncEngine {
         };
       case 'templates':
         return {
-          id: payload.id,
+          id: toValidUuid(payload.id, userId),
           name: payload.name,
           amount: payload.amount || null,
           category: payload.category || null,
           type: payload.type || 'EXPENSE',
           note: payload.note || null,
-          wallet_id: payload.walletId || null
+          wallet_id: payload.walletId ? toValidUuid(payload.walletId, userId) : null
         };
       case 'balance_snapshots':
         return {
-          id: payload.id || undefined,
-          wallet_id: payload.walletId || 'main',
+          id: toValidUuid(payload.id || `snap_${payload.walletId || 'main'}_${payload.date}`, userId),
+          wallet_id: toValidUuid(payload.walletId || 'main', userId),
           balance: payload.amount,
           date: payload.date
         };
@@ -111,7 +165,7 @@ class SyncEngine {
           user_id: userId,
           theme: payload.theme,
           dark_mode: payload.darkMode,
-          currency_symbol: payload.currencySymbol,
+          currency_symbol: ExchangeRateService.normalizeSymbol(payload.currencySymbol),
           privacy_mode: payload.privacyMode,
           // Zero-Knowledge Security: vault passcode & salt are strictly device-local and never synced to cloud
           vault_passcode: null,
@@ -135,90 +189,151 @@ class SyncEngine {
     }
   }
 
-  public async push(table: string, operation: 'INSERT' | 'UPDATE' | 'DELETE', payload: any) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return; // Only sync if authenticated
-
-    await StorageService.addToSyncQueue({ table, operation, payload });
-    this.emitStatus();
-    this.flush();
+  private scheduleFlush() {
+    if (this.flushTimer) clearTimeout(this.flushTimer);
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null;
+      this.flush();
+    }, 80);
   }
 
-  public async flush() {
-    if (this.isSyncing || !navigator.onLine) return;
+  public push(table: string, operation: 'INSERT' | 'UPDATE' | 'DELETE', payload: any): Promise<void> {
+    this.lastLocalWriteAt = Date.now();
+    this.queueOpChain = this.queueOpChain
+      .then(async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return; // Only sync if authenticated
+
+        await StorageService.addToSyncQueue({ table, operation, payload });
+        await this.emitStatus();
+        this.scheduleFlush();
+      })
+      .catch((err) => {
+        console.warn('Sync queue enqueue warning:', err);
+      });
+    return this.queueOpChain;
+  }
+
+  public async flush(): Promise<void> {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+
+    // Ensure any queued adds finish before reading the queue
+    await this.queueOpChain;
+
+    if (this.activeFlush) {
+      return this.activeFlush;
+    }
+
+    this.activeFlush = this.runFlushLoop();
+    try {
+      await this.activeFlush;
+    } finally {
+      this.activeFlush = null;
+    }
+  }
+
+  private async runFlushLoop(): Promise<void> {
+    if (!navigator.onLine) return;
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const queue = await StorageService.getSyncQueue();
-    if (queue.length === 0) return;
-
     this.isSyncing = true;
-    this.emitStatus();
+    await this.emitStatus();
 
     try {
-      let consecutiveErrors = 0;
-      for (const item of queue) {
-        const { table, operation, payload, id } = item;
-        let error;
+      let consecutiveTransientErrors = 0;
 
-        if (operation === 'INSERT' || operation === 'UPDATE') {
-          const dbPayload = this.mapLocalToDb(table, payload, session.user.id);
-          
-          if (dbPayload && typeof dbPayload === 'object') {
-            if (table !== 'settings' && table !== 'users') {
-              dbPayload.user_id = session.user.id;
+      // Drain until queue is empty or network/transient failures halt progress
+      while (true) {
+        const queue = await StorageService.getSyncQueue();
+        if (queue.length === 0) break;
+
+        let madeProgress = false;
+        for (const item of queue) {
+          const { table, operation, payload, id } = item;
+          let error: any = null;
+          this.lastLocalWriteAt = Date.now();
+
+          if (operation === 'INSERT' || operation === 'UPDATE') {
+            const dbPayload = this.mapLocalToDb(table, payload, session.user.id);
+
+            if (dbPayload && typeof dbPayload === 'object') {
+              if (table !== 'settings' && table !== 'users') {
+                dbPayload.user_id = session.user.id;
+              }
+            }
+
+            const upsertOptions =
+              table === 'settings'
+                ? { onConflict: 'user_id' }
+                : table === 'users' || table === 'categories'
+                  ? { onConflict: 'id' }
+                  : undefined;
+
+            const { error: upsertError } = await supabase
+              .from(table)
+              .upsert(dbPayload, upsertOptions);
+            error = upsertError;
+          } else if (operation === 'DELETE') {
+            const targetId =
+              table === 'categories'
+                ? payload.id
+                : toValidUuid(payload.id, session.user.id);
+            const { error: deleteError } = await supabase
+              .from(table)
+              .delete()
+              .eq('id', targetId);
+            error = deleteError;
+          }
+
+          if (!error) {
+            await StorageService.removeFromSyncQueue(id);
+            consecutiveTransientErrors = 0;
+            madeProgress = true;
+          } else if (PERMANENT_PG_ERRORS.has(error.code)) {
+            console.warn(`Dropping permanently invalid sync item for ${table} (${error.code}):`, error.message);
+            await StorageService.removeFromSyncQueue(id);
+            madeProgress = true;
+          } else {
+            consecutiveTransientErrors++;
+            console.warn(`Sync queue item failed for ${table} (attempt ${consecutiveTransientErrors}):`, error.message);
+            if (consecutiveTransientErrors >= 3) {
+              setTimeout(() => this.flush(), 5000);
+              return;
             }
           }
-
-          const { error: upsertError } = await supabase
-            .from(table)
-            .upsert(dbPayload);
-          error = upsertError;
-        } else if (operation === 'DELETE') {
-          const { error: deleteError } = await supabase
-            .from(table)
-            .delete()
-            .eq('id', payload.id);
-          error = deleteError;
         }
 
-        if (!error) {
-          await StorageService.removeFromSyncQueue(id);
-          consecutiveErrors = 0;
-        } else {
-          consecutiveErrors++;
-          console.warn(`Sync queue item failed for ${table} (attempt count: ${consecutiveErrors}):`, error.message);
-          
-          // Retry with exponential backoff if consecutive errors exceed 3
-          if (consecutiveErrors >= 3) {
-            setTimeout(() => this.flush(), 5000);
-            break;
-          }
-        }
+        if (!madeProgress) break;
       }
+
       this.lastSyncedAt = new Date().toISOString();
     } finally {
       this.isSyncing = false;
-      this.emitStatus();
+      this.lastLocalWriteAt = Date.now();
+      await this.emitStatus();
     }
   }
 
   public async pull(userId: string): Promise<AppData | null> {
     this.isSyncing = true;
-    this.emitStatus();
+    await this.emitStatus();
     try {
       const [
         { data: dbUser, error: userErr },
-        { data: dbSettings, error: settingsErr },
-        { data: dbWallets, error: walletsErr },
-        { data: dbTransactions, error: txsErr },
-        { data: dbDebts, error: debtsErr },
-        { data: dbSubs, error: subsErr },
-        { data: dbProvisions, error: provsErr },
-        { data: dbTemplates, error: tplsErr },
-        { data: dbSnapshots, error: snapsErr },
-        { data: dbCategories, error: catsErr }
+        { data: dbSettings },
+        { data: dbWallets },
+        { data: dbTransactions },
+        { data: dbDebts },
+        { data: dbSubs },
+        { data: dbProvisions },
+        { data: dbTemplates },
+        { data: dbSnapshots },
+        { data: dbCategories }
       ] = await Promise.all([
         supabase.from('users').select('*').eq('id', userId).maybeSingle(),
         supabase.from('settings').select('*').eq('user_id', userId).maybeSingle(),
@@ -233,16 +348,18 @@ class SyncEngine {
       ]);
 
       if (userErr || !dbUser) {
-        console.warn("User record not found or error loading user profile on Supabase.", userErr);
+        console.warn('User record not found or error loading user profile on Supabase.', userErr);
         return null;
       }
+
+      const localData = await StorageService.getAppData();
 
       const wallets = (dbWallets || []).map(w => ({
         id: w.id,
         name: w.name,
         type: w.type || 'STANDARD',
         targetAmount: w.target_amount ? Number(w.target_amount) : undefined,
-        currency: w.currency || undefined,
+        currency: w.currency ? ExchangeRateService.normalizeSymbol(w.currency) : undefined,
         updated_at: w.updated_at
       }));
 
@@ -308,8 +425,6 @@ class SyncEngine {
         }))
         .sort((a, b) => b.date.localeCompare(a.date));
 
-      const localData = await StorageService.getAppData();
-
       const categories: CategoryItem[] = (dbCategories && dbCategories.length > 0)
         ? dbCategories.map((c: any) => ({
             id: c.id,
@@ -321,15 +436,20 @@ class SyncEngine {
           }))
         : localData.categories;
 
+      const resolvedCurrency = dbSettings?.currency_symbol
+        ? ExchangeRateService.normalizeSymbol(dbSettings.currency_symbol)
+        : ExchangeRateService.normalizeSymbol(localData.settings?.currencySymbol || '৳');
+
       const settings = dbSettings ? {
+        ...localData.settings,
         theme: (dbSettings.theme === 'indigo' || !dbSettings.theme ? 'amber' : dbSettings.theme) as any,
         darkMode: dbSettings.dark_mode !== false,
-        notificationsEnabled: dbSettings.notificationsEnabled || false,
-        expenseReminders: dbSettings.expenseReminders || false,
-        debtReminders: dbSettings.debtReminders || false,
+        notificationsEnabled: dbSettings.notificationsEnabled ?? localData.settings?.notificationsEnabled ?? false,
+        expenseReminders: dbSettings.expenseReminders ?? localData.settings?.expenseReminders ?? false,
+        debtReminders: dbSettings.debtReminders ?? localData.settings?.debtReminders ?? false,
         privacyMode: dbSettings.privacy_mode || false,
         lastOpened: dbSettings.updated_at || new Date().toISOString(),
-        currencySymbol: dbSettings.currency_symbol || '৳',
+        currencySymbol: resolvedCurrency,
         budgetLimits: dbSettings.budget_limits || {},
         hasOnboarded: true,
         vaultPasscode: localData.settings?.vaultPasscode || '',
@@ -339,14 +459,15 @@ class SyncEngine {
         stealthHotkey: dbSettings.stealth_hotkey || 'Escape',
         hapticsEnabled: dbSettings.haptics_enabled !== false
       } : {
+        ...localData.settings,
         theme: 'amber' as const,
         darkMode: true,
-        notificationsEnabled: false,
-        expenseReminders: false,
-        debtReminders: false,
+        notificationsEnabled: localData.settings?.notificationsEnabled ?? false,
+        expenseReminders: localData.settings?.expenseReminders ?? false,
+        debtReminders: localData.settings?.debtReminders ?? false,
         privacyMode: false,
         lastOpened: new Date().toISOString(),
-        currencySymbol: '৳',
+        currencySymbol: resolvedCurrency,
         budgetLimits: {},
         hasOnboarded: true,
         vaultPasscode: localData.settings?.vaultPasscode || '',
@@ -359,16 +480,26 @@ class SyncEngine {
 
       const profile = {
         name: dbUser.name || 'User',
-        monthlyGoal: Number(dbUser.monthly_goal || 5000),
-        dailyGoal: Number(dbUser.daily_goal || 0)
+        monthlyGoal: Number(dbUser.monthly_goal ?? localData.profile?.monthlyGoal ?? 5000),
+        dailyGoal: Number(dbUser.daily_goal ?? localData.profile?.dailyGoal ?? 0)
       };
 
+      const resolvedWallets = wallets.length > 0
+        ? wallets
+        : (localData.wallets?.length > 0
+            ? localData.wallets
+            : [{ id: toValidUuid('main', userId), name: 'Main Wallet', type: 'STANDARD' as const, currency: resolvedCurrency }]);
+
+      const resolvedCurrentWalletId = resolvedWallets.some(w => w.id === localData.currentWalletId)
+        ? localData.currentWalletId
+        : resolvedWallets[0].id;
+
       const appData: AppData = {
-        wallets: wallets.length > 0 ? wallets : [{ id: 'main', name: 'Main Wallet', type: 'STANDARD' }],
+        wallets: resolvedWallets,
         transactions,
         debts,
         categories: categories && categories.length > 0 ? categories : localData.categories,
-        currentWalletId: wallets.length > 0 ? wallets[0].id : 'main',
+        currentWalletId: resolvedCurrentWalletId,
         settings,
         profile,
         provisions,
@@ -385,18 +516,25 @@ class SyncEngine {
       return null;
     } finally {
       this.isSyncing = false;
-      this.emitStatus();
+      await this.emitStatus();
     }
   }
 
   public async initializeRealtime(userId: string, onRemoteChange: () => void) {
-    supabase
-      .channel('user-data')
+    if (this.realtimeChannel) {
+      supabase.removeChannel(this.realtimeChannel);
+      this.realtimeChannel = null;
+    }
+
+    this.realtimeChannel = supabase
+      .channel(`user-data-${userId}`)
       .on('postgres_changes', { event: '*', schema: 'public', filter: `user_id=eq.${userId}` }, async () => {
+        if (this.shouldIgnoreRealtimeEcho()) return;
+        if (await this.hasPendingChanges()) return;
         onRemoteChange();
       })
       .subscribe();
-    
+
     this.flush();
     window.addEventListener('online', () => this.flush());
     window.addEventListener('beforeunload', () => {
