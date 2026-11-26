@@ -26,7 +26,8 @@ import {
   ArrowSquareOut as ExternalLink,
   Lightning as Zap,
   Sparkle,
-  FileText
+  FileText,
+  ArrowClockwise
 } from '@phosphor-icons/react';
 import { Haptics } from '../../services/haptics';
 import { navigateTo } from '../../src/services/router';
@@ -36,7 +37,10 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { SegmentedSubTabs } from '../shared/SegmentedSubTabs';
 import { CustomSelect } from '../shared/CustomSelect';
+import { Table } from '../shared/Table';
+import { HorizontalScrollArea } from '../shared/HorizontalScrollArea';
 import { AuditLogger } from '../../services/auditLog';
+import { ExchangeRateService, LiveRateTable, SUPPORTED_CURRENCIES } from '../../services/ExchangeRateService';
 
 export interface ProfileSettingsProps {
   data: AppData;
@@ -170,6 +174,24 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   const [showPrivacy, setShowPrivacy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [liveRateTable, setLiveRateTable] = useState<LiveRateTable>(() => ExchangeRateService.getCachedRateTable());
+  const [isRefreshingRates, setIsRefreshingRates] = useState(false);
+  const [isConvertingCurrency, setIsConvertingCurrency] = useState(false);
+  const [conversionNote, setConversionNote] = useState<string | null>(null);
+  const [fxPreviewInput, setFxPreviewInput] = useState<string>('');
+
+  useEffect(() => {
+    setLocalProfile(data.profile);
+  }, [data.profile]);
+
+  useEffect(() => {
+    setLocalSettings(data.settings);
+  }, [data.settings]);
+
+  useEffect(() => {
+    ExchangeRateService.getLiveRateTable().then(setLiveRateTable).catch(() => {});
+  }, []);
+
   // Edit states for General cards
   const [editingCard, setEditingCard] = useState<'profile' | 'daily_target' | 'monthly_target' | 'currency' | null>(null);
   
@@ -246,10 +268,111 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
     updateData({ settings: newSettings });
   };
 
+  // Currency & Live FX Helpers
+  const activeWalletObj = (data.wallets || []).find(w => w.id === data.currentWalletId) || data.wallets?.[0];
+  const activeWalletBalance = (data.transactions || [])
+    .filter(t => t.walletId === activeWalletObj?.id)
+    .reduce((sum, t) => sum + (t.type === 'INCOME' ? t.amount : t.type === 'EXPENSE' ? -t.amount : 0), 0);
+
+  const normalizedDefaultSymbol = ExchangeRateService.normalizeSymbol(localSettings.currencySymbol);
+  const normalizedDefaultCode = ExchangeRateService.normalizeCode(localSettings.currencySymbol);
+  const previewBaseAmount = fxPreviewInput !== ''
+    ? (parseFloat(fxPreviewInput) || 0)
+    : (activeWalletBalance !== 0 ? Math.abs(activeWalletBalance) : 100);
+
+  const handleRefreshRates = async () => {
+    Haptics.light();
+    setIsRefreshingRates(true);
+    try {
+      const fresh = await ExchangeRateService.getLiveRateTable(true);
+      setLiveRateTable(fresh);
+    } finally {
+      setIsRefreshingRates(false);
+    }
+  };
+
+  const handleDefaultCurrencyChange = async (nextSymbol: string) => {
+    const targetCode = ExchangeRateService.normalizeCode(nextSymbol);
+    if (targetCode === normalizedDefaultCode && (data.wallets || []).every(w => ExchangeRateService.normalizeCode(w.currency || nextSymbol) === targetCode)) {
+      setEditingCard(null);
+      return;
+    }
+
+    Haptics.light();
+    setIsConvertingCurrency(true);
+    setConversionNote(null);
+    try {
+      const { updates, fromCode, toCode, toSymbol, rate, table } =
+        await ExchangeRateService.convertAppDataCurrency(data, nextSymbol, true);
+      setLiveRateTable(table);
+      if (updates.settings) setLocalSettings(updates.settings);
+      if (updates.profile) setLocalProfile(updates.profile);
+      updateData(updates);
+      setEditingCard(null);
+      if (fromCode !== toCode) {
+        setConversionNote(`Converted ${fromCode} to ${toCode} at 1 ${fromCode} = ${rate.toFixed(4)} ${toCode} (${table.source})`);
+      } else {
+        setConversionNote(`Synchronized all wallets & budgets to ${toCode} (${toSymbol})`);
+      }
+    } finally {
+      setIsConvertingCurrency(false);
+    }
+  };
+
   // Wallet Management Actions
   const handleUpdateWallet = (walletId: string, updates: Partial<Wallet>) => {
-    const updated = (data.wallets || []).map(w => w.id === walletId ? { ...w, ...updates } : w);
+    const nowIso = new Date().toISOString();
+    const updated = (data.wallets || []).map(w => w.id === walletId ? { ...w, ...updates, updated_at: nowIso } : w);
     updateData({ wallets: updated });
+  };
+
+  const handleWalletCurrencyChange = async (walletId: string, nextCurrencySymbol: string) => {
+    const wallet = (data.wallets || []).find(w => w.id === walletId);
+    if (!wallet) return;
+    const fromCode = ExchangeRateService.normalizeCode(wallet.currency || data.settings.currencySymbol);
+    const toCode = ExchangeRateService.normalizeCode(nextCurrencySymbol);
+    const toSymbol = ExchangeRateService.normalizeSymbol(nextCurrencySymbol);
+    const nowIso = new Date().toISOString();
+
+    if (fromCode === toCode) {
+      handleUpdateWallet(walletId, { currency: toSymbol });
+      return;
+    }
+
+    const rate = await ExchangeRateService.getRate(fromCode, toCode, true);
+    const round2 = (v: number) => Math.round(v * 100) / 100;
+
+    const updatedWallets = (data.wallets || []).map(w =>
+      w.id === walletId
+        ? {
+            ...w,
+            currency: toSymbol,
+            targetAmount: typeof w.targetAmount === 'number' && w.targetAmount > 0 ? round2(w.targetAmount * rate) : w.targetAmount,
+            updated_at: nowIso
+          }
+        : w
+    );
+
+    const updatedTransactions = (data.transactions || []).map(tx =>
+      tx.walletId === walletId
+        ? {
+            ...tx,
+            amount: round2(tx.amount * rate),
+            splits: tx.splits?.map(s => ({ ...s, amount: round2(s.amount * rate) })),
+            updated_at: nowIso
+          }
+        : tx
+    );
+
+    const updatedRules = (data.recurringRules || []).map(r =>
+      r.walletId === walletId ? { ...r, amount: round2(r.amount * rate), updated_at: nowIso } : r
+    );
+
+    updateData({
+      wallets: updatedWallets,
+      transactions: updatedTransactions,
+      recurringRules: updatedRules
+    });
   };
 
   const handleAddWallet = () => {
@@ -426,7 +549,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
               <div className="rounded-[8px] border border-[var(--border-default)] bg-transparent p-4 sm:px-5 sm:py-4 hover:bg-[var(--bg-surface-hover)] transition-colors group">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
                   <div className="flex items-center justify-between sm:w-[220px] sm:shrink-0">
-                    <span className="text-[13px] font-medium text-[var(--text-primary)] underline decoration-dotted underline-offset-4 cursor-help" title="Default currency symbol used across expenses and reports">
+                    <span className="text-[13px] font-medium text-[var(--text-primary)] underline decoration-dotted underline-offset-4 cursor-help" title="Changing default currency recalculates your balances, transactions, and limits using live FX rates">
                       Default currency
                     </span>
                     <div className="sm:hidden">
@@ -445,26 +568,38 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                   {editingCard === 'currency' ? (
                     <div className="flex-1 flex items-center justify-between gap-3">
                       <CustomSelect
-                        value={localSettings.currencySymbol}
+                        value={normalizedDefaultSymbol}
                         onChange={(val) => {
-                          const updated = { ...localSettings, currencySymbol: val };
-                          setLocalSettings(updated);
-                          updateData({ settings: updated });
-                          setEditingCard(null);
+                          handleDefaultCurrencyChange(val);
                         }}
                         options={CURRENCIES.map(c => ({
                           value: c.symbol,
                           label: `${c.value} (${c.symbol})`
                         }))}
                         size="sm"
-                        className="flex-1 max-w-[200px]"
+                        className="flex-1 max-w-[220px]"
                       />
-                      <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">Done</button>
+                      <button
+                        type="button"
+                        disabled={isConvertingCurrency}
+                        onClick={() => setEditingCard(null)}
+                        className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-50"
+                      >
+                        {isConvertingCurrency ? 'Converting...' : 'Done'}
+                      </button>
                     </div>
                   ) : (
                     <>
                       <div className="flex-1 text-[13px] text-[var(--text-secondary)]">
-                        Default Currency: <span className="font-mono text-[var(--text-primary)]">{localSettings.currencySymbol}</span>
+                        Active Currency:{' '}
+                        <span className="font-mono text-[var(--text-primary)]">
+                          {normalizedDefaultCode} ({normalizedDefaultSymbol})
+                        </span>
+                        {conversionNote && (
+                          <span className="block text-[11px] font-mono text-[var(--status-success-fg)] mt-0.5">
+                            {conversionNote}
+                          </span>
+                        )}
                       </div>
                       <div className="hidden sm:block shrink-0">
                         <button 
@@ -478,6 +613,122 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                     </>
                   )}
                 </div>
+              </div>
+
+              {/* Card 2b: Live Exchange Rate Conversion Table */}
+              <div className="rounded-[8px] border border-[var(--border-default)] bg-transparent p-4 sm:px-5 sm:py-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-medium text-[var(--text-primary)]">
+                        Live conversion table
+                      </span>
+                      <span
+                        className={`text-[11px] font-mono px-1.5 py-0.5 rounded-[4px] ${
+                          liveRateTable.source === 'offline'
+                            ? 'bg-[var(--status-warning-bg)] text-[var(--status-warning-fg)]'
+                            : 'bg-[var(--status-success-bg)] text-[var(--status-success-fg)]'
+                        }`}
+                      >
+                        {liveRateTable.source === 'offline' ? 'Fallback rates' : 'Live rates'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                      Changing default currency converts all recorded balances and limits at these rates.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleRefreshRates}
+                    disabled={isRefreshingRates}
+                    className="btn btn--outline btn--xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="Refresh live rates"
+                  >
+                    <ArrowClockwise size={12} strokeWidth={1.5} className={isRefreshingRates ? 'animate-spin' : ''} />
+                    <span>{isRefreshingRates ? 'Updating' : 'Refresh'}</span>
+                  </button>
+                </div>
+
+                {/* Preview Amount Input Row */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] text-[var(--text-secondary)]">Preview ({normalizedDefaultSymbol}):</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={fxPreviewInput}
+                      onChange={(e) => setFxPreviewInput(e.target.value)}
+                      placeholder={String(activeWalletBalance !== 0 ? Math.abs(activeWalletBalance) : 100)}
+                      className="w-28 h-[30px] bg-[var(--bg-subtle)] border border-[var(--border-default)] focus:border-[var(--border-active)] rounded-[6px] px-2.5 text-[12px] font-mono text-[var(--text-primary)] outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {activeWalletBalance !== 0 && fxPreviewInput !== '' && (
+                      <button
+                        type="button"
+                        onClick={() => setFxPreviewInput('')}
+                        className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline cursor-pointer"
+                      >
+                        Use balance ({normalizedDefaultSymbol}{Math.abs(activeWalletBalance).toLocaleString()})
+                      </button>
+                    )}
+                    <span className="text-[11px] font-mono text-[var(--text-muted)]">
+                      Updated {new Date(liveRateTable.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+
+                <HorizontalScrollArea className="w-full" fadeColor="var(--bg-page)" fadeWidth={28}>
+                  <Table className="w-full text-left border-collapse">
+                    <Table.Header>
+                      <Table.Row className="border-b border-[var(--border-default)] text-[11px] font-medium text-[var(--text-muted)]">
+                        <Table.Head className="py-2 pr-3 font-medium">Currency</Table.Head>
+                        <Table.Head className="py-2 px-3 font-medium">1 {normalizedDefaultCode} =</Table.Head>
+                        <Table.Head className="py-2 px-3 font-medium">
+                          {previewBaseAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {normalizedDefaultCode}
+                        </Table.Head>
+                        <Table.Head className="py-2 pl-3 text-right font-medium">Action</Table.Head>
+                      </Table.Row>
+                    </Table.Header>
+                    <Table.Body className="divide-y divide-[var(--border-default)] text-[12.5px]">
+                      {SUPPORTED_CURRENCIES.map(c => {
+                        const rate = ExchangeRateService.getRateFromTable(normalizedDefaultCode, c.code, liveRateTable.rates);
+                        const converted = ExchangeRateService.convertAmountSync(previewBaseAmount, normalizedDefaultCode, c.code, liveRateTable.rates);
+                        const isActive = c.code === normalizedDefaultCode;
+                        return (
+                          <Table.Row key={c.code} className="hover:bg-[var(--bg-surface-hover)] transition-colors">
+                            <Table.Cell className="py-2 pr-3 whitespace-nowrap">
+                              <span className="font-mono text-[var(--text-primary)] font-medium">{c.code}</span>
+                              <span className="text-[var(--text-muted)] ml-1.5">{c.symbol}</span>
+                            </Table.Cell>
+                            <Table.Cell className="py-2 px-3 font-mono tabular-nums text-[var(--text-secondary)] whitespace-nowrap">
+                              {rate >= 10 ? rate.toFixed(2) : rate.toFixed(4)} {c.code}
+                            </Table.Cell>
+                            <Table.Cell className="py-2 px-3 font-mono tabular-nums text-[var(--text-primary)] whitespace-nowrap">
+                              {c.symbol}{converted.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                            </Table.Cell>
+                            <Table.Cell className="py-2 pl-3 text-right whitespace-nowrap">
+                              {isActive ? (
+                                <span className="text-[11px] font-mono text-[var(--status-success-fg)]">Active</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={isConvertingCurrency}
+                                  onClick={() => handleDefaultCurrencyChange(c.symbol)}
+                                  className="text-[12px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer disabled:opacity-50"
+                                >
+                                  Convert &amp; set
+                                </button>
+                              )}
+                            </Table.Cell>
+                          </Table.Row>
+                        );
+                      })}
+                    </Table.Body>
+                  </Table>
+                </HorizontalScrollArea>
               </div>
 
               {/* Card 3: Privacy mode */}
@@ -850,8 +1101,8 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                         <div className="space-y-1">
                           <label className="text-[11px] font-medium text-[var(--text-muted)]">Currency</label>
                           <CustomSelect
-                            value={selectedWallet.currency || data.settings.currencySymbol}
-                            onChange={(val) => handleUpdateWallet(selectedWallet.id, { currency: val })}
+                            value={ExchangeRateService.normalizeSymbol(selectedWallet.currency || data.settings.currencySymbol)}
+                            onChange={(val) => handleWalletCurrencyChange(selectedWallet.id, val)}
                             options={CURRENCIES.map(c => ({
                               value: c.symbol,
                               label: `${c.value} (${c.symbol})`

@@ -17,6 +17,7 @@ import { PredictiveEngine } from '../../services/PredictiveEngine';
 import { sendRabbAiImageMessage, sendRabbAiTextMessage, RabbAiMessage } from '../../services/rabbAiService';
 import { getDashboardGreeting } from '../../utils/greetings';
 import { resolveTransactionTimestamp } from '../../utils/formatters';
+import { ExchangeRateService } from '../../services/ExchangeRateService';
 import { Haptics } from '../../services/haptics';
 import { LayerCard } from '../shared/LayerCard';
 import { HorizontalScrollArea } from '../shared/HorizontalScrollArea';
@@ -70,7 +71,7 @@ export const MobileDashboard: React.FC<MobileDashboardProps> = ({
   const recognitionRef = useRef<any>(null);
 
   const currentWallet = data.wallets.find((w: Wallet) => w.id === data.currentWalletId);
-  const currency = currentWallet?.currency || data.settings.currencySymbol;
+  const currency = ExchangeRateService.normalizeSymbol(currentWallet?.currency || data.settings.currencySymbol);
   const userName = data.profile?.name ? data.profile.name.split(' ')[0] : 'alif';
   const greeting = useMemo(() => getDashboardGreeting(userName), [userName]);
 
@@ -289,7 +290,7 @@ export const MobileDashboard: React.FC<MobileDashboardProps> = ({
 
       {/* 1. Calm Greeting + Compact Single-Line Quick Bar */}
       <div className="space-y-3 pt-1.5">
-        <h1 className="text-[22px] sm:text-[26px] leading-[28px] font-medium text-[var(--text-primary)] px-0.5">
+        <h1 className="text-[22px] sm:text-[26px] leading-[28px] font-medium text-[var(--text-primary)] text-center px-0.5">
           {greeting}
         </h1>
 

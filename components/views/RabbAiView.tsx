@@ -33,6 +33,7 @@ import {
   sendRabbAiTextMessage, 
   sendRabbAiImageMessage 
 } from '../../services/rabbAiService';
+import { ExchangeRateService } from '../../services/ExchangeRateService';
 import { GroqClient } from '../../services/groqClient';
 import { MarkdownRenderer } from '../shared/MarkdownRenderer';
 import { StreamedMarkdownRenderer } from '../shared/StreamedMarkdownRenderer';
@@ -1035,7 +1036,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     }
   };
 
-  const handleExecuteAction = (msgId: string, action: RabbAiAction) => {
+  const handleExecuteAction = async (msgId: string, action: RabbAiAction) => {
     Haptics.light();
     const nowIso = new Date().toISOString();
     switch (action.type) {
@@ -1186,12 +1187,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       }
       case 'SET_CURRENCY': {
         if (updateData) {
-          updateData({
-            settings: {
-              ...data.settings,
-              currencySymbol: action.payload.currency
-            }
-          });
+          const { updates } = await ExchangeRateService.convertAppDataCurrency(data, action.payload.currency, true);
+          updateData(updates);
         }
         break;
       }

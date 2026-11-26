@@ -32,6 +32,8 @@ export const CURRENCIES = [
   { value: 'GBP', label: 'British Pound', symbol: '£' },
   { value: 'INR', label: 'Indian Rupee', symbol: '₹' },
   { value: 'JPY', label: 'Japanese Yen', symbol: '¥' },
+  { value: 'CAD', label: 'Canadian Dollar', symbol: 'CA$' },
+  { value: 'AUD', label: 'Australian Dollar', symbol: 'AU$' },
 ];
 
 /* =========================================================================

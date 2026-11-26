@@ -13,7 +13,9 @@ import {
 } from '@phosphor-icons/react';
 import { TransactionType, Category, CategoryItem, AppData, Wallet, Transaction } from '../types';
 import { Haptics } from '../services/haptics';
+import { ExchangeRateService, LiveRateTable, SUPPORTED_CURRENCIES } from '../services/ExchangeRateService';
 import { GlassDateInput, GlassSelect } from './shared/CommonUI';
+import { CustomSelect } from './shared/CustomSelect';
 import { CategoryIcon } from './shared/CategoryIcon';
 
 interface AddTransactionModalProps {
@@ -38,8 +40,12 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     onEdit
 }) => {
     const isEditing = !!editingTransaction;
+    const activeWallet = (data.wallets || []).find((w: Wallet) => w.id === data.currentWalletId);
+    const walletCurrency = ExchangeRateService.normalizeSymbol(activeWallet?.currency || data.settings.currencySymbol);
     const [type, setType] = useState<TransactionType>(initialType);
     const [amount, setAmount] = useState('');
+    const [txCurrency, setTxCurrency] = useState<string>(walletCurrency);
+    const [liveRateTable, setLiveRateTable] = useState<LiveRateTable>(() => ExchangeRateService.getCachedRateTable());
     const [category, setCategory] = useState<string>(initialCategory || Category.LUNCH);
     const [note, setNote] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -88,6 +94,10 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     };
 
     useEffect(() => {
+        if (isOpen) {
+            ExchangeRateService.getLiveRateTable().then(setLiveRateTable).catch(() => {});
+        }
+        setTxCurrency(walletCurrency);
         if (editingTransaction) {
             setType(editingTransaction.type);
             setAmount(editingTransaction.amount.toString());
@@ -144,19 +154,33 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
     const otherWallets = (data.wallets || []).filter((w: Wallet) => w.id !== data.currentWalletId);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const numAmount = parseFloat(amount);
         if (isNaN(numAmount) || numAmount <= 0) return;
 
         Haptics.light();
 
+        const txCode = ExchangeRateService.normalizeCode(txCurrency);
+        const walletCode = ExchangeRateService.normalizeCode(walletCurrency);
+        let rateTable = liveRateTable;
+        if (txCode !== walletCode) {
+            rateTable = await ExchangeRateService.getLiveRateTable().catch(() => liveRateTable);
+        }
+        const toWalletAmount = (raw: number) =>
+            txCode === walletCode
+                ? raw
+                : ExchangeRateService.convertAmountSync(raw, txCode, walletCode, rateTable.rates);
+
+        const finalAmount = toWalletAmount(numAmount);
+        const fxTag = txCode !== walletCode ? ` (${txCurrency}${numAmount})` : '';
+
         if (isEditing && editingTransaction && onEdit) {
             onEdit({
                 ...editingTransaction,
-                amount: numAmount,
+                amount: finalAmount,
                 type,
                 category: type === TransactionType.TRANSFER ? Category.TRANSFER : category,
-                note,
+                note: note ? `${note}${fxTag}` : fxTag.trim(),
                 date: new Date(date).toISOString(),
                 toWalletId: type === TransactionType.TRANSFER ? toWalletId : undefined,
                 isPrivate
@@ -167,7 +191,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     const splitAmt = parseFloat(s.amount);
                     if (!isNaN(splitAmt) && splitAmt > 0) {
                         onAdd({
-                            amount: splitAmt,
+                            amount: toWalletAmount(splitAmt),
                             type,
                             category: s.category,
                             note: s.note ? `${note ? note + ' - ' : ''}${s.note}` : note,
@@ -178,14 +202,15 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     }
                 });
             } else {
+                const baseNote = (type === TransactionType.INCOME && category === Category.LOAN && lenderName)
+                    ? `${note ? note + ' | ' : ''}Lender: ${lenderName}`
+                    : note;
                 onAdd(
                     {
-                        amount: numAmount,
+                        amount: finalAmount,
                         type,
                         category: type === TransactionType.TRANSFER ? Category.TRANSFER : category,
-                        note: (type === TransactionType.INCOME && category === Category.LOAN && lenderName) 
-                            ? `${note ? note + ' | ' : ''}Lender: ${lenderName}` 
-                            : note,
+                        note: baseNote ? `${baseNote}${fxTag}` : fxTag.trim(),
                         date: new Date(date).toISOString(),
                         walletId: data.currentWalletId,
                         toWalletId: type === TransactionType.TRANSFER ? toWalletId : undefined,
@@ -274,9 +299,21 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
                     {/* Amount Field */}
                     <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-[var(--text-primary)]">
-                            Amount ({data.settings.currencySymbol})
-                        </label>
+                        <div className="flex items-center justify-between gap-2">
+                            <label className="text-sm font-medium text-[var(--text-primary)]">
+                                Amount ({txCurrency})
+                            </label>
+                            <CustomSelect
+                                value={txCurrency}
+                                onChange={(val) => setTxCurrency(val)}
+                                options={SUPPORTED_CURRENCIES.map(c => ({
+                                    value: c.symbol,
+                                    label: `${c.code} (${c.symbol})`
+                                }))}
+                                size="sm"
+                                className="w-[122px]"
+                            />
+                        </div>
                         <input 
                             type="text" 
                             inputMode="decimal" 
@@ -286,6 +323,26 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                             className="w-full h-[46px] bg-[var(--field-bg)] border border-[var(--field-border)] rounded-[8px] px-4 font-mono text-2xl font-semibold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none"
                             autoFocus
                         />
+                        {ExchangeRateService.normalizeCode(txCurrency) !== ExchangeRateService.normalizeCode(walletCurrency) && (
+                            <p className="text-[12px] font-mono text-[var(--text-secondary)] flex items-center justify-between gap-2 pt-0.5">
+                                <span>
+                                    1 {ExchangeRateService.normalizeCode(txCurrency)} ={' '}
+                                    {ExchangeRateService.getRateFromTable(txCurrency, walletCurrency, liveRateTable.rates).toFixed(2)}{' '}
+                                    {ExchangeRateService.normalizeCode(walletCurrency)}
+                                </span>
+                                {parseFloat(amount) > 0 && (
+                                    <span className="text-[var(--text-primary)]">
+                                        ≈ {walletCurrency}
+                                        {ExchangeRateService.convertAmountSync(
+                                            parseFloat(amount),
+                                            txCurrency,
+                                            walletCurrency,
+                                            liveRateTable.rates
+                                        ).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                    </span>
+                                )}
+                            </p>
+                        )}
                     </div>
 
                     {/* Annotation & Date Row */}

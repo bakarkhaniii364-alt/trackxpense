@@ -59,7 +59,7 @@ const DEFAULT_DATA: AppData = {
     debtReminders: false,
     privacyMode: false,
     lastOpened: new Date().toISOString(),
-    currencySymbol: 'BDT',
+    currencySymbol: '৳',
     budgetLimits: {},
     hasOnboarded: false,
     vaultPasscode: '',

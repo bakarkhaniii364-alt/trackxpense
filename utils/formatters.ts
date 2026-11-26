@@ -23,24 +23,24 @@ export const resolveTransactionTimestamp = (dateInput?: string | null): string =
   return now.toISOString();
 };
 
+const CURRENCY_SYMBOL_MAP: Record<string, string> = {
+  BDT: '৳',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  INR: '₹',
+  JPY: '¥',
+  CAD: 'CA$',
+  AUD: 'AU$'
+};
+
 export const formatMoney = (amount: number, symbol: string) => {
-    try {
-      return new Intl.NumberFormat('en-US', { 
-        style: 'currency', 
-        currency: symbol || 'BDT',
-        minimumFractionDigits: 0 
-      }).format(amount);
-    } catch (e) {
-      // Fallback if currency symbol is not a valid ISO code
-      const symbols: Record<string, string> = {
-        'BDT': '৳',
-        'USD': '$',
-        'EUR': '€',
-        'GBP': '£',
-        'INR': '₹',
-        'JPY': '¥'
-      };
-      const displaySymbol = symbols[symbol] || symbol || '৳';
-      return `${displaySymbol}${amount.toLocaleString('en-US')}`;
-    }
+  const raw = (symbol || '৳').trim();
+  const displaySymbol = CURRENCY_SYMBOL_MAP[raw.toUpperCase()] || raw || '৳';
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+  const formatted = Math.abs(safeAmount).toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+  return safeAmount < 0 ? `-${displaySymbol}${formatted}` : `${displaySymbol}${formatted}`;
 };

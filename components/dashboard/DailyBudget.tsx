@@ -5,6 +5,7 @@ import {
 } from '@phosphor-icons/react';
 import { AppData } from '../../types';
 import { LayerCard } from '../shared/LayerCard';
+import { ExchangeRateService } from '../../services/ExchangeRateService';
 
 interface DailyBudgetProps {
     dailySpent: number;
@@ -36,7 +37,8 @@ export const DailyBudget: React.FC<DailyBudgetProps> = ({
         setIsEditingGoal(false);
     };
 
-    const currency = data.settings.currencySymbol;
+    const activeWallet = (data.wallets || []).find(w => w.id === data.currentWalletId);
+    const currency = ExchangeRateService.normalizeSymbol(activeWallet?.currency || data.settings.currencySymbol);
     const remaining = Math.max(0, dailyLimit - dailySpent);
     const isApproaching = !isOverBudget && dailyProgress > 80;
 
