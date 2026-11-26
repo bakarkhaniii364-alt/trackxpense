@@ -1470,7 +1470,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       <div 
         ref={chatContainerRef}
         onScroll={handleChatScroll}
-        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full max-w-full px-3 py-2 relative flex flex-col no-scrollbar z-10 scroll-smooth"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden w-full max-w-full px-3.5 py-2 relative flex flex-col no-scrollbar z-10 scroll-smooth"
         style={{
           overflowAnchor: 'none',
           WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 40px, black calc(100% - 72px), transparent 100%)',
@@ -1480,7 +1480,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
         
         {/* Landing State: Coins + Greeting + 5 Financial Suggestions */}
         {!hasMessages && (
-          <div className="w-full max-w-md mx-auto my-auto flex flex-col items-center justify-center py-1 sm:py-2 space-y-2 sm:space-y-4 animate-in fade-in duration-300">
+          <div className="w-full max-w-2xl mx-auto my-auto flex flex-col items-center justify-center py-1 sm:py-2 space-y-2 sm:space-y-4 animate-in fade-in duration-300">
             
             {/* RabbAi Hero Icon */}
             <div className="relative flex items-center justify-center py-0.5 sm:py-2">
@@ -1887,7 +1887,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       {/* ========================================================================= */}
       {/* CLOUDFLARE COMPOSE BOX (EXACT SCREENSHOT STYLE)                             */}
       {/* ========================================================================= */}
-      <div className="px-2 sm:px-3 pt-0 pb-[calc(2px+env(safe-area-inset-bottom,0px))] sm:pb-[calc(4px+env(safe-area-inset-bottom,0px))] shrink-0 z-20">
+      <div className="px-3.5 pt-0 pb-[calc(4px+env(safe-area-inset-bottom,0px))] shrink-0 z-20">
         <div className="w-full max-w-2xl mx-auto">
           {/* Selected Image Preview */}
           {selectedImage && (

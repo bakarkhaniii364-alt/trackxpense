@@ -69,7 +69,7 @@ export const MobileMoreSheet: React.FC<MobileMoreSheetProps> = ({
         aria-modal="true"
         aria-label="More navigation"
         style={{ backgroundColor: 'var(--bg-surface)', borderTopLeftRadius: '14px', borderTopRightRadius: '14px' }}
-        className="relative z-10 w-full max-w-md border-t border-x border-[var(--border-default)] px-4 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] space-y-3 animate-in fade-in duration-150"
+        className="relative z-10 w-full max-w-2xl border-t border-x border-[var(--border-default)] px-4 pt-3 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] space-y-3 animate-in fade-in duration-150"
         onClick={e => e.stopPropagation()}
       >
         <div className="w-9 h-1 rounded-full bg-[var(--border-active)] mx-auto" />

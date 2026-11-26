@@ -419,8 +419,8 @@ export const MobileDashboard: React.FC<MobileDashboardProps> = ({
       {/* 4. Horizontal Snap Carousel for Key Metrics */}
       <HorizontalScrollArea
         wrapperClassName="-mx-3.5"
-        className="px-3.5 flex gap-2.5 snap-x snap-mandatory"
-        fadeWidth={48}
+        className="px-3.5 scroll-pl-3.5 flex gap-2.5 snap-x snap-mandatory"
+        fadeWidth={32}
       >
         <div className="w-[74%] shrink-0 snap-start">
           <DailyBudget

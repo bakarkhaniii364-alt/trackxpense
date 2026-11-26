@@ -33,7 +33,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
     (enableAi && currentView === 'control');
 
   const navItemClass = (active: boolean) =>
-    `flex-1 flex flex-col items-center justify-center gap-1 min-h-[48px] py-1.5 transition-colors cursor-pointer select-none ${
+    `flex-1 flex items-center justify-center min-h-[44px] py-1.5 rounded-[8px] transition-colors cursor-pointer select-none ${
       active
         ? 'text-[var(--text-primary)]'
         : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
@@ -42,33 +42,35 @@ export const MobileDock: React.FC<MobileDockProps> = ({
   return (
     <nav
       aria-label="Mobile navigation"
-      className="flex-none w-full bg-[var(--bg-page)] border-t border-[var(--border-default)] px-2 pb-[env(safe-area-inset-bottom,0px)] z-40 select-none"
+      className="flex-none w-full bg-[var(--bg-page)] border-t border-[var(--border-default)] px-3.5 pb-[env(safe-area-inset-bottom,0px)] z-40 select-none"
     >
-      <div className="max-w-md mx-auto h-[56px] flex items-center justify-between gap-1">
+      <div className="w-full max-w-2xl mx-auto h-[52px] flex items-center justify-between gap-1">
         {/* 1. Home */}
         <button
           type="button"
+          aria-label="Home"
+          title="Home"
           onClick={() => {
             Haptics.light();
             onSelectView('dashboard');
           }}
           className={navItemClass(currentView === 'dashboard' && !isDrawerOpen)}
         >
-          <SquaresFour size={19} weight={currentView === 'dashboard' && !isDrawerOpen ? 'fill' : 'regular'} />
-          <span className="text-[11px] font-medium leading-none">Home</span>
+          <SquaresFour size={21} weight={currentView === 'dashboard' && !isDrawerOpen ? 'fill' : 'regular'} />
         </button>
 
         {/* 2. Ledger */}
         <button
           type="button"
+          aria-label="Ledger"
+          title="Ledger"
           onClick={() => {
             Haptics.light();
             onSelectView('history');
           }}
           className={navItemClass(currentView === 'history' && !isDrawerOpen)}
         >
-          <ClockCounterClockwise size={19} weight={currentView === 'history' && !isDrawerOpen ? 'bold' : 'regular'} />
-          <span className="text-[11px] font-medium leading-none">Ledger</span>
+          <ClockCounterClockwise size={21} weight={currentView === 'history' && !isDrawerOpen ? 'bold' : 'regular'} />
         </button>
 
         {/* 3. Center Quick Log */}
@@ -80,6 +82,7 @@ export const MobileDock: React.FC<MobileDockProps> = ({
               onAddTransaction();
             }}
             aria-label="Add transaction"
+            title="Add transaction"
             style={{ padding: 0 }}
             className="btn btn--primary btn--icon !w-12 !h-9 rounded-[8px] flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
           >
@@ -91,40 +94,43 @@ export const MobileDock: React.FC<MobileDockProps> = ({
         {enableAi ? (
           <button
             type="button"
+            aria-label="RabbAi"
+            title="RabbAi"
             onClick={() => {
               Haptics.light();
               onSelectView('rabbai');
             }}
             className={navItemClass(currentView === 'rabbai' && !isDrawerOpen)}
           >
-            <AiStarIcon size={19} strokeWidth={1.6} />
-            <span className="text-[11px] font-medium leading-none">RabbAi</span>
+            <AiStarIcon size={21} strokeWidth={1.6} />
           </button>
         ) : (
           <button
             type="button"
+            aria-label="Budgets"
+            title="Budgets"
             onClick={() => {
               Haptics.light();
               onSelectView('control');
             }}
             className={navItemClass(currentView === 'control' && !isDrawerOpen)}
           >
-            <Sliders size={19} weight={currentView === 'control' && !isDrawerOpen ? 'fill' : 'regular'} />
-            <span className="text-[11px] font-medium leading-none">Budgets</span>
+            <Sliders size={21} weight={currentView === 'control' && !isDrawerOpen ? 'fill' : 'regular'} />
           </button>
         )}
 
         {/* 5. More (Drawer) */}
         <button
           type="button"
+          aria-label="More"
+          title="More"
           onClick={() => {
             Haptics.light();
             onOpenDrawer();
           }}
           className={navItemClass(isMoreActive)}
         >
-          <List size={19} weight={isMoreActive ? 'bold' : 'regular'} />
-          <span className="text-[11px] font-medium leading-none">More</span>
+          <List size={21} weight={isMoreActive ? 'bold' : 'regular'} />
         </button>
       </div>
     </nav>

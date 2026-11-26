@@ -1118,12 +1118,12 @@ export default function App() {
       <div className="flex-1 min-w-0 min-h-0 w-full max-w-full flex flex-col overflow-hidden overflow-x-hidden h-full relative z-10">
         {/* Header - Mobile (Solid Kumo Surface) */}
         {!isDesktop && (
-          <header className={`flex-none pt-[calc(env(safe-area-inset-top,0px)+6px)] pb-2 px-3 border-b z-40 select-none ${
+          <header className={`flex-none pt-[calc(env(safe-area-inset-top,0px)+6px)] pb-2 px-3.5 border-b z-40 select-none ${
             view === 'rabbai'
               ? 'bg-[var(--bg-page)] border-transparent'
               : 'bg-[var(--bg-page)] border-[var(--border-default)]'
           }`}>
-            <div className="flex items-center justify-between gap-2 max-w-md mx-auto min-h-[38px]">
+            <div className="flex items-center justify-between gap-2 w-full max-w-2xl mx-auto min-h-[38px]">
               {view === 'rabbai' ? (
                 <>
                   {/* Left: Back button + History dropdown */}
@@ -1431,7 +1431,7 @@ export default function App() {
               ? 'max-w-none p-0 m-0 flex flex-col overflow-hidden overflow-x-hidden h-full'
               : isDesktop 
                 ? 'max-w-none px-8 overflow-y-auto pb-4 no-scrollbar' 
-                : 'max-w-md mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-2 sm:pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] no-scrollbar'
+                : 'max-w-2xl mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-2 sm:pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] no-scrollbar'
           } relative`}
         >
           <ErrorBoundary>
