@@ -139,9 +139,6 @@ export async function sendRabbAiTextMessage(
     (data.settings?.groqApiKey && data.settings.groqApiKey.trim()) ||
     localStorage.getItem('trackxpense_groq_api_key')?.trim() ||
     localStorage.getItem('trackxpense_gemini_api_key')?.trim() ||
-    (import.meta.env.VITE_GROQ_API_KEY as string)?.trim() ||
-    (import.meta.env.VITE_GEMINI_API_KEY as string)?.trim() ||
-    (typeof process !== 'undefined' && process.env?.GROQ_API_KEY ? (process.env.GROQ_API_KEY as string).trim() : '') ||
     ''
   );
 
@@ -1483,9 +1480,6 @@ export async function sendRabbAiImageMessage(
     (data.settings?.groqApiKey && data.settings.groqApiKey.trim()) ||
     localStorage.getItem('trackxpense_groq_api_key')?.trim() ||
     localStorage.getItem('trackxpense_gemini_api_key')?.trim() ||
-    (import.meta.env.VITE_GROQ_API_KEY as string)?.trim() ||
-    (import.meta.env.VITE_GEMINI_API_KEY as string)?.trim() ||
-    (typeof process !== 'undefined' && process.env?.GROQ_API_KEY ? (process.env.GROQ_API_KEY as string).trim() : '') ||
     ''
   );
   const categories = (data.categories || [])
