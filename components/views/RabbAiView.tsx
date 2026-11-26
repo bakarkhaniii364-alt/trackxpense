@@ -131,7 +131,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       const vv = window.visualViewport;
       if (!vv) return;
 
-      if (window.innerWidth < 1024) {
+      if (window.innerWidth < 768) {
         setLocalViewportHeight(vv.height);
         if (window.scrollY !== 0) window.scrollTo(0, 0);
       } else {
@@ -149,7 +149,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     };
   }, [visualViewportHeight]);
 
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 1024 : false;
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false;
   const isKeyboardOpen = isMobile && (
     isFocused || 
     (effectiveViewportHeight !== null && typeof window !== 'undefined' && effectiveViewportHeight < window.innerHeight - 80)
@@ -432,7 +432,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
   // Adjust scroll when virtual keyboard opens or screen resizes (with debounce to wait for keyboard animation)
   useEffect(() => {
-    if (effectiveViewportHeight && typeof window !== 'undefined' && window.innerWidth < 1024) {
+    if (effectiveViewportHeight && typeof window !== 'undefined' && window.innerWidth < 768) {
       if (window.scrollY !== 0) window.scrollTo(0, 0);
       if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
       if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
@@ -1385,6 +1385,10 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
   };
 
   const userName = data.profile?.name ? data.profile.name.split(' ')[0] : 'alif';
+  const activeWalletObj = (data.wallets || []).find(w => w.id === data.currentWalletId);
+  const activeWalletCurr = ExchangeRateService.normalizeSymbol(activeWalletObj?.currency || data.settings?.currencySymbol || '$');
+  const activeWalletCode = ExchangeRateService.normalizeCode(activeWalletCurr);
+  const sampleExpenseAmt = activeWalletCode === 'BDT' ? '250' : activeWalletCode === 'JPY' ? '1500' : '18';
 
   // TrackXpense Financial Suggestion Cards
   const suggestionCards = [
@@ -1410,7 +1414,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       icon: Receipt,
       title: 'Log an expense',
       subtitle: 'Quick-record an outflow to your ledger',
-      prompt: 'Log an expense: $18 for Lunch paid with Cash today'
+      prompt: `Log an expense: ${activeWalletCurr}${sampleExpenseAmt} for Lunch paid with Cash today`
     },
     {
       icon: Sliders,
@@ -1782,7 +1786,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                         <>
                           <div className="flex items-baseline justify-between">
                             <span className="text-[17px] font-semibold font-mono text-[var(--text-primary)]">
-                              {data.settings.currencySymbol}{msg.extractedTransaction.amount.toFixed(2)}
+                              {activeWalletCurr}{msg.extractedTransaction.amount.toFixed(2)}
                             </span>
                             <span className="pill pill--muted text-[11px] py-0.5 px-2.5">
                               {msg.extractedTransaction.category}
@@ -2087,7 +2091,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                 onKeyDown={handleKeyDown}
                 onFocus={() => {
                   setIsFocused(true);
-                  if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+                  if (typeof window !== 'undefined' && window.innerWidth < 768) {
                     if (window.scrollY !== 0) window.scrollTo(0, 0);
                     if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
                     if (document.body.scrollTop !== 0) document.body.scrollTop = 0;

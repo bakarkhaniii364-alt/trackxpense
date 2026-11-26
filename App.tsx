@@ -90,7 +90,7 @@ export default function App() {
     loggedCount: number;
     loggedTxIds: string[];
   }>({ isOpen: false, convId: null, title: '', loggedCount: 0, loggedTxIds: [] });
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
   const [isDirty, setIsDirty] = useState(false);
   const [pendingView, setPendingView] = useState<ViewState | null>(null);
@@ -251,7 +251,7 @@ export default function App() {
       const vv = window.visualViewport;
       if (!vv) return;
 
-      if (window.innerWidth < 1024) {
+      if (window.innerWidth < 768) {
         setVisualViewportHeight(vv.height);
         // Prevent outer window and document scrolling when virtual keyboard opens
         if (window.scrollY !== 0) window.scrollTo(0, 0);
@@ -264,7 +264,7 @@ export default function App() {
     };
 
     const handleWindowScroll = () => {
-      if (view === 'rabbai' && window.innerWidth < 1024) {
+      if (view === 'rabbai' && window.innerWidth < 768) {
         if (window.scrollY !== 0) window.scrollTo(0, 0);
         if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
         if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
@@ -309,7 +309,7 @@ export default function App() {
   }, [undoToast]);
 
   useEffect(() => {
-    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+    const handleResize = () => setIsDesktop(window.innerWidth >= 768);
     window.addEventListener('resize', handleResize);
     
     // Subscribe to router navigation events
@@ -1125,7 +1125,7 @@ export default function App() {
     return (
         <div 
           style={view === 'rabbai' && visualViewportHeight ? { height: `${visualViewportHeight}px`, maxHeight: `${visualViewportHeight}px`, minHeight: `${visualViewportHeight}px` } : undefined}
-          className="h-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full max-w-full bg-[var(--bg-page)] text-main font-sans selection:bg-primary/30 transition-colors duration-300 flex flex-col lg:flex-row overflow-hidden overflow-x-hidden relative">
+          className="h-full h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full max-w-full bg-[var(--bg-page)] text-main font-sans selection:bg-primary/30 transition-colors duration-300 flex flex-col md:flex-row overflow-hidden overflow-x-hidden relative">
           {isDesktop && (
             <svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }} aria-hidden>
               <defs>
@@ -1469,7 +1469,7 @@ export default function App() {
             view === 'rabbai'
               ? 'max-w-none p-0 m-0 flex flex-col overflow-hidden overflow-x-hidden h-full'
               : isDesktop 
-                ? 'max-w-none px-8 overflow-y-auto pb-4 no-scrollbar' 
+                ? 'max-w-none px-4 lg:px-8 overflow-y-auto pb-4 no-scrollbar' 
                 : 'max-w-2xl mx-auto px-3.5 overflow-y-auto overflow-x-hidden pt-2 sm:pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] no-scrollbar'
           } relative`}
         >

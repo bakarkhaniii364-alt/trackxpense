@@ -1,6 +1,23 @@
 import { AppData, TransactionType } from '../types';
 import { GroqClient } from './groqClient';
 import { PredictiveEngine } from './PredictiveEngine';
+import { CURRENCY_SYMBOLS, ExchangeRateService } from './ExchangeRateService';
+
+/**
+ * Detects an explicit currency code or symbol mentioned in user text (e.g. "$18", "100 dollars", "500 taka", "20€").
+ */
+export function detectCurrencyInText(text: string): string | null {
+  if (!text) return null;
+  if (/CA\$|C\$|\bcad\b/i.test(text)) return 'CAD';
+  if (/AU\$|A\$|\baud\b/i.test(text)) return 'AUD';
+  if (/€|\b(?:eur|euros?)\b/i.test(text)) return 'EUR';
+  if (/£|\b(?:gbp|pounds?|sterling)\b/i.test(text)) return 'GBP';
+  if (/৳|\b(?:bdt|taka|tk)\b/i.test(text)) return 'BDT';
+  if (/₹|\b(?:inr|rupees?)\b/i.test(text)) return 'INR';
+  if (/¥|\b(?:jpy|yen)\b/i.test(text)) return 'JPY';
+  if (/\$|\b(?:usd|dollars?|bucks?)\b/i.test(text)) return 'USD';
+  return null;
+}
 
 /**
  * Universal safe UUID generator that works reliably in secure contexts,
@@ -346,10 +363,11 @@ ${transportHistory || '  - None recorded yet.'}
 
 ## Permitted Actions (Return JSON block when requested — you have full control over limits, wallets, categories, debts, bills & settings):
 
-1. Log a transaction ("Spent 45 on moglai", "Earned 200 freelance"):
+1. Log a transaction ("Spent 45 on moglai", "Earned 200 freelance", "Spent $18 on Lunch" -> include "currency" ONLY if user mentions a specific currency like USD/EUR/BDT):
 \`\`\`json
-{ "action": "ADD_TRANSACTION", "amount": 45, "category": "Food & Dining", "description": "Moglai", "type": "EXPENSE" }
+{ "action": "ADD_TRANSACTION", "amount": 45, "currency": "${ExchangeRateService.normalizeCode(curr)}", "category": "Food & Dining", "description": "Moglai", "type": "EXPENSE" }
 \`\`\`
+   - Active wallet currency is ${curr} (${ExchangeRateService.normalizeCode(curr)}). If the user specifies a DIFFERENT currency (like "$18" when wallet is ${curr}), keep the raw number 18 in "amount" and set "currency" to that mentioned currency ("USD"), so the app converts it using live FX rates. Do NOT relabel $18 as ${curr}18!
 
 2. Propose an estimated transaction for user review/confirmation:
 \`\`\`json
@@ -519,10 +537,28 @@ Keep it to 1 sentence pointing to the screen:
               const safeCat = !rawCat || rawCat.toLowerCase() === 'transfer'
                 ? (txType === TransactionType.INCOME ? 'Gig' : 'Other')
                 : rawCat;
+              const walletCode = ExchangeRateService.normalizeCode(curr);
+              const walletSym = ExchangeRateService.normalizeSymbol(curr);
+              const explicitTextCurr = detectCurrencyInText(userText);
+              const sourceCode = parsed.currency
+                ? ExchangeRateService.normalizeCode(String(parsed.currency))
+                : (explicitTextCurr || walletCode);
+              let finalAmount = parsed.amount;
+              let finalDesc = parsed.description || 'Quick Log';
+              if (sourceCode !== walletCode) {
+                const sourceSym = CURRENCY_SYMBOLS[sourceCode] || sourceCode;
+                const converted = await ExchangeRateService.convertAmount(parsed.amount, sourceCode, walletCode);
+                finalAmount = converted;
+                if (!finalDesc.includes(sourceSym)) {
+                  finalDesc = `${finalDesc} (${sourceSym}${parsed.amount})`;
+                }
+                const fxNote = `Converted ${sourceSym}${parsed.amount} (${sourceCode}) to **${walletSym}${converted.toFixed(2)} (${walletCode})** at live FX rate.`;
+                cleanText = cleanText ? `${cleanText}\n\n${fxNote}` : fxNote;
+              }
               extracted = {
-                amount: parsed.amount,
+                amount: finalAmount,
                 category: safeCat,
-                description: parsed.description || 'Quick Log',
+                description: finalDesc,
                 type: txType,
                 isLogged: isAutoLogged
               };
@@ -1375,13 +1411,27 @@ function parseLocalFallbackCommand(userText: string, data: AppData, history?: Ra
         }
       }
 
+      const walletCode = ExchangeRateService.normalizeCode(curr);
+      const walletSym = ExchangeRateService.normalizeSymbol(curr);
+      const sourceCode = detectCurrencyInText(text) || walletCode;
+      let loggedAmount = amount;
+      let fxSummary = '';
+      if (sourceCode !== walletCode) {
+        const sourceSym = CURRENCY_SYMBOLS[sourceCode] || sourceCode;
+        loggedAmount = ExchangeRateService.convertAmountSync(amount, sourceCode, walletCode);
+        if (!desc.includes(sourceSym)) {
+          desc = `${desc} (${sourceSym}${amount})`;
+        }
+        fxSummary = ` (converted ${sourceSym}${amount} → ${walletSym}${loggedAmount.toFixed(2)})`;
+      }
+
       return {
         id: `msg_${Date.now()}`,
         sender: 'rabbai',
-        text: `Recorded ${isIncome ? 'income' : 'expense'} of ${curr}${amount.toFixed(2)} for **${desc}** under **${category}**.`,
+        text: `Recorded ${isIncome ? 'income' : 'expense'} of ${walletSym}${loggedAmount.toFixed(2)}${fxSummary} for **${desc}** under **${category}**.`,
         timestamp: new Date().toISOString(),
         extractedTransaction: {
-          amount,
+          amount: loggedAmount,
           category,
           description: desc,
           type: isIncome ? TransactionType.INCOME : TransactionType.EXPENSE,
