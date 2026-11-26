@@ -1293,9 +1293,12 @@ function parseLocalFallbackCommand(userText: string, data: AppData, history?: Ra
     if (amount > 0) {
       const isIncome = lower.includes('earned') || lower.includes('income') || lower.includes('salary') || lower.includes('received') || lower.includes('deposit');
       
-      // Extract description
+      // Extract description using word boundaries so words like "Donated" or "Monthly" are never mangled
       let desc = text
-        .replace(/(?:spent|spend|paid|cost|bought|for|on|earned|received|income|deposit|\$|€|£|৳|₹|¥|\d+(?:\.\d{1,2})?)/gi, ' ')
+        .replace(/\b(?:spent|spend|paid|cost|bought|for|on|earned|received|income|deposit)\b/gi, ' ')
+        .replace(/(?:\$|€|£|৳|₹|¥)\s*\d+(?:\.\d{1,2})?/g, ' ')
+        .replace(/\b\d+(?:\.\d{1,2})?\b/g, ' ')
+        .replace(/\s+/g, ' ')
         .trim();
       if (!desc) desc = isIncome ? 'Income' : 'Expense';
       desc = desc.charAt(0).toUpperCase() + desc.slice(1);
@@ -1356,11 +1359,17 @@ function parseLocalFallbackCommand(userText: string, data: AppData, history?: Ra
         tuition: 'Tuition',
         freelance: 'Gig',
         gig: 'Gig',
-        salary: 'Salary'
+        salary: 'Salary',
+        donation: 'Other',
+        donated: 'Other',
+        charity: 'Other',
+        zakat: 'Other',
+        tzedakah: 'Other'
       };
 
       for (const [kw, catName] of Object.entries(knownCats)) {
-        if (lower.includes(kw)) {
+        const kwRegex = new RegExp(`\\b${kw}\\b`, 'i');
+        if (kwRegex.test(lower)) {
           category = catName;
           break;
         }
@@ -1417,6 +1426,16 @@ function parseLocalFallbackCommand(userText: string, data: AppData, history?: Ra
       id: `msg_${Date.now()}`,
       sender: 'rabbai',
       text: `I am RabbAi, your personal finance mentor. I watch over your gelt, guard your runway, and make sure you don't trade tomorrow's security for today's foolishness. Nu, what's on your mind?`,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  // 10b. Fallback clarification when asking why something wasn't logged
+  if ((lower.includes('why') || lower.includes('cant') || lower.includes("can't")) && lower.includes('log')) {
+    return {
+      id: `msg_${safeUUID()}`,
+      sender: 'rabbai',
+      text: `Give me the amount and what it was for (for example: \`Donated ${curr}50 to charity\` or \`Spent ${curr}200\`), and I'll record it right away.`,
       timestamp: new Date().toISOString()
     };
   }

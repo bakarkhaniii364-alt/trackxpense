@@ -35,8 +35,8 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
 
 export const GroqClient = {
   /**
-   * Execute chat completion via the secure Supabase Edge Function proxy,
-   * falling back to direct call ONLY if the user supplied their own personal key.
+   * Execute chat completion via the secure backend proxy (with candidate model fallback),
+   * trying personal BYOK key first only if supplied in localStorage/settings.
    */
   async complete(options: GroqCompletionOptions): Promise<string | null> {
     const { model, messages, temperature = 0.1, response_format, customApiKey } = options;
@@ -44,67 +44,15 @@ export const GroqClient = {
     const defaultModel = isVisionRequest ? 'qwen/qwen3.6-27b' : 'openai/gpt-oss-120b';
     const effectiveModel = model || defaultModel;
 
-    // 1. Optional BYOK personal user keys stored only in the visitor's own browser
+    const candidateModels = isVisionRequest
+      ? [effectiveModel, 'qwen/qwen3.6-27b', 'qwen/qwen3.8-27b'].filter((m, i, arr) => arr.indexOf(m) === i)
+      : [effectiveModel, 'llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'].filter((m, i, arr) => arr.indexOf(m) === i);
+
     const personalGroqKey = customApiKey?.trim() || localStorage.getItem('trackxpense_groq_api_key')?.trim() || '';
     const personalGeminiKey = localStorage.getItem('trackxpense_gemini_api_key')?.trim() || '';
 
-    // 2. When using managed backend AI (no personal BYOK key), call server-side proxy ONLY
-    if (!personalGroqKey && !personalGeminiKey) {
-      try {
-        const { data, error } = await supabase.functions.invoke('ai-proxy', {
-          body: {
-            model: effectiveModel,
-            messages,
-            temperature,
-            response_format,
-            ...(isVisionRequest ? { max_tokens: 800 } : {})
-          }
-        });
-
-        if (!error && data?.choices?.[0]?.message?.content) {
-          const cleaned = GroqClient.cleanThinkTags(data.choices[0].message.content);
-          if (cleaned) return cleaned;
-        }
-      } catch {
-        // Edge function may not be deployed locally in dev
-      }
-
-      // Dev-only server middleware fallback (loopback only; never present in production builds)
-      if (import.meta.env.DEV) {
-        try {
-          const res = await fetch('/__dev-ai-proxy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: effectiveModel,
-              messages,
-              temperature,
-              response_format,
-              ...(isVisionRequest ? { max_tokens: 800 } : {})
-            })
-          });
-          if (res.ok) {
-            const json = await res.json();
-            const raw = json?.choices?.[0]?.message?.content;
-            if (raw) {
-              const cleaned = GroqClient.cleanThinkTags(raw);
-              if (cleaned) return cleaned;
-            }
-          }
-        } catch {
-          // Local dev proxy unavailable
-        }
-      }
-
-      return null;
-    }
-
-    // 3. Personal BYOK Groq key path (visitor's own key in their own browser)
+    // 1. Personal BYOK Groq key path (visitor's own key in their own browser)
     if (personalGroqKey && (personalGroqKey.startsWith('gsk_') || !personalGeminiKey)) {
-      const candidateModels = isVisionRequest
-        ? [effectiveModel, 'qwen/qwen3.6-27b', 'qwen/qwen3.8-27b'].filter((m, i, arr) => arr.indexOf(m) === i)
-        : [effectiveModel, 'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b', 'qwen/qwen3.6-27b'].filter((m, i, arr) => arr.indexOf(m) === i);
-
       for (const m of candidateModels) {
         try {
           const payload: Record<string, any> = { model: m, messages, temperature };
@@ -129,12 +77,12 @@ export const GroqClient = {
             }
           }
         } catch {
-          // Try next fallback model
+          // Try next model or fall back to managed proxy below
         }
       }
     }
 
-    // 4. Personal BYOK Gemini key path
+    // 2. Personal BYOK Gemini key path
     if (personalGeminiKey) {
       try {
         const systemMsg = messages.find(m => m.role === 'system');
@@ -168,7 +116,60 @@ export const GroqClient = {
           if (raw) return GroqClient.cleanThinkTags(raw);
         }
       } catch {
-        // Direct Gemini call failed
+        // Fall through to managed backend proxy
+      }
+    }
+
+    // 3. Managed Supabase Edge Function proxy (with candidate model fallback)
+    for (const m of candidateModels) {
+      try {
+        const { data, error } = await supabase.functions.invoke('ai-proxy', {
+          body: {
+            model: m,
+            messages,
+            temperature,
+            response_format,
+            ...(isVisionRequest ? { max_tokens: 800 } : {})
+          }
+        });
+
+        if (!error && data?.choices?.[0]?.message?.content) {
+          const cleaned = GroqClient.cleanThinkTags(data.choices[0].message.content);
+          if (cleaned) return cleaned;
+        }
+        // If unauthenticated/unavailable on Edge Function, stop retrying models against it
+        if (error) break;
+      } catch {
+        break;
+      }
+    }
+
+    // 4. Dev-only server middleware fallback (loopback only; never present in production builds)
+    if (import.meta.env.DEV) {
+      for (const m of candidateModels) {
+        try {
+          const res = await fetch('/__dev-ai-proxy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: m,
+              messages,
+              temperature,
+              response_format,
+              ...(isVisionRequest ? { max_tokens: 800 } : {})
+            })
+          });
+          if (res.ok) {
+            const json = await res.json();
+            const raw = json?.choices?.[0]?.message?.content;
+            if (raw) {
+              const cleaned = GroqClient.cleanThinkTags(raw);
+              if (cleaned) return cleaned;
+            }
+          }
+        } catch {
+          // Try next model
+        }
       }
     }
 
@@ -219,7 +220,7 @@ export const GroqClient = {
 
   /**
    * Transcribe recorded audio with Groq Whisper via secure backend proxy,
-   * using direct browser request ONLY when the visitor supplied their own personal key.
+   * using personal BYOK key first only if supplied by the visitor.
    */
   async transcribeAudio(audioBlob: Blob, customApiKey?: string): Promise<string | null> {
     const personalKey = (
@@ -228,73 +229,73 @@ export const GroqClient = {
       ''
     );
 
-    if (!personalKey) {
-      try {
-        const audioBase64 = await blobToBase64(audioBlob);
-        const mimeType = audioBlob.type || 'audio/webm';
+    if (personalKey) {
+      const models = ['whisper-large-v3-turbo', 'whisper-large-v3'];
+      const ext = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('ogg') ? 'ogg' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
 
-        const { data, error } = await supabase.functions.invoke('ai-proxy', {
-          body: {
+      for (const model of models) {
+        try {
+          const formData = new FormData();
+          formData.append('file', audioBlob, `speech.${ext}`);
+          formData.append('model', model);
+          formData.append('response_format', 'json');
+
+          const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${personalKey}`
+            },
+            body: formData
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const text = data.text?.trim();
+            if (text) return text;
+          }
+        } catch {
+          // Fallback to proxy below
+        }
+      }
+    }
+
+    try {
+      const audioBase64 = await blobToBase64(audioBlob);
+      const mimeType = audioBlob.type || 'audio/webm';
+
+      const { data, error } = await supabase.functions.invoke('ai-proxy', {
+        body: {
+          action: 'transcribe',
+          model: 'whisper-large-v3-turbo',
+          audioBase64,
+          mimeType
+        }
+      });
+
+      if (!error && data?.text?.trim()) {
+        return data.text.trim();
+      }
+
+      if (import.meta.env.DEV) {
+        const res = await fetch('/__dev-ai-proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             action: 'transcribe',
             model: 'whisper-large-v3-turbo',
             audioBase64,
             mimeType
-          }
+          })
         });
-
-        if (!error && data?.text?.trim()) {
-          return data.text.trim();
-        }
-
-        if (import.meta.env.DEV) {
-          const res = await fetch('/__dev-ai-proxy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'transcribe',
-              model: 'whisper-large-v3-turbo',
-              audioBase64,
-              mimeType
-            })
-          });
-          if (res.ok) {
-            const devData = await res.json();
-            if (devData?.text?.trim()) return devData.text.trim();
-          }
-        }
-      } catch {
-        // Proxy transcription unavailable
-      }
-      return null;
-    }
-
-    const models = ['whisper-large-v3-turbo', 'whisper-large-v3'];
-    const ext = audioBlob.type.includes('mp4') ? 'mp4' : audioBlob.type.includes('ogg') ? 'ogg' : audioBlob.type.includes('wav') ? 'wav' : 'webm';
-
-    for (const model of models) {
-      try {
-        const formData = new FormData();
-        formData.append('file', audioBlob, `speech.${ext}`);
-        formData.append('model', model);
-        formData.append('response_format', 'json');
-
-        const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${personalKey}`
-          },
-          body: formData
-        });
-
         if (res.ok) {
-          const data = await res.json();
-          const text = data.text?.trim();
-          if (text) return text;
+          const devData = await res.json();
+          if (devData?.text?.trim()) return devData.text.trim();
         }
-      } catch {
-        // Fallback to next Whisper model
       }
+    } catch {
+      // Proxy transcription unavailable
     }
+
     return null;
   }
 };

@@ -98,6 +98,9 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const [editingCardMsgId, setEditingCardMsgId] = useState<string | null>(null);
+  const [cardEditAmount, setCardEditAmount] = useState('');
+  const [cardEditDesc, setCardEditDesc] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [isActivelyTyping, setIsActivelyTyping] = useState(false);
   const typingTimerRef = useRef<any>(null);
@@ -800,7 +803,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
       if (aiMsg.extractedTransaction && aiMsg.extractedTransaction.isLogged && !aiMsg.extractedTransaction.needsDate) {
         const ext = aiMsg.extractedTransaction;
-        const txId = ext.loggedTransactionId || `tx_rabbai_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const txId = ext.loggedTransactionId || safeUUID();
         const newTx = {
           id: txId,
           amount: ext.amount,
@@ -870,11 +873,18 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
     // Roll back any transactions that were logged by messages from msgIndex onward
     const subsequentMessages = activeConv.messages.slice(msgIndex);
-    subsequentMessages.forEach(m => {
-      if (m.extractedTransaction?.loggedTransactionId) {
-        onDeleteTransaction(m.extractedTransaction.loggedTransactionId);
+    const idsToDelete = subsequentMessages
+      .map(m => m.extractedTransaction?.loggedTransactionId)
+      .filter((id): id is string => Boolean(id));
+
+    if (idsToDelete.length > 0) {
+      if (updateData && idsToDelete.length > 1) {
+        const idSet = new Set(idsToDelete);
+        updateData({ transactions: (data.transactions || []).filter(t => !idSet.has(t.id)) });
+      } else {
+        idsToDelete.forEach(id => onDeleteTransaction(id));
       }
-    });
+    }
 
     const priorMessages = activeConv.messages.slice(0, msgIndex);
     const textToSubmit = editText.trim();
@@ -941,7 +951,9 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
   const handleReLog = (msgId: string, ext: NonNullable<RabbAiMessage['extractedTransaction']>) => {
     Haptics.light();
+    const txId = safeUUID();
     const newTx = {
+      id: txId,
       amount: ext.amount,
       type: ext.type,
       category: ext.category,
@@ -951,7 +963,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     };
     onAddTransaction(newTx);
     patchMessage(msgId, {
-      extractedTransaction: { ...ext, isLogged: true }
+      extractedTransaction: { ...ext, loggedTransactionId: txId, isLogged: true }
     });
   };
 
@@ -961,7 +973,9 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     chosenDate: string
   ) => {
     Haptics.success();
+    const txId = ext.loggedTransactionId || safeUUID();
     const newTx = {
+      id: txId,
       amount: ext.amount,
       type: ext.type,
       category: ext.category,
@@ -971,8 +985,46 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     };
     onAddTransaction(newTx);
     patchMessage(msgId, {
-      extractedTransaction: { ...ext, date: chosenDate, needsDate: false, isLogged: true }
+      extractedTransaction: { ...ext, loggedTransactionId: txId, date: chosenDate, needsDate: false, isLogged: true }
     });
+  };
+
+  const handleSaveCardEdit = (msgId: string, ext: NonNullable<RabbAiMessage['extractedTransaction']>) => {
+    const newAmount = parseFloat(cardEditAmount);
+    if (!Number.isFinite(newAmount) || newAmount <= 0) return;
+    const newDesc = cardEditDesc.trim() || ext.description;
+    Haptics.light();
+
+    const nowIso = new Date().toISOString();
+    if (ext.loggedTransactionId && updateData) {
+      updateData({
+        transactions: (data.transactions || []).map(t =>
+          t.id === ext.loggedTransactionId
+            ? { ...t, amount: newAmount, note: newDesc, updated_at: nowIso }
+            : t
+        )
+      });
+    } else if (ext.loggedTransactionId) {
+      onDeleteTransaction(ext.loggedTransactionId);
+      onAddTransaction({
+        id: ext.loggedTransactionId,
+        amount: newAmount,
+        type: ext.type,
+        category: ext.category,
+        date: resolveTransactionTimestamp(ext.date),
+        note: newDesc,
+        walletId: data.currentWalletId || data.wallets?.[0]?.id || 'default'
+      });
+    }
+
+    patchMessage(msgId, {
+      extractedTransaction: {
+        ...ext,
+        amount: newAmount,
+        description: newDesc
+      }
+    });
+    setEditingCardMsgId(null);
   };
 
   const formatActionSummary = (action: RabbAiAction): string => {
@@ -1689,19 +1741,60 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                         </span>
                       </div>
 
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-[17px] font-semibold font-mono text-[var(--text-primary)]">
-                          {data.settings.currencySymbol}{msg.extractedTransaction.amount.toFixed(2)}
-                        </span>
-                        <span className="pill pill--muted text-[11px] py-0.5 px-2.5">
-                          {msg.extractedTransaction.category}
-                        </span>
-                      </div>
+                      {editingCardMsgId === msg.id ? (
+                        <div className="space-y-2 py-1">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              value={cardEditAmount}
+                              onChange={(e) => setCardEditAmount(e.target.value)}
+                              className="w-28 h-[30px] bg-[var(--bg-subtle)] border border-[var(--border-active)] rounded-[6px] px-2 text-[13px] font-mono text-[var(--text-primary)] outline-none"
+                              autoFocus
+                            />
+                            <input
+                              type="text"
+                              value={cardEditDesc}
+                              onChange={(e) => setCardEditDesc(e.target.value)}
+                              placeholder="Note..."
+                              className="flex-1 min-w-0 h-[30px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-2 text-[12px] text-[var(--text-primary)] outline-none"
+                            />
+                          </div>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditingCardMsgId(null)}
+                              className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveCardEdit(msg.id, msg.extractedTransaction!)}
+                              className="btn btn--primary h-[24px] px-2.5 text-[11px] rounded-[4px] cursor-pointer"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-[17px] font-semibold font-mono text-[var(--text-primary)]">
+                              {data.settings.currencySymbol}{msg.extractedTransaction.amount.toFixed(2)}
+                            </span>
+                            <span className="pill pill--muted text-[11px] py-0.5 px-2.5">
+                              {msg.extractedTransaction.category}
+                            </span>
+                          </div>
 
-                      {msg.extractedTransaction.description && (
-                        <p className="text-[12px] text-[var(--text-secondary)] truncate">
-                          {msg.extractedTransaction.description}
-                        </p>
+                          {msg.extractedTransaction.description && (
+                            <p className="text-[12px] text-[var(--text-secondary)] truncate">
+                              {msg.extractedTransaction.description}
+                            </p>
+                          )}
+                        </>
                       )}
 
                       {/* If date is missing on receipt, ask user for the date with picker */}
@@ -1734,17 +1827,31 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                       ) : (
                         <div className="pt-1">
                           {msg.extractedTransaction.isLogged ? (
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-2">
                               <span className="text-[11px] text-emerald-400 font-medium flex items-center gap-1">
                                 <Check size={12} weight="bold" />
                                 <span>Recorded ({msg.extractedTransaction.date || 'Today'})</span>
                               </span>
-                              <button
-                                onClick={() => handleUndoLog(msg.id, msg.extractedTransaction!)}
-                                className="text-[11px] text-[var(--text-muted)] hover:text-red-400 transition-colors cursor-pointer"
-                              >
-                                Undo
-                              </button>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingCardMsgId(msg.id);
+                                    setCardEditAmount(String(msg.extractedTransaction!.amount));
+                                    setCardEditDesc(msg.extractedTransaction!.description || '');
+                                  }}
+                                  className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUndoLog(msg.id, msg.extractedTransaction!)}
+                                  className="text-[11px] text-[var(--text-muted)] hover:text-red-400 transition-colors cursor-pointer"
+                                >
+                                  Undo
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <button

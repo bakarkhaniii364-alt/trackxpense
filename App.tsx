@@ -807,8 +807,16 @@ export default function App() {
     updateData({ transactions: updatedTransactions, categories: updatedCategories });
   };
 
+  const handleDeleteTransactionById = (id: string) => {
+    const current = dataRef.current;
+    if (!current) return;
+    updateData({ transactions: current.transactions.filter(t => t.id !== id) });
+    AuditLogger.log('TX_DELETE', id, 'Deleted transaction from RabbAi rollback', user?.id);
+  };
+
   const handleAddTransaction = (t: Transaction) => {
-    if (!data) return;
+    const current = dataRef.current;
+    if (!current) return;
     
     const valid = validateAmount(t.amount);
     if (!valid.isValid) {
@@ -825,7 +833,7 @@ export default function App() {
     };
 
     // Auto-create category if it does not exist in categories list
-    let updatedCategories = data.categories || [];
+    let updatedCategories = current.categories || [];
     const normalizedCategory = (t.category || '').trim();
     if (normalizedCategory) {
       const catExists = updatedCategories.some(
@@ -845,13 +853,13 @@ export default function App() {
     }
 
     // Auto-Taxonomy update
-    let newMap = { ...data.lastUsedCategoryMap };
+    let newMap = { ...current.lastUsedCategoryMap };
     if (t.note) {
         newMap[t.note.trim().toLowerCase()] = t.category;
     }
 
     updateData({ 
-        transactions: [newTx, ...data.transactions],
+        transactions: [newTx, ...current.transactions],
         categories: updatedCategories,
         lastUsedCategoryMap: newMap
     });
@@ -1480,7 +1488,7 @@ export default function App() {
                       saveRabbAiConversations(updated);
                     }}
                     onAddTransaction={handleAddTransaction}
-                    onDeleteTransaction={(id) => updateData({ transactions: data.transactions.filter(t => t.id !== id) })}
+                    onDeleteTransaction={handleDeleteTransactionById}
                     onAddWallet={(name, type, target, curr) => handleAddWallet(name, type, target, curr)}
                     onDeleteWallet={handleDeleteWallet}
                     onAddCategory={handleAiAddCategory}
@@ -1572,7 +1580,7 @@ export default function App() {
                       saveRabbAiConversations(updated);
                     }}
                     onAddTransaction={handleAddTransaction}
-                    onDeleteTransaction={(id) => updateData({ transactions: data.transactions.filter(t => t.id !== id) })}
+                    onDeleteTransaction={handleDeleteTransactionById}
                     onAddWallet={(name, type, target, curr) => handleAddWallet(name, type, target, curr)}
                     onDeleteWallet={handleDeleteWallet}
                     onAddCategory={handleAiAddCategory}
