@@ -24,6 +24,7 @@ import { Table } from '../shared/Table';
 import { TablePaginationFooter } from '../shared/TablePaginationFooter';
 import { SegmentedSubTabs } from '../shared/SegmentedSubTabs';
 import { CategoryIcon } from '../shared/CategoryIcon';
+import { HorizontalScrollArea } from '../shared/HorizontalScrollArea';
 
 export interface BudgetSettingsProps {
   data: AppData;
@@ -648,7 +649,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 </div>
               )}
 
-              <div className="w-full overflow-x-auto no-scrollbar">
+              <HorizontalScrollArea wrapperClassName="w-full" className="w-full" fadeColor="var(--bg-surface)" fadeWidth={32}>
                 <Table className="w-full text-left border-collapse">
                 <Table.Header>
                   <Table.Row className="border-b border-[var(--color-kumo-hairline)] bg-[var(--bg-surface)] text-[12px] font-medium text-[var(--text-secondary)]">
@@ -811,7 +812,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                   })}
                 </Table.Body>
               </Table>
-              </div>
+              </HorizontalScrollArea>
 
               <TablePaginationFooter
                 currentPage={catCurrentPage}

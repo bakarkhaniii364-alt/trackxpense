@@ -1,4 +1,5 @@
 import React from 'react';
+import { HorizontalScrollArea } from '../shared/HorizontalScrollArea';
 import { Transaction, TransactionType, CategoryItem } from '../../types';
 import { NoDataWave } from '../shared/NoDataWave';
 
@@ -134,11 +135,11 @@ export const SankeyChart: React.FC<SankeyChartProps> = ({ transactions = [], cat
     }
 
     return (
-        <div className="overflow-x-auto no-scrollbar animate-in fade-in">
+        <HorizontalScrollArea className="animate-in fade-in" fadeColor="var(--bg-surface)" fadeWidth={32}>
             <svg width={width} height={Math.max(linkRightY, leftY) + 20} className="mx-auto">
                 {links}
                 {nodes}
             </svg>
-        </div>
+        </HorizontalScrollArea>
     );
 };

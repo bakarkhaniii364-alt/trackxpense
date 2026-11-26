@@ -19,6 +19,7 @@ import { getDashboardGreeting } from '../../utils/greetings';
 import { resolveTransactionTimestamp } from '../../utils/formatters';
 import { Haptics } from '../../services/haptics';
 import { LayerCard } from '../shared/LayerCard';
+import { HorizontalScrollArea } from '../shared/HorizontalScrollArea';
 import { NoDataWave } from '../shared/NoDataWave';
 import { CoinFlipLoader } from '../shared/CoinFlipLoader';
 import { CloudflareDateRangePicker, DateRange } from '../shared/CloudflareDateRangePicker';
@@ -287,10 +288,10 @@ export const MobileDashboard: React.FC<MobileDashboardProps> = ({
       />
 
       {/* 1. Calm Greeting + Compact Single-Line Quick Bar */}
-      <div className="space-y-2.5 pt-1">
-        <p className="text-[14px] font-medium text-[var(--text-secondary)] px-0.5">
+      <div className="space-y-3 pt-1.5">
+        <h1 className="text-[22px] sm:text-[26px] leading-[28px] font-medium text-[var(--text-primary)] px-0.5">
           {greeting}
-        </p>
+        </h1>
 
         {selectedReceipt && (
           <div className="relative inline-block">
@@ -352,10 +353,11 @@ export const MobileDashboard: React.FC<MobileDashboardProps> = ({
             type="button"
             onClick={handleQuickSubmit}
             disabled={isAiLoading || (!commandText.trim() && !selectedReceipt)}
-            className="btn btn--primary h-[32px] w-[32px] p-0 rounded-[6px] flex items-center justify-center shrink-0 disabled:opacity-35"
+            style={{ padding: 0 }}
+            className="btn btn--primary btn--icon !w-[32px] !h-[32px] rounded-[6px] flex items-center justify-center shrink-0 disabled:opacity-35"
             title="Send"
           >
-            {isAiLoading ? <CoinFlipLoader size={14} /> : <ArrowUp size={15} weight="bold" />}
+            {isAiLoading ? <CoinFlipLoader size={14} /> : <ArrowUp size={15} weight="bold" className="shrink-0" />}
           </button>
         </div>
       </div>
@@ -415,7 +417,11 @@ export const MobileDashboard: React.FC<MobileDashboardProps> = ({
       </div>
 
       {/* 4. Horizontal Snap Carousel for Key Metrics */}
-      <div className="-mx-3.5 px-3.5 flex gap-2.5 overflow-x-auto snap-x snap-mandatory no-scrollbar">
+      <HorizontalScrollArea
+        wrapperClassName="-mx-3.5"
+        className="px-3.5 flex gap-2.5 snap-x snap-mandatory"
+        fadeWidth={48}
+      >
         <div className="w-[74%] shrink-0 snap-start">
           <DailyBudget
             dailySpent={dailySpent}
@@ -472,7 +478,7 @@ export const MobileDashboard: React.FC<MobileDashboardProps> = ({
         <div className="w-[74%] shrink-0 snap-start">
           <StreakDisplay data={data} />
         </div>
-      </div>
+      </HorizontalScrollArea>
 
       {/* 5. Recent Activity Feed */}
       <LayerCard className="px-4 py-3.5 space-y-2.5">

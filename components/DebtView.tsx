@@ -22,6 +22,7 @@ import { GlassCheckbox } from './shared/CommonUI';
 import { Table } from './shared/Table';
 import { EmptyStateSeeder } from './shared/EmptyStateSeeder';
 import { LayerCard } from './shared/LayerCard';
+import { HorizontalScrollArea } from './shared/HorizontalScrollArea';
 
 interface DebtProps {
   data: AppData;
@@ -271,7 +272,11 @@ export const DebtView: React.FC<DebtProps> = ({
       </div>
 
       {/* Cloudflare Underline Tab Bar (No Pill Shapes, No Boxed Segmented Controls) */}
-      <div className="border-b border-[var(--border-default)] flex items-center gap-6 overflow-x-auto no-scrollbar pt-1">
+      <HorizontalScrollArea
+        wrapperClassName="border-b border-[var(--border-default)] pt-1"
+        className="flex items-center gap-6"
+        fadeWidth={28}
+      >
         {[
           { id: 'ALL', label: 'All' },
           { id: 'ACTIVE', label: 'Active' },
@@ -282,7 +287,7 @@ export const DebtView: React.FC<DebtProps> = ({
           <button
             key={tab.id}
             onClick={() => { Haptics.light(); setTypeFilter(tab.id as any); }}
-            className={`pb-2.5 text-sm font-medium border-b-2 cursor-pointer whitespace-nowrap ${
+            className={`pb-2.5 text-sm font-medium border-b-2 cursor-pointer whitespace-nowrap shrink-0 ${
               typeFilter === tab.id
                 ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
                 : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -291,7 +296,7 @@ export const DebtView: React.FC<DebtProps> = ({
             {tab.label}
           </button>
         ))}
-      </div>
+      </HorizontalScrollArea>
 
       {/* Flat Toolbar: Search */}
       <div className="flex items-center justify-between gap-3 pt-1">

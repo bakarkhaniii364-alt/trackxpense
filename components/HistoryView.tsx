@@ -29,6 +29,7 @@ import { Table } from './shared/Table';
 import { TablePaginationFooter } from './shared/TablePaginationFooter';
 import { EmptyStateSeeder } from './shared/EmptyStateSeeder';
 import { CustomSelect } from './shared/CustomSelect';
+import { HorizontalScrollArea } from './shared/HorizontalScrollArea';
 import Papa from 'papaparse';
 import { saveAs } from 'file-saver';
 
@@ -264,10 +265,10 @@ export const HistoryView: React.FC<HistoryProps> = ({
       {/* Cloudflare Underline Tab Bar (Cleanly wraps into two rows on narrow phones) */}
       <div className="border-b border-[var(--border-default)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 pt-1">
         {/* Left: Type Filter Tabs */}
-        <div className="flex items-center gap-6 shrink-0">
+        <HorizontalScrollArea className="flex items-center gap-6" fadeWidth={28}>
           <button
             onClick={() => { Haptics.light(); setTypeFilter('ALL'); }}
-            className={`pb-2.5 text-sm font-medium border-b-2 cursor-pointer flex items-center gap-1.5 ${
+            className={`pb-2.5 text-sm font-medium border-b-2 cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               typeFilter === 'ALL'
                 ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
                 : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -280,7 +281,7 @@ export const HistoryView: React.FC<HistoryProps> = ({
           </button>
           <button
             onClick={() => { Haptics.light(); setTypeFilter('EXPENSE'); }}
-            className={`pb-2.5 text-sm font-medium border-b-2 cursor-pointer flex items-center gap-1.5 ${
+            className={`pb-2.5 text-sm font-medium border-b-2 cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               typeFilter === 'EXPENSE'
                 ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
                 : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -293,7 +294,7 @@ export const HistoryView: React.FC<HistoryProps> = ({
           </button>
           <button
             onClick={() => { Haptics.light(); setTypeFilter('INCOME'); }}
-            className={`pb-2.5 text-sm font-medium border-b-2 cursor-pointer flex items-center gap-1.5 ${
+            className={`pb-2.5 text-sm font-medium border-b-2 cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               typeFilter === 'INCOME'
                 ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
                 : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -304,10 +305,10 @@ export const HistoryView: React.FC<HistoryProps> = ({
               {walletTransactions.filter(t => t.type === TransactionType.INCOME).length}
             </span>
           </button>
-        </div>
+        </HorizontalScrollArea>
 
         {/* Right: View Mode Underline Tabs */}
-        <div className="flex items-center gap-5 shrink-0">
+        <HorizontalScrollArea className="flex items-center gap-5" fadeWidth={28}>
           {[
             { id: 'list', icon: FileText, label: 'Ledger' },
             { id: 'calendar', icon: CalendarIcon, label: 'Calendar' },
@@ -320,7 +321,7 @@ export const HistoryView: React.FC<HistoryProps> = ({
               <button
                 key={tab.id}
                 onClick={() => { Haptics.light(); setViewMode(tab.id as any); }}
-                className={`pb-2.5 text-[13px] font-medium border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                className={`pb-2.5 text-[13px] font-medium border-b-2 transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                   isActive
                     ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
                     : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -331,7 +332,7 @@ export const HistoryView: React.FC<HistoryProps> = ({
               </button>
             );
           })}
-        </div>
+        </HorizontalScrollArea>
       </div>
 
       {/* Flat Toolbar: Search, Category Filter, Sort & Date Inputs */}

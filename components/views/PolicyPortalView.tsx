@@ -10,6 +10,7 @@ import {
 } from '@phosphor-icons/react';
 import { ViewState } from '../../types';
 import { navigateTo } from '../../src/services/router';
+import { HorizontalScrollArea } from '../shared/HorizontalScrollArea';
 
 interface PolicyPortalViewProps {
   mode: 'privacy' | 'security';
@@ -356,7 +357,7 @@ export const PolicyPortalView: React.FC<PolicyPortalViewProps> = ({ mode, onNavi
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           
           {/* Segmented Category Filter */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+          <HorizontalScrollArea className="flex items-center gap-1.5 pb-1 sm:pb-0" fadeWidth={28}>
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -371,7 +372,7 @@ export const PolicyPortalView: React.FC<PolicyPortalViewProps> = ({ mode, onNavi
                 {cat === 'all' ? 'All Specifications' : cat}
               </button>
             ))}
-          </div>
+          </HorizontalScrollArea>
 
           {/* Search Input */}
           <div className="relative w-full sm:w-64">

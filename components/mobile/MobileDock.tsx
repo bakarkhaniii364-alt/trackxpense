@@ -80,9 +80,10 @@ export const MobileDock: React.FC<MobileDockProps> = ({
               onAddTransaction();
             }}
             aria-label="Add transaction"
-            className="btn btn--primary w-12 h-9 rounded-[8px] flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+            style={{ padding: 0 }}
+            className="btn btn--primary btn--icon !w-12 !h-9 rounded-[8px] flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
           >
-            <Plus size={18} weight="bold" />
+            <Plus size={18} weight="bold" className="shrink-0" />
           </button>
         </div>
 
