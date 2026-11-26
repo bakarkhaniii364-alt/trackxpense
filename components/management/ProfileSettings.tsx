@@ -364,7 +364,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           {/* SECTION 1: PROFILE & PREFERENCES */}
           <div id="profile-section" className="space-y-3 scroll-mt-28">
             <div>
-              <h2 className="text-[16px] font-medium text-[var(--text-primary)] tracking-tight">Profile & Preferences</h2>
+              <h2 className="text-[16px] font-medium text-[var(--text-primary)]">Profile & preferences</h2>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">Your profile name, default currency, and balance privacy.</p>
             </div>
 
@@ -517,7 +517,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           {/* SECTION 2: TARGET LIMITS */}
           <div id="targets-section" className="space-y-3 scroll-mt-28">
             <div>
-              <h2 className="text-[16px] font-medium text-[var(--text-primary)] tracking-tight">Spending Limits</h2>
+              <h2 className="text-[16px] font-medium text-[var(--text-primary)]">Spending limits</h2>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">Set daily and monthly spending limits to keep your budget on track.</p>
             </div>
 
@@ -635,7 +635,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           {/* SECTION 3: NOTIFICATIONS */}
           <div id="notifications-section" className="space-y-3 scroll-mt-28">
             <div>
-              <h2 className="text-[16px] font-medium text-[var(--text-primary)] tracking-tight">Notifications</h2>
+              <h2 className="text-[16px] font-medium text-[var(--text-primary)]">Notifications</h2>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">Manage reminders for daily expenses and upcoming debt due dates.</p>
             </div>
 
@@ -710,7 +710,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           <div id="wallets-section" className="space-y-4 scroll-mt-28">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-[16px] font-medium text-[var(--text-primary)] tracking-tight">Wallets & Vaults</h2>
+                <h2 className="text-[16px] font-medium text-[var(--text-primary)]">Wallets & vaults</h2>
                 <p className="text-xs text-[var(--text-secondary)] mt-0.5">Manage your personal wallets, currency preferences, and savings goals.</p>
               </div>
 
@@ -1022,7 +1022,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           {/* SECTION 5: DATA & BACKUP */}
           <div id="backup-section" className="space-y-3 scroll-mt-28">
             <div>
-              <h2 className="text-[16px] font-medium text-[var(--text-primary)] tracking-tight">Data Management & Backup</h2>
+              <h2 className="text-[16px] font-medium text-[var(--text-primary)]">Data management & backup</h2>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">Export transaction spreadsheets, download complete backups, or restore your data.</p>
             </div>
 
@@ -1167,7 +1167,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           {/* SECTION 6: RABBAI ASSISTANT */}
           <div id="rabb-ai-section" className="space-y-3 scroll-mt-28">
             <div>
-              <h2 className="text-[16px] font-medium text-[var(--text-primary)] tracking-tight">RabbAi Assistant</h2>
+              <h2 className="text-[16px] font-medium text-[var(--text-primary)]">RabbAi assistant</h2>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">Fast AI assistant for natural language expense logging, receipt scanning, and budget insights.</p>
             </div>
 
@@ -1246,7 +1246,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           {/* SECTION 7: LEGAL & SUPPORT */}
           <div id="legal-section" className="space-y-3 scroll-mt-28">
             <div>
-              <h2 className="text-[16px] font-medium text-[var(--text-primary)] tracking-tight">Legal & Support</h2>
+              <h2 className="text-[16px] font-medium text-[var(--text-primary)]">Legal & support</h2>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">Privacy policy, security information, terms of service, and developer support.</p>
             </div>
 
@@ -1338,7 +1338,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
           {/* SECTION 8: ACCOUNT ACTIONS */}
           <div id="account-actions-section" className="space-y-3 scroll-mt-28">
             <div>
-              <h2 className="text-[16px] font-medium text-[var(--text-primary)] tracking-tight">Account Actions</h2>
+              <h2 className="text-[16px] font-medium text-[var(--text-primary)]">Account actions</h2>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">Sign out of your active session or delete your account.</p>
             </div>
 

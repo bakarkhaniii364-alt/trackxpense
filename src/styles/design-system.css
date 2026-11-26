@@ -2,11 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  font-family: var(--ds-font);
+}
+
+.font-sans {
+  font-family: var(--ds-font);
+}
+
+.font-mono {
+  font-family: var(--ds-font-mono);
+}
+
 /*
   Design System — Warm Cloudflare Technical Dark
   -----------------------------------------------
   Canonical stylesheet. Single source of truth for all styles.
-  Everything reads from the :root tokens below.
+  Everything reads from the :root tokens below. (Mobile + Desktop)
 */
 
 :root {
@@ -14,8 +26,8 @@
   --ds-bg: #030303;             /* Canvas background #030303 per user request */
   --ds-panel: #0D0D10;          /* Deep structural card surface */
   --ds-panel-alt: #16161A;      /* Surface hover / row hover */
-  --ds-border: #202026;         /* Crisp 1px hairline border */
-  --ds-border-strong: #2E2E36;  /* Active/input border */
+  --ds-border: var(--color-kumo-hairline);         /* Global 1px border & divider (matching Kumo hairline) */
+  --ds-border-strong: var(--color-kumo-line);  /* Global 1px border */
   --ds-text: #F4F4F5;           /* Primary text - crisp high-contrast white */
   --ds-text-dim: #A1A1AA;       /* Secondary body/label text */
   --ds-text-faint: #71717A;     /* Tertiary / micro kicker / metadata */
@@ -24,8 +36,13 @@
   --ds-ok: #22c55e;
   --ds-warn: #ef4444;
   --ds-radius: 8px;
-  --ds-font: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --ds-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --ds-font: 'Geist', "Hind Siliguri", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --ds-font-mono: 'Geist Mono', "Hind Siliguri", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Z-Index Hierarchy Token Scale */
   --z-content: 1;
@@ -54,10 +71,94 @@
   --bg-subtle: #121216;
   --bg-active-pill: #16161A;
 
-  --border-default: #202026;
-  --border-subtle: #202026;
-  --border-strong: #2E2E36;
-  --border-active: #2E2E36;
+  --border-default: var(--color-kumo-hairline);
+  --border-subtle: var(--color-kumo-hairline);
+  --border-strong: var(--color-kumo-line);
+  --border-active: var(--color-kumo-line);
+
+  /* Cloudflare Kumo Canonical Theme (As intended by Kumo Design System) */
+  --color-kumo-canvas: oklch(10% 0 0);
+  --color-kumo-elevated: oklch(12% 0 0);
+  --color-kumo-recessed: oklch(15% 0 0);
+  --color-kumo-base: oklch(17% 0 0);
+  --color-kumo-line: oklch(32% 0 0);
+  --color-kumo-hairline: oklch(26.9% 0 0);
+  --color-kumo-fill: oklch(26.9% 0 0);
+  --color-kumo-brand: var(--ds-accent);
+  --color-kumo-tint: var(--accent-bg-soft);
+
+  --card-outer-fill: var(--color-kumo-elevated);
+  --card-inner-fill: var(--color-kumo-base);
+  --card-outline: var(--color-kumo-hairline);
+
+  --text-color-kumo-default: oklch(97% 0 0);
+  --text-color-kumo-subtle: oklch(70.8% 0 0);
+  --text-color-kumo-strong: oklch(98.5% 0 0);
+  --text-color-kumo-brand: var(--ds-accent);
+}
+
+/* Kumo Official Utilities & Crisp Ring Borders */
+.bg-kumo-elevated {
+  background-color: var(--color-kumo-elevated) !important;
+}
+.bg-kumo-base {
+  background-color: var(--color-kumo-base) !important;
+}
+.bg-kumo-canvas {
+  background-color: var(--color-kumo-canvas) !important;
+}
+.bg-kumo-control {
+  background-color: var(--color-kumo-base) !important;
+}
+.bg-kumo-recessed {
+  background-color: var(--color-kumo-recessed) !important;
+}
+.bg-kumo-tint {
+  background-color: rgba(246, 130, 31, 0.12) !important;
+}
+.text-kumo-subtle {
+  color: var(--text-color-kumo-subtle) !important;
+}
+.text-kumo-default {
+  color: var(--text-color-kumo-default) !important;
+}
+.text-kumo-strong {
+  color: var(--text-color-kumo-strong) !important;
+}
+.border-kumo-line {
+  border-color: var(--color-kumo-line) !important;
+}
+.border-kumo-hairline {
+  border-color: var(--color-kumo-hairline) !important;
+}
+.border-kumo-fill {
+  border-color: var(--color-kumo-fill) !important;
+}
+.ring-kumo-line {
+  --tw-ring-color: var(--color-kumo-line) !important;
+}
+.ring-kumo-hairline {
+  --tw-ring-color: var(--color-kumo-hairline) !important;
+}
+.ring-kumo-fill {
+  --tw-ring-color: var(--color-kumo-fill) !important;
+}
+.ring-kumo-focus {
+  --tw-ring-color: var(--color-kumo-brand) !important;
+}
+.ring-kumo-danger {
+  --tw-ring-color: var(--ds-warn) !important;
+}
+.ring {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width, 0px) var(--tw-ring-offset-color, transparent);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(1px + var(--tw-ring-offset-width, 0px)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000) !important;
+}
+.rounded-lg {
+  border-radius: 8px !important;
+}
+.shadow-xs {
+  box-shadow: none !important;
 }
 
 /* Technical Dotted Canvas Matrix */
@@ -95,12 +196,12 @@ svg:not(.recharts-surface) rect {
   --accent: #F6821F;
   --accent-bg-soft: rgba(246, 130, 31, 0.12);
 
-  --status-success-bg: rgba(34, 197, 94, 0.12);
-  --status-success-fg: #22c55e;
-  --status-error-bg: rgba(239, 68, 68, 0.12);
-  --status-error-fg: #ef4444;
-  --status-warning-bg: rgba(245, 158, 11, 0.12);
-  --status-warning-fg: #f59e0b;
+  --status-success-bg: rgba(110, 231, 183, 0.1);
+  --status-success-fg: #6ee7b7;
+  --status-error-bg: rgba(252, 165, 165, 0.1);
+  --status-error-fg: #fca5a5;
+  --status-warning-bg: rgba(252, 211, 77, 0.1);
+  --status-warning-fg: #fcd34d;
 
   --bg-core: 0 0 0;
   --bg-card: 13 13 16;
@@ -117,8 +218,8 @@ svg:not(.recharts-surface) rect {
   /* Form & Field Module — Pitch Black Technical Surface & Cloudflare Focus */
   --field-bg: #0B0B0E;
   --field-bg-hover: #121216;
-  --field-border: #202026;
-  --field-border-hover: #2E2E36;
+  --field-border: #161616;
+  --field-border-hover: #161616;
   --field-border-focus: var(--accent);
   --field-focus-glow: rgba(246, 130, 31, 0.25);
 
@@ -225,6 +326,21 @@ body.light-mode {
 
   --field-bg: #FFFFFF;
   --field-bg-hover: #F9FAFB;
+
+  /* Cloudflare Kumo Semantic Token Mapping (Light Mode) */
+  --color-kumo-canvas: #FAFAFA;
+  --color-kumo-elevated: #F2F3F5;      /* Outer tray – slightly recessed */
+  --color-kumo-base: #FFFFFF;           /* Inner elevated card – bright white */
+  --color-kumo-recessed: #EAEAEB;
+  --color-kumo-line: #D1D5DB;           /* Single-surface card outline */
+  --color-kumo-hairline: #D1D5DB;       /* Outer tray outline – crisp 1px border */
+  --color-kumo-fill: #E5E7EB;           /* Inner card outline */
+  --color-kumo-brand: #F6821F;
+  --color-kumo-tint: rgba(246, 130, 31, 0.12);
+
+  --text-color-kumo-default: #111827;
+  --text-color-kumo-subtle: #4B5563;
+  --text-color-kumo-strong: #111827;
   color-scheme: light;
 }
 
@@ -362,33 +478,33 @@ body.desktop-ui {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 5px 12px;
-  height: 32px;
+  gap: 8px;
+  padding: 6px 14px;
+  height: 34px;
   font-family: var(--ds-font);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
+  transition: transform 0.06s ease; /* Snappy click response, zero color transition delay per Kumo hover-color-transitions */
   user-select: none;
   text-decoration: none;
   white-space: nowrap;
 }
 .btn:active, .btn-primary:active, .btn-secondary:active, .btn-outline:active, .btn-ghost:active, .btn-danger:active,
 .btn--primary:active, .btn--secondary:active, .btn--outline:active, .btn--ghost:active, .btn--danger:active { 
-  transform: scale(0.97); 
+  transform: scale(0.98); 
 }
-.btn__icon { width: 13px; height: 13px; flex-shrink: 0; }
+.btn__icon { width: 16px; height: 16px; flex-shrink: 0; }
 
 /* Compact Size Variants */
-.btn--xs, .btn-xs { padding: 2px 7px !important; font-size: 11px !important; height: 22px !important; border-radius: 4px !important; gap: 4px !important; }
-.btn--sm, .btn-sm { padding: 4px 10px !important; font-size: 11.5px !important; height: 26px !important; border-radius: 5px !important; gap: 5px !important; }
-.btn--md, .btn-md { padding: 5px 13px !important; font-size: 12px !important; height: 30px !important; border-radius: 6px !important; gap: 6px !important; }
-.btn--lg, .btn-lg { padding: 6px 15px !important; font-size: 13px !important; height: 34px !important; border-radius: 6px !important; gap: 7px !important; }
-.btn--icon, .btn-icon { padding: 0 !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; }
-.btn--icon-sm, .btn-icon-sm { padding: 0 !important; width: 24px !important; height: 24px !important; border-radius: 5px !important; }
+.btn--xs, .btn-xs { padding: 2px 8px !important; font-size: 12px !important; height: 24px !important; border-radius: 4px !important; gap: 4px !important; }
+.btn--sm, .btn-sm { padding: 4px 10px !important; font-size: 13px !important; height: 28px !important; border-radius: 5px !important; gap: 6px !important; }
+.btn--md, .btn-md { padding: 6px 14px !important; font-size: 14px !important; height: 34px !important; border-radius: 6px !important; gap: 8px !important; }
+.btn--lg, .btn-lg { padding: 8px 18px !important; font-size: 15px !important; height: 40px !important; border-radius: 8px !important; gap: 8px !important; }
+.btn--icon, .btn-icon { padding: 0 !important; width: 34px !important; height: 34px !important; border-radius: 6px !important; }
+.btn--icon-sm, .btn-icon-sm { padding: 0 !important; width: 28px !important; height: 28px !important; border-radius: 5px !important; }
 
 /* Tier 1: Primary (Metallic Warm Metal / Orange Accent Border) */
 .btn--primary, .btn-primary {
@@ -499,62 +615,49 @@ body.desktop-ui {
 .tabs, .tabs-container {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding: 2px;
+  gap: 3px;
+  padding: 3px;
   max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
-  background: var(--tab-track-bg);
-  border-radius: 6px;
-  border: 1px solid var(--tab-track-border);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    inset 0 2px 5px rgba(0, 0, 0, 0.45);
+  background: var(--bg-subtle);
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
 }
 
 .tab {
   appearance: none;
   border: 1px solid transparent;
   background: transparent;
-  color: var(--ds-text-dim);
+  color: var(--text-secondary);
   font-family: var(--ds-font);
-  font-size: 11.5px;
+  font-size: 13.5px;
   font-weight: 500;
-  padding: 3px 9px;
-  height: 24px;
-  border-radius: 4px;
+  padding: 4px 12px;
+  height: 30px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   user-select: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   line-height: 1;
 }
 .tab:hover {
-  color: var(--ds-text);
+  color: var(--text-primary);
 }
 .tab.is-active, .tab--active {
-  color: #ffffff !important;
-  background: var(--tab-active-bg) !important;
-  border: 1px solid var(--tab-active-border) !important;
-  text-shadow: 0 0 10px var(--tab-active-text-glow);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -1.5px 0 var(--tab-active-lip),
-    0 1px 3px rgba(0, 0, 0, 0.4) !important;
+  color: var(--text-primary) !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-default) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
 }
 
 .tab.is-active:hover, .tab--active:hover {
-  background: var(--tab-active-bg-hover) !important;
-  border-color: var(--btn-accent-hover-border) !important;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    inset 0 -1.5px 0 var(--btn-accent-hover-border),
-    0 0 8px var(--tab-active-glow),
-    0 1px 3px rgba(0, 0, 0, 0.45) !important;
+  background: var(--bg-surface) !important;
+  border-color: var(--border-active) !important;
 }
 
 /* Underline Tabs System */
@@ -562,7 +665,7 @@ body.desktop-ui {
   display: flex;
   align-items: center;
   gap: 24px;
-  border-bottom: 1px solid var(--ds-border);
+  border-bottom: 1px solid var(--border-default);
   padding-bottom: 0;
   margin-bottom: 16px;
 }
@@ -570,22 +673,21 @@ body.desktop-ui {
   appearance: none;
   background: transparent;
   border: none;
-  color: var(--ds-text-dim);
+  color: var(--text-secondary);
   font-family: var(--ds-font);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   padding: 10px 2px;
   cursor: pointer;
   position: relative;
-  transition: color 0.18s ease;
   user-select: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
-.tab-underline:hover { color: var(--ds-text); }
+.tab-underline:hover { color: var(--text-primary); }
 .tab-underline.is-active, .tab-underline--active {
-  color: var(--ds-text) !important;
+  color: var(--text-primary) !important;
   font-weight: 600;
 }
 .tab-underline.is-active::after, .tab-underline--active::after {
@@ -595,8 +697,7 @@ body.desktop-ui {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--btn-accent);
-  box-shadow: 0 0 8px var(--btn-accent-glow);
+  background: var(--text-primary);
 }
 
 /* ================== Unified Toggle Switches ================== */
@@ -676,14 +777,12 @@ body.desktop-ui {
   padding: 10px 16px;
   border-bottom: 1px solid var(--ds-border);
   white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
-.panel tbody tr { border-bottom: 1px solid var(--ds-border); transition: background 0.15s ease; }
+.panel tbody tr { border-bottom: 1px solid var(--ds-border); }
 .panel tbody tr:last-child { border-bottom: none; }
 .panel tbody tr:hover { background: var(--ds-panel-alt); }
 .panel tbody tr.is-highlighted { box-shadow: inset 3px 0 0 var(--ds-accent); }
-.panel td { padding: 12px 16px; font-size: 13.5px; vertical-align: middle; }
+.panel td { padding: 12px 16px; font-size: 14px; vertical-align: middle; }
 
 .pill {
   display: inline-flex;

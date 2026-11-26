@@ -8,7 +8,7 @@ import {
   Globe
 } from '@phosphor-icons/react';
 import { LandingPage } from './LandingPage';
-import { LegalModal, LegalModalType } from './shared/LegalModal';
+import { navigateTo } from '../src/services/router';
 
 interface AuthScreenProps {
   onContinueAsGuest: () => void;
@@ -23,7 +23,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onContinueAsGuest }) => 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
-  const [legalModal, setLegalModal] = useState<LegalModalType>(null);
 
   const handleOpenAuth = (signUpMode: boolean) => {
     setIsSignUp(signUpMode);
@@ -260,8 +259,28 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onContinueAsGuest }) => 
             {/* Legal */}
             <p className="text-[10.5px] text-[var(--text-muted)] text-center leading-relaxed">
               By continuing you agree to our{' '}
-              <button type="button" onClick={() => setLegalModal('terms')} className="underline cursor-pointer hover:text-[var(--text-secondary)]">terms</button> and{' '}
-              <button type="button" onClick={() => setLegalModal('privacy')} className="underline cursor-pointer hover:text-[var(--text-secondary)]">privacy policy</button>.
+              <a
+                href="/terms"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigateTo('terms-of-service');
+                }}
+                className="underline cursor-pointer hover:text-[var(--text-secondary)]"
+              >
+                terms
+              </a>{' '}
+              and{' '}
+              <a
+                href="/privacy"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigateTo('privacy-policy');
+                }}
+                className="underline cursor-pointer hover:text-[var(--text-secondary)]"
+              >
+                privacy policy
+              </a>
+              .
             </p>
           </div>
         </div>
@@ -308,7 +327,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onContinueAsGuest }) => 
 
         {/* Editorial */}
         <div className="relative z-10 my-auto max-w-md space-y-4">
-          <h2 className="text-3xl sm:text-4xl lg:text-[40px] font-bold text-white tracking-tight leading-[1.15]">
+          <h2 className="text-3xl sm:text-4xl lg:text-[40px] font-semibold text-white leading-[1.15]">
             Where your finances stay truly private.
           </h2>
           <p className="text-[14px] text-white/85 leading-relaxed">
@@ -322,7 +341,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onContinueAsGuest }) => 
         </div>
       </div>
 
-      <LegalModal type={legalModal} onClose={() => setLegalModal(null)} />
     </div>
   );
 };

@@ -12,6 +12,7 @@ import { navigateTo } from '../../src/services/router';
 
 interface PrivacyPolicyViewProps {
   onNavigate?: (view: ViewState) => void;
+  isAuthenticated?: boolean;
 }
 
 interface PolicySection {
@@ -24,9 +25,16 @@ interface PolicySection {
   bulletPoints?: { label: string; text: string }[];
 }
 
-export const PrivacyPolicyView: React.FC<PrivacyPolicyViewProps> = ({ onNavigate }) => {
+export const PrivacyPolicyView: React.FC<PrivacyPolicyViewProps> = ({ onNavigate, isAuthenticated = false }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [contactCopied, setContactCopied] = useState(false);
+
+  const handleCopyContact = () => {
+    navigator.clipboard?.writeText('bakarkhaniii364@gmail.com');
+    setContactCopied(true);
+    setTimeout(() => setContactCopied(false), 2500);
+  };
 
   // Set document title
   useEffect(() => {
@@ -228,7 +236,7 @@ export const PrivacyPolicyView: React.FC<PrivacyPolicyViewProps> = ({ onNavigate
       className="w-full h-[100dvh] max-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[var(--bg-page)] text-[var(--text-primary)] font-sans flex flex-col selection:bg-[var(--accent-solid)] selection:text-[var(--accent-text)]"
       style={{
         scrollbarWidth: 'thin',
-        scrollbarColor: 'var(--border-strong) transparent'
+        scrollbarColor: 'rgba(255, 255, 255, 0.1) transparent'
       }}
     >
       
@@ -263,83 +271,33 @@ export const PrivacyPolicyView: React.FC<PrivacyPolicyViewProps> = ({ onNavigate
       </header>
 
       {/* ========================================================================= */}
-      {/* 2. HERO SECTION (CLOUDFLARE-STYLE DIAGONAL PINSTRIPE WITH FLOATING BADGES) */}
+      {/* 2. MINIMAL HEADER BLOCK                                                   */}
       {/* ========================================================================= */}
-      <section 
-        className="w-full shrink-0 border-b border-[var(--border-default)] py-12 sm:py-16 px-4 sm:px-8 relative overflow-hidden print:hidden"
-        style={{
-          backgroundImage: 'repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.075) 0px, rgba(255, 255, 255, 0.075) 1.25px, transparent 1.25px, transparent 10px)'
-        }}
-      >
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
-          
-          {/* Left Column: Heading, Subtitle & Clean Pills */}
-          <div className="space-y-4 max-w-2xl text-left">
-            <h2 className="text-2xl sm:text-3xl font-medium text-[var(--text-primary)] tracking-tight">
-              Privacy &amp; Data Sovereignty
-            </h2>
-            <p className="text-[13.5px] sm:text-[14px] text-[var(--text-secondary)] leading-relaxed max-w-xl">
-              TrackXpense is architected local-first. We believe your personal financial ledger belongs strictly to you. No bank scrapers, zero third-party telemetry, and zero behavioral profiling.
-            </p>
-
-            {/* Pill Row */}
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              <div className="h-[28px] px-3 rounded-full border border-[var(--border-default)] bg-[var(--bg-page)] text-[12px] text-[var(--text-secondary)] flex items-center">
-                <span>Zero Telemetry</span>
-              </div>
-              <div className="h-[28px] px-3 rounded-full border border-[var(--border-default)] bg-[var(--bg-page)] text-[12px] text-[var(--text-secondary)] flex items-center">
-                <span>Local-First Storage</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigateTo('security-policy')}
-                className="h-[28px] px-3 rounded-full border border-[var(--border-default)] bg-[var(--bg-page)] hover:bg-[var(--bg-surface-hover)] hover:border-[var(--border-active)] text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <span>Security Policy</span>
-                <ArrowSquareOut size={11} className="opacity-70" />
-              </button>
-              <button
-                type="button"
-                onClick={() => navigateTo('terms-of-service')}
-                className="h-[28px] px-3 rounded-full border border-[var(--border-default)] bg-[var(--bg-page)] hover:bg-[var(--bg-surface-hover)] hover:border-[var(--border-active)] text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <span>Terms of Service</span>
-                <ArrowSquareOut size={11} className="opacity-70" />
-              </button>
-            </div>
+      <section className="w-full shrink-0 border-b border-[var(--border-default)] py-10 sm:py-12 px-4 sm:px-8 print:hidden">
+        <div className="max-w-5xl mx-auto space-y-3 text-left">
+          <h2 className="text-2xl sm:text-3xl font-medium text-[var(--text-primary)]">
+            Privacy Policy
+          </h2>
+          <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed max-w-2xl">
+            TrackXpense is architected local-first. Your personal financial ledger belongs strictly to you—no bank scrapers, zero third-party telemetry, and zero behavioral profiling.
+          </p>
+          <div className="flex flex-wrap items-center gap-4 pt-1 text-[13px] text-[var(--text-muted)]">
+            <button
+              type="button"
+              onClick={() => navigateTo('security-policy')}
+              className="hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            >
+              Security Policy
+            </button>
+            <span>·</span>
+            <button
+              type="button"
+              onClick={() => navigateTo('terms-of-service')}
+              className="hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            >
+              Terms of Service
+            </button>
           </div>
-
-          {/* Right Column: Signature Trio of Floating Tilted Dashed Orange Badges */}
-          <div className="relative flex items-center justify-center md:justify-end shrink-0 py-4 pr-4">
-            <div className="relative w-[180px] h-[100px] flex items-center justify-center select-none pointer-events-none">
-              
-              {/* Badge 1: Left tilted (-12deg) with Shield */}
-              <div 
-                className="absolute left-2 top-3 w-[46px] h-[46px] rounded-[14px] border border-dashed border-[#f6821f]/60 bg-[#f6821f]/10 flex items-center justify-center transition-transform hover:scale-105"
-                style={{ transform: 'rotate(-12deg)' }}
-              >
-                <ShieldCheck size={22} strokeWidth={1.5} className="text-[#f6821f]" />
-              </div>
-
-              {/* Badge 2: Center tilted (+4deg) with Globe */}
-              <div 
-                className="absolute left-[66px] top-0 w-[48px] h-[48px] rounded-[14px] border border-dashed border-[#f6821f]/70 bg-[#f6821f]/12 flex items-center justify-center transition-transform hover:scale-105 z-10"
-                style={{ transform: 'rotate(4deg)' }}
-              >
-                <Globe size={22} strokeWidth={1.5} className="text-[#f6821f]" />
-              </div>
-
-              {/* Badge 3: Right tilted (+15deg) with Sparkle */}
-              <div 
-                className="absolute right-2 top-5 w-[46px] h-[46px] rounded-[14px] border border-dashed border-[#f6821f]/60 bg-[#f6821f]/10 flex items-center justify-center transition-transform hover:scale-105"
-                style={{ transform: 'rotate(15deg)' }}
-              >
-                <Sparkle size={20} weight="fill" className="text-[#f6821f]" />
-              </div>
-
-            </div>
-          </div>
-
         </div>
       </section>
 
@@ -413,41 +371,16 @@ export const PrivacyPolicyView: React.FC<PrivacyPolicyViewProps> = ({ onNavigate
                     idx !== 0 ? 'pt-10 border-t border-[var(--border-default)]' : ''
                   }`}
                 >
-                  {/* Section Title & Header with Clean Deep-Link Affordance */}
-                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
-                          Section {sec.sectionNumber} • {sec.kicker}
-                        </span>
-                      </div>
-                      <h3 className="text-[17px] font-medium text-[var(--text-primary)] tracking-tight">
-                        {sec.title}
-                      </h3>
-                    </div>
+                  <h3 className="text-[17px] font-medium text-[var(--text-primary)]">
+                    {sec.title}
+                  </h3>
 
-                    {/* Copy Link Button (Clean font-mono, no icon clutter) */}
-                    <button
-                      type="button"
-                      onClick={() => handleCopyLink(sec.id)}
-                      className="h-[24px] px-2 rounded-[4px] border border-[var(--border-default)] hover:border-[var(--border-active)] bg-[var(--bg-page)] text-[11px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer self-start shrink-0 print:hidden"
-                      title="Copy section link"
-                    >
-                      {copiedId === sec.id ? (
-                        <span className="text-emerald-500 font-medium">Copied</span>
-                      ) : (
-                        <span>#link</span>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Summary Callout */}
-                  <p className="text-[13.5px] font-medium text-[var(--text-primary)] leading-relaxed bg-[var(--bg-page)] p-3.5 rounded-[6px] border border-[var(--border-default)]">
+                  <p className="text-[14px] font-medium text-[var(--text-primary)] leading-relaxed">
                     {sec.summary}
                   </p>
 
                   {/* Detailed Paragraphs */}
-                  <div className="space-y-3 text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                  <div className="space-y-3 text-[14px] text-[var(--text-secondary)] leading-relaxed">
                     {sec.paragraphs.map((p, pIdx) => (
                       <p key={pIdx}>{p}</p>
                     ))}
@@ -457,7 +390,7 @@ export const PrivacyPolicyView: React.FC<PrivacyPolicyViewProps> = ({ onNavigate
                   {sec.bulletPoints && sec.bulletPoints.length > 0 && (
                     <div className="pt-2 space-y-2.5">
                       {sec.bulletPoints.map((b, bIdx) => (
-                        <div key={bIdx} className="flex items-start gap-2.5 text-[13px] leading-relaxed">
+                        <div key={bIdx} className="flex items-start gap-2.5 text-[14px] leading-relaxed">
                           <span className="text-[var(--text-muted)] text-[12px] select-none pt-0.5 font-mono">
                             •
                           </span>
@@ -482,21 +415,33 @@ export const PrivacyPolicyView: React.FC<PrivacyPolicyViewProps> = ({ onNavigate
           {/* Box Bottom Bar: Compliance & Export Callout */}
           <div className="p-6 bg-[var(--bg-page)] border-t border-[var(--border-default)] flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
             <div className="space-y-0.5">
-              <h4 className="text-[13.5px] font-medium text-[var(--text-primary)]">
+              <h4 className="text-[14px] font-medium text-[var(--text-primary)]">
                 Have specific audit, data portability, or deletion requests?
               </h4>
-              <p className="text-[12px] text-[var(--text-secondary)]">
-                You can export all ledger records directly to JSON or CSV anytime under Profile &amp; Settings.
+              <p className="text-[14px] text-[var(--text-secondary)]">
+                {isAuthenticated
+                  ? 'You can export all ledger records directly to JSON or CSV anytime under Profile & Settings.'
+                  : 'Sign in or start in Guest Mode to export or clear your records under Profile & Settings.'}
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => onNavigate ? onNavigate('identity') : navigateTo('identity')}
-              className="h-[32px] px-4 rounded-[6px] border border-[var(--border-default)] hover:border-[var(--border-active)] bg-[var(--bg-page)] hover:bg-white/5 text-[12px] font-medium text-[var(--text-primary)] transition-colors cursor-pointer shrink-0 print:hidden"
-            >
-              Manage Data &amp; Export
-            </button>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => onNavigate ? onNavigate('identity') : navigateTo('identity')}
+                className="btn btn--secondary btn--md shrink-0 print:hidden"
+              >
+                Manage Data &amp; Export
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onNavigate ? onNavigate('dashboard') : navigateTo('dashboard')}
+                className="btn btn--primary btn--md shrink-0 print:hidden"
+              >
+                Open App
+              </button>
+            )}
           </div>
 
           </div>
@@ -537,12 +482,13 @@ export const PrivacyPolicyView: React.FC<PrivacyPolicyViewProps> = ({ onNavigate
               Terms of Service
             </button>
             <span>•</span>
-            <a 
-              href="mailto:bakarkhaniii364@gmail.com" 
+            <button
+              type="button"
+              onClick={() => navigateTo('contact')}
               className="hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
             >
               Contact
-            </a>
+            </button>
             <span>•</span>
             <button 
               onClick={() => onNavigate ? onNavigate('dashboard') : navigateTo('dashboard')} 

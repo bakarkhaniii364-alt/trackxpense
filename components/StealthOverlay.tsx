@@ -31,19 +31,19 @@ export const StealthOverlay: React.FC = () => {
 
             <main className="flex-1 overflow-y-auto bg-white">
                 <div className="p-6 border-b border-gray-100">
-                    <span className="text-rose-600 text-[10px] font-bold uppercase tracking-widest">Live Updates</span>
-                    <h2 className="text-2xl font-serif font-bold text-black mt-2 leading-tight">Global Market Resilience: Tech Sector Leads Quiet Recovery</h2>
+                    <span className="text-rose-600 text-[10px] font-semibold uppercase tracking-widest">Live Updates</span>
+                    <h2 className="text-2xl font-serif font-semibold text-black mt-2 leading-tight">Global Market Resilience: Tech Sector Leads Quiet Recovery</h2>
                     <p className="text-gray-500 text-sm mt-3 leading-relaxed">Economic observers suggest that the recent shift in silicon manufacturing logistics has provided a much-needed buffer for emerging startups in the Pacific rim...</p>
                     <div className="mt-4 flex gap-2">
-                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-[10px] font-bold">ECONOMY</span>
-                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-[10px] font-bold">TECH</span>
+                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-[10px] font-semibold">ECONOMY</span>
+                        <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-[10px] font-semibold">TECH</span>
                     </div>
                 </div>
 
                 <div className="p-6 border-b border-gray-100 flex gap-4">
                     <div className="flex-1">
-                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Environment</span>
-                        <h3 className="text-lg font-serif font-bold text-black mt-1 leading-snug">New Reforestation Initiative Launches in Scandinavian Archipelago</h3>
+                        <span className="text-gray-400 text-[10px] font-semibold uppercase tracking-widest">Environment</span>
+                        <h3 className="text-lg font-serif font-semibold text-black mt-1 leading-snug">New Reforestation Initiative Launches in Scandinavian Archipelago</h3>
                     </div>
                     <div className="w-20 h-20 bg-gray-200 rounded-sm animate-pulse" />
                 </div>
@@ -53,7 +53,7 @@ export const StealthOverlay: React.FC = () => {
                         <div className="flex items-center gap-3">
                             <Cloud className="text-emerald-600" size={24} />
                             <div>
-                                <p className="text-xs font-bold text-emerald-800">Local Weather</p>
+                                <p className="text-xs font-semibold text-emerald-800">Local Weather</p>
                                 <p className="text-sm text-emerald-600">Partly Cloudy • 24°C</p>
                             </div>
                         </div>
@@ -62,15 +62,15 @@ export const StealthOverlay: React.FC = () => {
                 </div>
 
                 <div className="p-6">
-                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Trending Headlines</h3>
+                    <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">Trending Headlines</h3>
                     <ul className="space-y-4">
                         <li className="flex gap-3 items-start">
-                            <span className="text-rose-500 font-serif font-bold italic text-lg">01</span>
-                            <p className="text-sm font-bold text-black">Architectural marvel completed in downtown Singapore</p>
+                            <span className="text-rose-500 font-serif font-semibold italic text-lg">01</span>
+                            <p className="text-sm font-semibold text-black">Architectural marvel completed in downtown Singapore</p>
                         </li>
                         <li className="flex gap-3 items-start">
-                            <span className="text-rose-500 font-serif font-bold italic text-lg">02</span>
-                            <p className="text-sm font-bold text-black">Electric aviation prototype clears final safety hurdles</p>
+                            <span className="text-rose-500 font-serif font-semibold italic text-lg">02</span>
+                            <p className="text-sm font-semibold text-black">Electric aviation prototype clears final safety hurdles</p>
                         </li>
                     </ul>
                 </div>

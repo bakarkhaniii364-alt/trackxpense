@@ -33,6 +33,8 @@ import {
 import Papa from 'papaparse';
 import { saveAs } from 'file-saver';
 import { AuditLogger } from '../../services/auditLog';
+import { getDashboardGreeting } from '../../utils/greetings';
+import { resolveTransactionTimestamp } from '../../utils/formatters';
 import { SpotifyIcon } from '../shared/SpotifyIcon';
 import { parseTransactionWithAI, AIParsedTransaction } from '../../services/aiService';
 import { Transaction, TransactionType, AppData, Wallet, Category } from '../../types';
@@ -51,6 +53,7 @@ import { CoinFlipLoader } from '../shared/CoinFlipLoader';
 import { NoDataWave } from '../shared/NoDataWave';
 import { sendRabbAiTextMessage, sendRabbAiImageMessage, RabbAiMessage } from '../../services/rabbAiService';
 import { Haptics } from '../../services/haptics';
+import { LayerCard } from '../shared/LayerCard';
 
 interface DesktopDashboardProps {
   data: AppData;
@@ -172,8 +175,10 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
 
   const recognitionRef = useRef<any>(null);
 
-  const currency = data.settings.currencySymbol;
+  const currentWallet = data.wallets.find((w: Wallet) => w.id === data.currentWalletId);
+  const currency = currentWallet?.currency || data.settings.currencySymbol;
   const userName = data.profile?.name ? data.profile.name.split(' ')[0] : 'alif';
+  const heroGreeting = useMemo(() => getDashboardGreeting(userName), [userName]);
 
   // Filter transactions for current wallet
   const walletTransactions = useMemo(() => 
@@ -192,13 +197,12 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
   const runwayDays = PredictiveEngine.getRunwayDays(data, balance);
   const futureLiability = PredictiveEngine.getFutureLiabilities(data, 30);
 
-  const currentWallet = data.wallets.find((w: Wallet) => w.id === data.currentWalletId);
   const goalWallets = data.wallets.filter((w: Wallet) => w.type === 'GOAL');
   const goalProgress = currentWallet?.type === 'GOAL' ? Math.min((balance / (currentWallet.targetAmount || 1)) * 100, 100) : 0;
 
-  // Daily budget calculations
+  // Daily budget calculations (scoped to active wallet)
   const today = new Date().toISOString().split('T')[0];
-  const dailySpent = data.transactions
+  const dailySpent = walletTransactions
     .filter(t => t.type === TransactionType.EXPENSE && t.date.startsWith(today))
     .reduce((sum, t) => sum + t.amount, 0);
   const dailyLimit = data.profile.dailyGoal || 0;
@@ -482,7 +486,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
           amount: ext.amount,
           type: ext.type,
           category: ext.category,
-          date: new Date().toISOString().split('T')[0],
+          date: resolveTransactionTimestamp(ext.date),
           note: ext.description,
           walletId: data.currentWalletId || data.wallets?.[0]?.id || 'default'
         };
@@ -555,7 +559,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     {
       id: 'analytics',
       label: 'Analytics',
-      subtitle: 'Reports & Spending Trends',
+      subtitle: 'Reports & spending trends',
       category: 'Views',
       icon: TrendingUp,
       keywords: ['analytics', 'reports', 'charts', 'trends', 'insights', 'spending breakdown', 'graphs', 'visuals'],
@@ -564,7 +568,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     {
       id: 'control',
       label: 'Budgets',
-      subtitle: 'Category Limits & Thresholds',
+      subtitle: 'Category limits & thresholds',
       category: 'Views',
       icon: Sliders,
       keywords: ['budgets', 'categories', 'limits', 'control', 'thresholds', 'allocations', 'spending limit'],
@@ -572,8 +576,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     },
     {
       id: 'debts',
-      label: 'Debts & Loans',
-      subtitle: 'Lent, Borrowed & IOUs',
+      label: 'Debts & loans',
+      subtitle: 'Lent, borrowed & IOUs',
       category: 'Views',
       icon: HandCoins,
       keywords: ['debts', 'loans', 'lent', 'borrowed', 'credit', 'iou', 'liabilities', 'payback', 'borrow'],
@@ -581,8 +585,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     },
     {
       id: 'provisions',
-      label: 'Upcoming Expenses',
-      subtitle: 'Bills & Provisions Calendar',
+      label: 'Upcoming expenses',
+      subtitle: 'Bills & provisions calendar',
       category: 'Views',
       icon: Calendar,
       keywords: ['provisions', 'bills', 'upcoming', 'scheduled', 'reminders', 'fixed costs', 'rent', 'utilities'],
@@ -591,7 +595,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     {
       id: 'subscriptions',
       label: 'Subscriptions',
-      subtitle: 'Recurring Charges & SaaS',
+      subtitle: 'Recurring charges & SaaS',
       category: 'Views',
       icon: SpotifyIcon,
       keywords: ['subscriptions', 'recurring', 'netflix', 'spotify', 'saas', 'monthly charges', 'memberships'],
@@ -599,8 +603,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     },
     {
       id: 'rabbai',
-      label: 'RabbAi Assistant',
-      subtitle: 'AI Financial Intelligence & Copilot',
+      label: 'RabbAI assistant',
+      subtitle: 'AI financial intelligence & copilot',
       category: 'AI & Tools',
       icon: Sparkle,
       keywords: ['rabbai', 'ai', 'assistant', 'chat', 'copilot', 'advisor', 'intelligence', 'ask ai', 'prompt'],
@@ -610,9 +614,9 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     // ── Data Management & Export (Direct Actions) ──
     {
       id: 'export-csv',
-      label: 'Export Transactions (CSV)',
-      subtitle: 'Download Ledger Spreadsheet (.csv)',
-      category: 'Data & Backup',
+      label: 'Export transactions (CSV)',
+      subtitle: 'Download ledger spreadsheet (.csv)',
+      category: 'Data & backup',
       icon: ArrowDownRight,
       keywords: ['export', 'export csv', 'csv', 'spreadsheet', 'download csv', 'download ledger', 'excel', 'export transactions'],
       action: () => {
@@ -622,9 +626,9 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     },
     {
       id: 'export-json',
-      label: 'Export Full Backup (JSON)',
-      subtitle: 'Complete Database Backup (.json)',
-      category: 'Data & Backup',
+      label: 'Export full backup (JSON)',
+      subtitle: 'Complete database backup (.json)',
+      category: 'Data & backup',
       icon: Database,
       keywords: ['export json', 'json backup', 'download backup', 'full backup', 'export data', 'backup database', 'save backup'],
       action: () => {
@@ -634,9 +638,9 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     },
     {
       id: 'export-log',
-      label: 'Export Activity Log',
-      subtitle: 'Security & Audit Trail (.csv)',
-      category: 'Data & Backup',
+      label: 'Export activity log',
+      subtitle: 'Security & audit trail (.csv)',
+      category: 'Data & backup',
       icon: ClockCounterClockwise,
       keywords: ['export log', 'audit log', 'activity log', 'security log', 'download log', 'audit trail'],
       action: () => {
@@ -646,9 +650,9 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     },
     {
       id: 'restore-backup',
-      label: 'Restore Backup',
-      subtitle: 'Import JSON Database File',
-      category: 'Data & Backup',
+      label: 'Restore backup',
+      subtitle: 'Import JSON database file',
+      category: 'Data & backup',
       icon: ArrowUpRight,
       keywords: ['restore', 'import', 'restore backup', 'import backup', 'upload backup', 'recover data'],
       action: () => {
@@ -660,8 +664,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     // ── Settings & Management ──
     {
       id: 'settings-backup',
-      label: 'Data & Backup Settings',
-      subtitle: 'Manage Exports, Sync & Storage',
+      label: 'Data & backup settings',
+      subtitle: 'Manage exports, sync & storage',
       category: 'Settings',
       icon: SlidersHorizontal,
       keywords: ['data', 'backup', 'export settings', 'import settings', 'data security', 'sync', 'storage', 'data management'],
@@ -669,8 +673,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     },
     {
       id: 'settings-profile',
-      label: 'Profile & Settings',
-      subtitle: 'Account Preferences & Currency',
+      label: 'Profile & settings',
+      subtitle: 'Account preferences & currency',
       category: 'Settings',
       icon: UserCircle,
       keywords: ['settings', 'profile', 'identity', 'preferences', 'currency', 'account', 'user', 'name'],
@@ -678,8 +682,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     },
     {
       id: 'settings-wallets',
-      label: 'Wallets & Accounts',
-      subtitle: 'Manage Cards, Cash & Banks',
+      label: 'Wallets & accounts',
+      subtitle: 'Manage cards, cash & banks',
       category: 'Settings',
       icon: WalletIcon,
       keywords: ['wallets', 'accounts', 'cards', 'banks', 'cash', 'create wallet', 'add account', 'payment methods'],
@@ -687,8 +691,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     },
     {
       id: 'policy-portal',
-      label: 'Policy Portal',
-      subtitle: 'Expense Policies & Terms',
+      label: 'Policy portal',
+      subtitle: 'Expense policies & terms',
       category: 'Compliance',
       icon: ShieldCheck,
       keywords: ['policy', 'privacy', 'terms', 'security', 'compliance', 'legal', 'rules', 'gdpr'],
@@ -698,8 +702,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     // ── Quick Actions ──
     {
       id: 'action-add',
-      label: 'Add Transaction',
-      subtitle: 'Quick Log Expense or Income',
+      label: 'Add transaction',
+      subtitle: 'Quick log expense or income',
       category: 'Actions',
       icon: Plus,
       keywords: ['add', 'add transaction', 'new transaction', 'log expense', 'add expense', 'record income', 'deposit'],
@@ -707,8 +711,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     },
     {
       id: 'action-receipt',
-      label: 'Attach Receipt Image',
-      subtitle: 'Upload Receipt for Parsing',
+      label: 'Attach receipt image',
+      subtitle: 'Upload receipt for parsing',
       category: 'Actions',
       icon: Paperclip,
       keywords: ['receipt', 'scan receipt', 'upload receipt', 'attach image', 'bill image', 'camera', 'photo'],
@@ -737,8 +741,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
   }, [data.wallets, commandText]);
 
   const recentFiveTransactions = useMemo(() => {
-    return data.transactions.slice(0, 5);
-  }, [data.transactions]);
+    return walletTransactions.slice(0, 5);
+  }, [walletTransactions]);
 
   return (
     <div className="space-y-6 sm:space-y-10 pb-12 sm:pb-16 animate-in fade-in duration-500 w-full max-w-5xl mx-auto">
@@ -768,8 +772,8 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       <div className={`w-full max-w-4xl mx-auto flex flex-col items-center justify-center pt-2 sm:pt-4 md:pt-12 pb-1 space-y-3 sm:space-y-4 md:space-y-5 relative ${isSearchFocused ? 'z-50' : 'z-30'}`}>
         
         {/* Clean, Direct Heading (Transitions UP on reload) */}
-        <h1 className="animate-hero-text-up text-[20px] sm:text-[26px] md:text-[30px] font-medium text-[var(--text-primary)] tracking-[-0.012em] text-center">
-          Spent anything today, {userName}?
+        <h1 className="animate-hero-text-up text-[20px] sm:text-[26px] md:text-[30px] font-medium text-[var(--text-primary)] text-center">
+          {heroGreeting}
         </h1>
 
         {/* Smart Search & Command Box with Suggestions (Cloudflare Technical Exact Layout) */}
@@ -872,7 +876,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                 type="button"
                 onClick={handleSendCommand}
                 disabled={(!commandText.trim() && !selectedReceipt) || isAiLoading}
-                className="h-[26px] px-2.5 rounded-[5px] bg-[#E3993D] hover:bg-[#f3a447] text-black font-semibold text-[11px] tracking-wide flex items-center gap-1 transition-all duration-150 disabled:opacity-30 disabled:hover:bg-[#E3993D] disabled:cursor-not-allowed cursor-pointer shrink-0 select-none shadow-xs active:scale-[0.98]"
+                className="h-[26px] px-2.5 rounded-[5px] bg-[#E3993D] hover:bg-[#f3a447] text-black font-medium text-[11px] flex items-center gap-1 transition-all duration-150 disabled:opacity-30 disabled:hover:bg-[#E3993D] disabled:cursor-not-allowed cursor-pointer shrink-0 select-none shadow-xs active:scale-[0.98]"
                 title="Submit command"
               >
                 <span>Log</span>
@@ -1084,11 +1088,11 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       {/* ========================================================================= */}
       {/* LOWER CONTENT: Transitions DOWN on reload                                 */}
       {/* ========================================================================= */}
-      <div className="animate-hero-bottom-down space-y-7 relative z-10">
+      <div className="animate-hero-bottom-down flex flex-col gap-6 sm:gap-7 relative z-10">
         
         {/* CLOUDFLARE 3-COLUMN LOOK: Status | Actions | Recents List */}
         {/* Free-standing, no outside cards, with 3-dot context menus on each header */}
-        <div ref={menuRef} className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start">
+        <div ref={menuRef} className="order-2 md:order-1 grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-start">
         
           {/* Column 1: Current Status */}
           <div className="space-y-2.5 relative">
@@ -1260,35 +1264,35 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
               >
                 <button
                   type="button"
-                  onClick={() => { onAddTransactionRequest(TransactionType.EXPENSE); setActiveMenu(null); }}
+                  onClick={() => { setView('history'); setActiveMenu(null); }}
                   className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
                 >
-                  <Plus size={13} strokeWidth={1.5} className="text-[var(--status-error-fg)]" />
-                  <span>Log new expense</span>
+                  <ClockCounterClockwise size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+                  <span>View transactions</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => { onAddTransactionRequest(TransactionType.INCOME); setActiveMenu(null); }}
+                  onClick={() => { setView('subscriptions'); setActiveMenu(null); }}
                   className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
                 >
-                  <ArrowUpRight size={13} strokeWidth={1.5} className="text-[var(--status-success-fg)]" />
-                  <span>Log new income</span>
+                  <Calendar size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+                  <span>Subscriptions</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => { fileInputRef.current?.click(); setActiveMenu(null); }}
+                  onClick={() => { setView('control'); setActiveMenu(null); }}
                   className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
                 >
-                  <Paperclip size={13} strokeWidth={1.5} className="text-[var(--accent)]" />
-                  <span>Attach receipt image</span>
+                  <Sliders size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+                  <span>Configure budgets</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setIsSimOpen(true); setActiveMenu(null); }}
+                  onClick={() => { exportTransactionsCSV(); setActiveMenu(null); }}
                   className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] text-left cursor-pointer transition-colors"
                 >
-                  <Lightning size={13} strokeWidth={1.5} className="text-[var(--status-warning-fg)]" />
-                  <span>Simulate scenario</span>
+                  <FileText size={13} strokeWidth={1.5} className="text-[var(--text-muted)]" />
+                  <span>Export ledger (CSV)</span>
                 </button>
               </div>
             )}
@@ -1326,7 +1330,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                 className="flex items-center justify-between py-2.5 px-1 hover:bg-[var(--bg-surface-hover)]/60 text-[12.5px] cursor-pointer group transition-colors"
               >
                 <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                  <Paperclip size={14} className="text-[var(--accent)] shrink-0" strokeWidth={1.5} />
+                  <Paperclip size={14} className="text-[#fdba74] shrink-0" strokeWidth={1.5} />
                   <span className="text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] truncate font-normal">
                     Scan receipt
                   </span>
@@ -1457,12 +1461,13 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
         </div>
 
       {/* ========================================================================= */}
-      {/* SECTION DIVIDER & HEADER: Analytics Overview with Cloudflare Range Picker */}
+      {/* SECTION DIVIDER & HEADER + BENTO CARD DECK (First below hero on mobile)   */}
       {/* ========================================================================= */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-6 border-t border-[var(--border-default)]">
+      <div className="order-1 md:order-2 space-y-4 sm:space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 md:pt-6 md:border-t md:border-[var(--border-default)]">
         <div className="flex items-baseline gap-3">
-          <span className="text-[15px] font-medium text-[var(--text-primary)] tracking-tight">
-            Analytics Overview
+          <span className="text-[15px] font-medium text-[var(--text-primary)]">
+            Analytics overview
           </span>
           <span className="text-[11px] text-[var(--text-muted)] font-mono">
             {dateRange.label}
@@ -1507,11 +1512,11 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
         </div>
 
         {/* Total Spending Volume & Trend (Right) */}
-        <div className="w-full rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-full">
+        <LayerCard className="w-full px-5 py-4 flex flex-col justify-between h-full">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
-                Total Spending
+              <span className="text-[12.5px] font-medium text-[var(--text-secondary)]">
+                Total spending
               </span>
               <span className="text-[11px] font-medium text-[var(--text-secondary)] font-mono">
                 {dateRange.label}
@@ -1520,7 +1525,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
 
             <div className="flex items-baseline justify-between mb-2">
               <div className="flex items-baseline gap-3">
-                <span className="text-2xl lg:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
+                <span className="text-2xl lg:text-3xl font-semibold text-[var(--text-primary)]">
                   {formatMoney(timeframeExpense, currency)}
                 </span>
                 {deltaPercent > 0 && (
@@ -1550,11 +1555,15 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                       <stop offset="95%" stopColor="#F6821F" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="var(--border-default)" strokeDasharray="2 2" vertical={false} />
+                  <CartesianGrid 
+                    strokeDasharray="2 2" 
+                    vertical={false} 
+                    stroke="var(--border-default)" 
+                  />
                   <XAxis 
                     dataKey="name" 
                     stroke="var(--text-muted)" 
-                    fontSize={11} 
+                    fontSize={10} 
                     tickLine={false} 
                     axisLine={false}
                     dy={5}
@@ -1575,7 +1584,6 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                       borderRadius: '8px',
                       fontSize: '12px',
                       color: 'var(--text-primary)',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
                       padding: '6px 10px'
                     }}
                     itemStyle={{ color: 'var(--text-primary)' }}
@@ -1596,13 +1604,13 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
               <NoDataWave height={145} />
             )}
           </div>
-        </div>
+        </LayerCard>
       </div>
 
       {/* ========================================================================= */}
-      {/* BENTO TIER 2: 4-Metric Grid                                               */}
+      {/* BENTO TIER 2: 4-Metric Grid (2x2 on phones, 4-col on desktop)             */}
       {/* ========================================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
         {/* 1. Daily Budget Cap */}
         <DailyBudget 
           dailySpent={dailySpent} 
@@ -1618,11 +1626,11 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
         <FinancialHealthScore data={data} />
 
         {/* 3. 30-Day Outlook & Liabilities */}
-        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-full">
+        <LayerCard className="px-3.5 py-3 sm:px-5 sm:py-4 flex flex-col justify-between h-full">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] truncate">
-                30-Day Outlook
+              <span className="text-[12.5px] font-medium text-[var(--text-secondary)] truncate">
+                30-day outlook
               </span>
               <span className="text-[11px] font-medium text-[var(--text-secondary)] font-mono shrink-0">
                 {balance <= 0 ? '0d runway' : (!isFinite(runwayDays) || runwayDays >= 365) ? '365+d runway' : `${runwayDays}d runway`}
@@ -1630,7 +1638,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
             </div>
 
             <div className="mb-3">
-              <div className="text-2xl lg:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
+              <div className="text-2xl lg:text-3xl font-semibold text-[var(--text-primary)]">
                 {formatMoney(futureLiability, currency)}
               </div>
               <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">
@@ -1653,7 +1661,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
               </span>
             </div>
           </div>
-        </div>
+        </LayerCard>
 
         {/* 4. Active Streaks & Discipline */}
         <StreakDisplay data={data} />
@@ -1664,11 +1672,11 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-3.5">
         {/* Category Allocation */}
-        <div className="w-full rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors">
+        <LayerCard className="w-full px-5 py-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
-                Category Allocation
+              <span className="text-[12.5px] font-medium text-[var(--text-secondary)]">
+                Category allocation
               </span>
               <span className="text-[11px] font-medium text-[var(--text-secondary)] font-mono">
                 {categoryTotals.length} active
@@ -1676,7 +1684,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
             </div>
 
             <div className="mb-4">
-              <div className="text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
+              <div className="text-2xl font-semibold text-[var(--text-primary)]">
                 {categoryTotals.length > 0 ? categoryTotals[0].name : 'No expenses'}
               </div>
               <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">
@@ -1711,7 +1719,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
               <NoDataWave height={120} />
             )}
           </div>
-        </div>
+        </LayerCard>
 
         {/* Local Advisor / Smart Insights */}
         <div className="w-full">
@@ -1725,6 +1733,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
       {budgetAlerts.length > 0 && (
         <BudgetAlerts budgetAlerts={budgetAlerts} data={data} formatMoney={formatMoney} />
       )}
+      </div>
       </div>
 
       {/* Simulator Module */}

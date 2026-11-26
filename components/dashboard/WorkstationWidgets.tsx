@@ -1,14 +1,19 @@
 import React from 'react';
 import { AppData, TransactionType, Streak } from '../../types';
+import { LayerCard } from '../shared/LayerCard';
 
 interface WidgetProps {
     data: AppData;
 }
 
 export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
+    const walletTxs = data.currentWalletId
+        ? data.transactions.filter(t => t.walletId === data.currentWalletId)
+        : data.transactions;
+
     const calculateScore = () => {
-        const totalIncome = data.transactions.filter(t => t.type === TransactionType.INCOME).reduce((sum, t) => sum + t.amount, 0);
-        const totalExpense = data.transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((sum, t) => sum + t.amount, 0);
+        const totalIncome = walletTxs.filter(t => t.type === TransactionType.INCOME).reduce((sum, t) => sum + t.amount, 0);
+        const totalExpense = walletTxs.filter(t => t.type === TransactionType.EXPENSE).reduce((sum, t) => sum + t.amount, 0);
         const currentBalance = totalIncome - totalExpense;
         const totalDebtOwed = (data.debts || [])
             .filter(d => !d.isSettled && d.type === 'I_OWE')
@@ -30,7 +35,7 @@ export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
         if (limitKeys.length > 0) {
             const breaches = limitKeys.filter(cat => {
                 const limit = typeof limits[cat] === 'number' ? limits[cat] : limits[cat].limit;
-                const spend = data.transactions
+                const spend = walletTxs
                     .filter(t => t.type === TransactionType.EXPENSE && t.category === cat)
                     .reduce((sum, t) => sum + t.amount, 0);
                 return spend > limit;
@@ -69,8 +74,10 @@ export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
         return Math.max(0, Math.min(100, Math.round(score)));
     };
 
-    const score = calculateScore();
+    const hasActivity = walletTxs.length > 0 || (data.debts || []).length > 0;
+    const score = hasActivity ? calculateScore() : null;
     const getStatus = () => {
+        if (score === null) return { label: 'Baseline', textClass: 'text-[var(--text-secondary)]', dotClass: 'bg-[var(--text-muted)]' };
         if (score >= 80) return { label: 'Optimum', textClass: 'text-[var(--status-success-fg)]', dotClass: 'bg-[var(--status-success-fg)]' };
         if (score >= 50) return { label: 'Stable', textClass: 'text-[var(--status-warning-fg)]', dotClass: 'bg-[var(--status-warning-fg)]' };
         return { label: 'Critical', textClass: 'text-[var(--status-error-fg)]', dotClass: 'bg-[var(--status-error-fg)]' };
@@ -79,23 +86,23 @@ export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
     const status = getStatus();
 
     return (
-        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-full">
+        <LayerCard className="px-3.5 py-3 sm:px-5 sm:py-4 flex flex-col justify-between h-full">
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] truncate">
+                    <span className="text-[12px] font-medium text-[var(--text-muted)] truncate">
                         Stability
                     </span>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                         <span className={`w-1.5 h-1.5 rounded-full ${status.dotClass}`} />
-                        <span className={`text-[10px] font-medium ${status.textClass}`}>{status.label}</span>
+                        <span className={`text-[12px] font-medium ${status.textClass}`}>{status.label}</span>
                     </div>
                 </div>
 
                 <div className="mb-2">
-                    <div className="text-base sm:text-xl lg:text-2xl font-semibold text-[var(--text-primary)] tracking-tight font-mono">
-                        {score} <span className="text-[11px] font-normal text-[var(--text-secondary)]">/ 100</span>
+                    <div className="text-base sm:text-xl lg:text-2xl font-semibold text-[var(--text-primary)] font-mono">
+                        {score === null ? '—' : score} <span className="text-[12px] font-normal text-[var(--text-secondary)]">/ 100</span>
                     </div>
-                    <div className="text-[11px] text-[var(--text-secondary)] mt-0.5 font-normal truncate">
+                    <div className="text-[12px] text-[var(--text-secondary)] mt-0.5 font-normal truncate">
                         Health rating
                     </div>
                 </div>
@@ -105,23 +112,25 @@ export const FinancialHealthScore: React.FC<WidgetProps> = ({ data }) => {
                 <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden mb-2.5">
                     <div
                         className={`h-full rounded-full transition-all duration-700 ${
-                            score >= 80
-                                ? 'bg-[var(--status-success-fg)]'
-                                : score >= 50
-                                    ? 'bg-[var(--status-warning-fg)]'
-                                    : 'bg-[var(--status-error-fg)]'
+                            score === null
+                                ? 'bg-[var(--border-active)]'
+                                : score >= 80
+                                    ? 'bg-[var(--status-success-fg)]'
+                                    : score >= 50
+                                        ? 'bg-[var(--status-warning-fg)]'
+                                        : 'bg-[var(--status-error-fg)]'
                         }`}
-                        style={{ width: `${score}%` }}
+                        style={{ width: `${score ?? 0}%` }}
                     />
                 </div>
 
-                <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
+                <div className="flex items-center justify-between text-[12px] text-[var(--text-secondary)]">
                     <span>Performance tier</span>
                     <span className="font-mono text-[var(--text-primary)] font-medium">
-                        {score >= 80 ? 'Top 15%' : score >= 50 ? 'Moderate' : 'Needs Review'}
+                        {score === null ? 'Awaiting data' : score >= 80 ? 'Top 15%' : score >= 50 ? 'Moderate' : 'Needs review'}
                     </span>
                 </div>
             </div>
-        </div>
+        </LayerCard>
     );
 };

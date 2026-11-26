@@ -214,25 +214,26 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center p-0 sm:p-4">
             {/* Backdrop */}
             <div 
                 className="fixed inset-0 bg-black/80 transition-opacity" 
                 onClick={() => { Haptics.light(); onClose(); }} 
             />
             
-            {/* Universal Modal Container */}
+            {/* Universal Modal Container (Bottom Sheet on Mobile, Centered on Desktop) */}
             <div 
                 role="dialog" 
                 aria-modal="true" 
                 aria-labelledby="add-tx-modal-title"
-                className="relative z-50 bg-[var(--bg-surface)] border border-[var(--border-default)] w-full max-w-[460px] rounded-[8px] shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200 text-[var(--text-primary)]"
+                className="relative z-50 bg-[var(--bg-surface)] border border-[var(--border-default)] ring-1 ring-white/5 w-full max-w-[460px] rounded-t-[14px] rounded-b-none sm:rounded-[8px] px-5 sm:px-6 pt-3 sm:py-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] max-h-[92dvh] overflow-y-auto space-y-4 sm:space-y-5 animate-in zoom-in-95 duration-200 text-[var(--text-primary)]"
             >
+                <div className="sm:hidden w-9 h-1 rounded-full bg-[var(--border-active)] mx-auto" />
 
                 {/* Header: Title, Type Switcher & Close (No border-b separator) */}
                 <div className="flex items-center justify-between">
                     <h3 id="add-tx-modal-title" className="text-base font-semibold text-[var(--text-primary)]">
-                        {isEditing ? 'Edit Transaction' : 'Add Transaction'}
+                        {isEditing ? 'Edit transaction' : 'Add transaction'}
                     </h3>
 
                     <div className="flex items-center gap-2">
@@ -273,7 +274,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
 
                     {/* Amount Field */}
                     <div className="space-y-1.5">
-                        <label className="text-[13px] font-medium text-[var(--text-primary)]">
+                        <label className="text-sm font-medium text-[var(--text-primary)]">
                             Amount ({data.settings.currencySymbol})
                         </label>
                         <input 
@@ -282,7 +283,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                             value={amount} 
                             onChange={e => setAmount(e.target.value)} 
                             onKeyDown={e => e.key === 'Enter' && handleSave()}
-                            className="w-full h-[46px] bg-[var(--field-bg)] border border-[var(--field-border)] rounded-[8px] px-4 font-mono text-2xl font-bold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none transition-all"
+                            className="w-full h-[46px] bg-[var(--field-bg)] border border-[var(--field-border)] rounded-[8px] px-4 font-mono text-2xl font-semibold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none"
                             autoFocus
                         />
                     </div>
@@ -290,17 +291,17 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     {/* Annotation & Date Row */}
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                         <div className="sm:col-span-7 space-y-1.5">
-                            <label className="text-[13px] font-medium text-[var(--text-primary)]">Note / Annotation</label>
+                            <label className="text-sm font-medium text-[var(--text-primary)]">Note / annotation</label>
                             <input 
                                 type="text" 
                                 placeholder="Note details..." 
                                 value={note} 
                                 onChange={e => setNote(e.target.value)} 
-                                className="w-full h-[38px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[8px] px-3 text-[13px] text-[var(--text-primary)] outline-none transition-all"
+                                className="w-full h-[38px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[8px] px-3 text-sm text-[var(--text-primary)] outline-none"
                             />
                         </div>
                         <div className="sm:col-span-5 space-y-1.5">
-                            <label className="text-[13px] font-medium text-[var(--text-primary)]">Date</label>
+                            <label className="text-sm font-medium text-[var(--text-primary)]">Date</label>
                             <GlassDateInput value={date} onChange={setDate} />
                         </div>
                     </div>
@@ -308,7 +309,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     {/* Destination Vault (If Transfer) */}
                     {type === TransactionType.TRANSFER && (
                         <div className="space-y-1.5">
-                            <label className="text-[13px] font-medium text-[var(--text-primary)]">Destination Wallet</label>
+                            <label className="text-sm font-medium text-[var(--text-primary)]">Destination wallet</label>
                             <GlassSelect 
                                 value={toWalletId} 
                                 onChange={setToWalletId} 
@@ -326,14 +327,14 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     {type !== TransactionType.TRANSFER && (
                         <div className="space-y-1.5">
                             <div className="flex items-center justify-between">
-                                <label className="text-[13px] font-medium text-[var(--text-primary)]">Category</label>
+                                <label className="text-sm font-medium text-[var(--text-primary)]">Category</label>
                                 {type === TransactionType.EXPENSE && (
                                     <button 
                                         type="button"
                                         onClick={() => setIsSplit(!isSplit)}
                                         className="text-[11px] font-medium text-[var(--accent)] hover:underline"
                                     >
-                                        {isSplit ? 'Single Category' : 'Split Category'}
+                                        {isSplit ? 'Single category' : 'Split category'}
                                     </button>
                                 )}
                             </div>
@@ -407,7 +408,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <EyeOff size={15} strokeWidth={1.5} className={isPrivate ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} />
-                            <span className="text-[13px] font-medium text-[var(--text-primary)]">Vault Stealth (Ghost Mode)</span>
+                            <span className="text-sm font-medium text-[var(--text-primary)]">Vault stealth (ghost mode)</span>
                         </div>
                         <button 
                             type="button"
@@ -426,7 +427,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <Save size={15} strokeWidth={1.5} className={isTemplate ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'} />
-                                    <span className="text-[13px] font-medium text-[var(--text-primary)]">Save as Preset Template</span>
+                                    <span className="text-sm font-medium text-[var(--text-primary)]">Save as preset template</span>
                                 </div>
                                 <button 
                                     type="button"
@@ -445,7 +446,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                                     placeholder="Preset label (e.g. Daily Coffee)..." 
                                     value={templateName} 
                                     onChange={e => setTemplateName(e.target.value)}
-                                    className="w-full h-[36px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] outline-none"
+                                    className="w-full h-[36px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[6px] px-3 text-sm text-[var(--text-primary)] outline-none"
                                 />
                             )}
                         </div>
@@ -467,7 +468,7 @@ export const AddTransactionModal: React.FC<AddTransactionModalProps> = ({
                         disabled={!amount}
                         className="btn btn--primary h-[32px] px-4 text-[12px]"
                     >
-                        {isEditing ? 'Save Changes' : 'Execute Transaction'}
+                        {isEditing ? 'Save changes' : 'Execute transaction'}
                     </button>
                 </div>
             </div>

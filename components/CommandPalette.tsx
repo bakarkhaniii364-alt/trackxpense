@@ -232,7 +232,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         aria-modal="true" 
         aria-label="Command Palette"
         style={{ backgroundColor: '#0f0f0f', borderColor: '#1e1e1e' }}
-        className="relative w-full max-w-xl bg-[#0f0f0f] border border-[#1e1e1e] rounded-[10px] shadow-2xl overflow-hidden flex flex-col z-10 text-[#f4f4f5]"
+        className="relative w-full max-w-xl bg-[#0f0f0f] border border-[#1e1e1e] ring-1 ring-[#262626] rounded-[8px] overflow-hidden flex flex-col z-10 text-[#f4f4f5]"
       >
         {/* Top Input Bar */}
         <div className="h-[48px] px-3 sm:px-4 flex items-center gap-2 sm:gap-3 border-b border-[#1e1e1e] shrink-0">
@@ -244,14 +244,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
             onKeyDown={handleKeyDown}
-            className="flex-1 min-w-0 bg-transparent border-none outline-none text-[13px] font-normal text-[#f4f4f5] placeholder:text-[#a1a1a1]"
+            className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm font-normal text-[#f4f4f5] placeholder:text-[#a1a1a1]"
           />
           <span className="hidden sm:inline-flex text-[10px] font-mono text-[#a1a1a1] bg-[#18181a] px-1.5 py-0.5 rounded border border-[#1e1e1e] shrink-0">
             Ctrl K
           </span>
           <button 
             onClick={onClose}
-            className="px-1.5 py-0.5 rounded-[4px] border border-[#1e1e1e] bg-[#18181a] text-[10px] text-[#a1a1a1] font-mono hover:text-white transition-colors shrink-0 cursor-pointer"
+            className="px-1.5 py-0.5 rounded-[4px] border border-[#1e1e1e] bg-[#18181a] text-[10px] text-[#a1a1a1] font-mono hover:text-white shrink-0 cursor-pointer"
           >
             Esc
           </button>
@@ -260,7 +260,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           {results.length > 0 ? (
             Array.from(sectionsMap.entries()).map(([sectionName, items]) => (
               <div key={sectionName} className="mb-2 last:mb-0">
-                <h3 className="px-3 pt-2 pb-1 text-[11px] font-medium uppercase tracking-[0.06em] text-[#a1a1a1] flex items-center gap-1.5">
+                <h3 className="px-3 pt-2 pb-1 text-[11px] font-medium text-[#a1a1a1] flex items-center gap-1.5">
                   {sectionName === 'RabbAi Intelligence' && <Zap size={12} className="text-amber-400" />}
                   {sectionName}
                 </h3>
@@ -276,7 +276,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                         key={item.id}
                         onClick={() => { item.action(); onClose(); }}
                         onMouseEnter={() => setSelectedIndex(currentIndex)}
-                        className={`w-full h-[40px] px-3 flex items-center justify-between rounded-[6px] transition-colors text-left text-[13px] cursor-pointer ${
+                        className={`w-full h-[40px] px-3 flex items-center justify-between rounded-[6px] text-left text-sm cursor-pointer ${
                           isDenial
                             ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                             : isSelected 
@@ -319,8 +319,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
           {/* Search tips section if no query */}
           {query.trim() === '' && (
             <div className="mt-2 pt-2 border-t border-[#1e1e1e] px-3 pb-1">
-              <h3 className="text-[11px] font-medium text-[#a1a1a1] uppercase tracking-[0.06em] mb-1.5 flex items-center gap-1">
-                <Zap size={11} className="text-amber-400" /> Quick Entry & Search Examples
+              <h3 className="text-[11px] font-medium text-[#a1a1a1] mb-1.5 flex items-center gap-1">
+                <Zap size={11} className="text-amber-400" /> Quick entry & search examples
               </h3>
               <div className="space-y-1 text-[12px] text-[#a1a1a1]">
                 <div className="flex items-center gap-2">

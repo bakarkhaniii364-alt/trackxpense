@@ -19,7 +19,9 @@ import {
 import { Debt, AppData, Transaction, TransactionType, Category, DebtPayment } from '../types';
 import { Haptics } from '../services/haptics';
 import { GlassCheckbox } from './shared/CommonUI';
+import { Table } from './shared/Table';
 import { EmptyStateSeeder } from './shared/EmptyStateSeeder';
+import { LayerCard } from './shared/LayerCard';
 
 interface DebtProps {
   data: AppData;
@@ -198,10 +200,10 @@ export const DebtView: React.FC<DebtProps> = ({
       {/* Header & Add Button */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
         <div>
-          <h2 className="text-[18px] sm:text-[22px] font-semibold text-[var(--text-primary)] tracking-tight">
-            Debts & Liabilities
+          <h2 className="text-[18px] sm:text-[22px] font-semibold text-[var(--text-primary)]">
+            Debts & liabilities
           </h2>
-          <p className="text-[12px] text-[var(--text-secondary)] mt-0.5">
+          <p className="text-sm text-[var(--text-secondary)] mt-0.5">
             Track obligations you owe and credit extended to counterparties.
           </p>
         </div>
@@ -210,53 +212,53 @@ export const DebtView: React.FC<DebtProps> = ({
           {selectedIds.length > 0 && (
             <button
               onClick={handleBatchDelete}
-              className="h-[32px] px-3 bg-[var(--status-error-bg)] text-[var(--status-error-fg)] border border-[var(--status-error-fg)]/30 rounded-[6px] text-[12px] font-medium flex items-center gap-1.5 cursor-pointer"
+              className="h-[34px] px-3 bg-[var(--status-error-bg)] text-[var(--status-error-fg)] border border-[var(--status-error-fg)]/30 rounded-[6px] text-sm font-medium flex items-center gap-1.5 cursor-pointer"
             >
-              <Trash2 size={14} strokeWidth={1.5} />
+              <Trash2 size={15} strokeWidth={1.5} />
               <span>Delete ({selectedIds.length})</span>
             </button>
           )}
 
           <button
             onClick={() => setIsAddOpen(true)}
-            className="btn btn--primary text-[12px] h-[32px] px-3.5 font-medium rounded-[6px] flex items-center gap-1.5 cursor-pointer"
+            className="btn btn--primary px-4 text-sm flex items-center gap-2 cursor-pointer"
           >
-            <Plus size={14} strokeWidth={1.5} className="btn__icon" />
-            <span>Add Record</span>
+            <Plus size={15} strokeWidth={1.5} className="btn__icon" />
+            <span>Add record</span>
           </button>
         </div>
       </div>
 
       {/* KPI Cards Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-3.5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-between">
+        <LayerCard className="px-5 py-4 flex items-center justify-between">
           <div>
-            <span className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em] block">
-              You Owe (Payable)
+            <span className="text-sm font-medium text-[var(--text-muted)] block">
+              You owe (payable)
             </span>
             <span className="text-[18px] font-semibold font-mono text-[var(--status-error-fg)] mt-0.5 block">
               {formatMoney(totalIOwe, currencySymbol)}
             </span>
           </div>
           <ArrowDownRight size={22} strokeWidth={1.5} className="text-[var(--status-error-fg)] shrink-0" />
-        </div>
+        </LayerCard>
 
-        <div className="p-3.5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-between">
+        <LayerCard className="px-5 py-4 flex items-center justify-between">
           <div>
-            <span className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em] block">
-              Owed to You (Receivable)
+            <span className="text-sm font-medium text-[var(--text-muted)] block">
+              Owed to you (receivable)
             </span>
             <span className="text-[18px] font-semibold font-mono text-[var(--status-success-fg)] mt-0.5 block">
               {formatMoney(totalOwesMe, currencySymbol)}
             </span>
           </div>
           <ArrowUpRight size={22} strokeWidth={1.5} className="text-[var(--status-success-fg)] shrink-0" />
-        </div>
+        </LayerCard>
 
-        <div className="p-3.5 rounded-[10px] bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-between">
+        <LayerCard className="px-5 py-4 flex items-center justify-between">
           <div>
-            <span className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em] block">
-              Net Liability Position
+            <span className="text-sm font-medium text-[var(--text-muted)] block">
+              Net liability position
             </span>
             <span className={`text-[18px] font-semibold font-mono mt-0.5 block ${
               netPosition >= 0 ? 'text-[var(--text-primary)]' : 'text-[var(--status-error-fg)]'
@@ -265,7 +267,7 @@ export const DebtView: React.FC<DebtProps> = ({
             </span>
           </div>
           <HandCoins size={22} strokeWidth={1.5} className="text-[var(--accent-solid)] shrink-0" />
-        </div>
+        </LayerCard>
       </div>
 
       {/* Cloudflare Underline Tab Bar (No Pill Shapes, No Boxed Segmented Controls) */}
@@ -273,14 +275,14 @@ export const DebtView: React.FC<DebtProps> = ({
         {[
           { id: 'ALL', label: 'All' },
           { id: 'ACTIVE', label: 'Active' },
-          { id: 'I_OWE', label: 'I Owe' },
-          { id: 'OWES_ME', label: 'Owes Me' },
+          { id: 'I_OWE', label: 'I owe' },
+          { id: 'OWES_ME', label: 'Owes me' },
           { id: 'SETTLED', label: 'Settled' }
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => { Haptics.light(); setTypeFilter(tab.id as any); }}
-            className={`pb-2.5 text-[13px] font-medium border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
+            className={`pb-2.5 text-sm font-medium border-b-2 cursor-pointer whitespace-nowrap ${
               typeFilter === tab.id
                 ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
                 : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
@@ -293,14 +295,14 @@ export const DebtView: React.FC<DebtProps> = ({
 
       {/* Flat Toolbar: Search */}
       <div className="flex items-center justify-between gap-3 pt-1">
-        <div className="w-full sm:max-w-md flex items-center gap-2 bg-[var(--bg-surface)] rounded-[6px] px-3 h-[36px] border border-[var(--border-default)] focus-within:border-[var(--border-active)] transition-colors">
-          <Search size={14} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
+        <div className="w-full sm:max-w-md flex items-center gap-2 bg-[var(--bg-surface)] rounded-[6px] px-3 h-[36px] border border-[var(--border-default)] focus-within:border-[var(--border-active)]">
+          <Search size={15} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
           <input
             type="text"
             placeholder="Search person or note..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="bg-transparent text-[13px] text-[var(--text-primary)] w-full outline-none placeholder:text-[var(--text-muted)]"
+            className="bg-transparent text-sm text-[var(--text-primary)] w-full outline-none placeholder:text-[var(--text-muted)]"
           />
           {searchTerm && (
             <button onClick={() => setSearchTerm('')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer">
@@ -316,7 +318,7 @@ export const DebtView: React.FC<DebtProps> = ({
           No records match the current filters.
         </div>
       ) : (
-        <div className="bg-[var(--bg-surface)] rounded-[8px] border border-[var(--border-default)] shadow-xs">
+        <LayerCard className="overflow-hidden">
           {/* Table Section Header (Cloudflare / Lumen layout) */}
           <div className="px-4 py-3 border-b border-[var(--border-default)] flex items-center justify-between">
             <span className="text-[13px] font-medium text-[var(--text-primary)]">
@@ -355,11 +357,11 @@ export const DebtView: React.FC<DebtProps> = ({
 
           {/* Desktop/Tablet Table Layout */}
           <div className="hidden md:block">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[var(--border-default)] bg-[var(--bg-surface)] text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em]">
+            <Table className="w-full text-left border-collapse">
+              <Table.Header>
+                <Table.Row className="border-b border-[var(--color-kumo-hairline)] bg-[var(--bg-surface)] text-[12px] font-medium text-[var(--text-secondary)]">
                   {selectedIds.length > 0 && (
-                    <th className="px-4 py-2 w-10">
+                    <Table.Head className="px-4 py-2.5 w-10">
                       <GlassCheckbox
                         checked={filteredDebts.length > 0 && filteredDebts.every(d => selectedIds.includes(d.id))}
                         onChange={() => {
@@ -367,17 +369,17 @@ export const DebtView: React.FC<DebtProps> = ({
                           else setSelectedIds(filteredDebts.map(d => d.id));
                         }}
                       />
-                    </th>
+                    </Table.Head>
                   )}
-                  <th className="px-4 py-2">Person / Counterparty</th>
-                  <th className="px-4 py-2">Direction</th>
-                  <th className="px-4 py-2 text-right">Total Amount</th>
-                  <th className="px-4 py-2 text-right">Remaining</th>
-                  <th className="px-4 py-2">Due Date</th>
-                  <th className="px-3 py-2 w-10 text-right"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border-default)]">
+                  <Table.Head className="px-4 py-2.5">Person / counterparty</Table.Head>
+                  <Table.Head className="px-4 py-2.5">Direction</Table.Head>
+                  <Table.Head className="px-4 py-2.5 text-right">Total amount</Table.Head>
+                  <Table.Head className="px-4 py-2.5 text-right">Remaining</Table.Head>
+                  <Table.Head className="px-4 py-2.5">Due date</Table.Head>
+                  <Table.Head className="px-3 py-2.5 w-10 text-right"></Table.Head>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body className="divide-y divide-[var(--color-kumo-hairline)]">
                 {filteredDebts.map((d, idx) => {
                   const debtId = d.id ? String(d.id) : `debt_${idx}`;
                   const isSelected = selectedIds.includes(debtId);
@@ -387,57 +389,61 @@ export const DebtView: React.FC<DebtProps> = ({
                   const openUpwards = idx >= Math.max(1, filteredDebts.length - 2);
 
                   return (
-                    <tr key={debtId} className={`hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer ${isSelected ? 'bg-[var(--bg-subtle)]' : ''}`}>
+                    <Table.Row 
+                      key={debtId} 
+                      variant={isSelected ? 'selected' : 'default'}
+                      className={`hover:bg-[var(--bg-surface-hover)] cursor-pointer ${isSelected ? 'bg-[var(--bg-subtle)]' : ''}`}
+                    >
                       {selectedIds.length > 0 && (
-                        <td className="px-4 py-2">
+                        <Table.Cell className="px-4 py-2.5">
                           <GlassCheckbox checked={isSelected} onChange={() => toggleSelect(debtId)} />
-                        </td>
+                        </Table.Cell>
                       )}
-                      <td className="px-4 py-2">
+                      <Table.Cell className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-[12.5px] font-medium text-[var(--text-primary)]">
+                          <span className="text-[14px] font-medium text-[var(--text-primary)]">
                             {d.person}
                           </span>
                           {d.note && (
-                            <span className="text-[11px] text-[var(--text-muted)] truncate max-w-[200px]">
+                            <span className="text-[12px] text-[var(--text-muted)] truncate max-w-[200px]">
                               · {d.note}
                             </span>
                           )}
                         </div>
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap">
+                      </Table.Cell>
+                      <Table.Cell className="px-4 py-2 whitespace-nowrap">
                         <span className={`pill ${
                           d.type === 'I_OWE' 
                             ? 'pill--error' 
                             : 'pill--success'
                         }`}>
-                          {d.type === 'I_OWE' ? 'You Owe' : 'Owed to You'}
+                          {d.type === 'I_OWE' ? 'You owe' : 'Owed to you'}
                         </span>
-                      </td>
-                      <td className="px-4 py-2 text-right font-mono text-[12.5px] font-medium text-[var(--text-primary)] whitespace-nowrap">
+                      </Table.Cell>
+                      <Table.Cell className="px-4 py-2 text-right font-mono text-[14px] font-medium text-[var(--text-primary)] whitespace-nowrap">
                         {formatMoney(d.amount, currencySymbol)}
-                      </td>
-                      <td className="px-4 py-2 text-right font-mono text-[12.5px] font-semibold text-[var(--text-primary)] whitespace-nowrap">
+                      </Table.Cell>
+                      <Table.Cell className="px-4 py-2 text-right font-mono text-[14px] font-semibold text-[var(--text-primary)] whitespace-nowrap">
                         {d.isSettled ? (
                           <span className="text-[var(--status-success-fg)]">Settled</span>
                         ) : (
                           formatMoney(remaining, currencySymbol)
                         )}
-                      </td>
-                      <td className="px-4 py-2 text-[11.5px] font-mono text-[var(--text-muted)] whitespace-nowrap">
+                      </Table.Cell>
+                      <Table.Cell className="px-4 py-2 text-[12.5px] font-mono text-[var(--text-muted)] whitespace-nowrap">
                         {d.dueDate || 'No date'}
-                      </td>
-                      <td className="px-3 py-2 text-right whitespace-nowrap relative" onClick={e => e.stopPropagation()}>
+                      </Table.Cell>
+                      <Table.Cell className="px-3 py-2 text-right whitespace-nowrap relative" onClick={e => e.stopPropagation()}>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setActiveRowMenu(isMenuOpen ? null : debtId);
                           }}
-                          className="w-6 h-6 rounded-[4px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] inline-flex items-center justify-center transition-colors cursor-pointer"
+                          className="w-6 h-6 rounded-[4px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] inline-flex items-center justify-center cursor-pointer"
                           title="More options"
                         >
-                          <DotsThree size={16} weight="bold" />
+                          <DotsThree size={16} weight="regular" />
                         </button>
                         {isMenuOpen && (
                           <>
@@ -448,7 +454,7 @@ export const DebtView: React.FC<DebtProps> = ({
                                 setActiveRowMenu(null);
                               }}
                             />
-                            <div className={`absolute right-3 z-[50] w-36 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_12px_32px_rgba(0,0,0,0.65)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100 text-left select-none ${
+                            <div className={`absolute right-3 z-[50] w-36 bg-[var(--bg-surface)] border border-[var(--border-default)] ring-1 ring-[var(--border-strong)] rounded-[6px] shadow-[0_8px_20px_rgba(0,0,0,0.4)] p-1 text-[13px] animate-in fade-in zoom-in-95 duration-100 text-left select-none ${
                               openUpwards ? 'bottom-8' : 'top-9'
                             }`}>
                               <button
@@ -457,7 +463,7 @@ export const DebtView: React.FC<DebtProps> = ({
                                   toggleSelect(debtId);
                                   setActiveRowMenu(null);
                                 }}
-                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer"
                               >
                                 <Check size={13} strokeWidth={1.5} />
                                 <span>{isSelected ? 'Deselect' : 'Select'}</span>
@@ -470,7 +476,7 @@ export const DebtView: React.FC<DebtProps> = ({
                                     setIsPaymentOpen(true);
                                     setActiveRowMenu(null);
                                   }}
-                                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                                  className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer"
                                 >
                                   <HandCoins size={13} strokeWidth={1.5} />
                                   <span>Log payment</span>
@@ -482,7 +488,7 @@ export const DebtView: React.FC<DebtProps> = ({
                                   toggleSettle(d);
                                   setActiveRowMenu(null);
                                 }}
-                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer transition-colors"
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer"
                               >
                                 <Check size={13} strokeWidth={1.5} />
                                 <span>{d.isSettled ? 'Reopen' : 'Settle'}</span>
@@ -494,7 +500,7 @@ export const DebtView: React.FC<DebtProps> = ({
                                   handleDelete(d.id);
                                   setActiveRowMenu(null);
                                 }}
-                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--status-error-fg)] hover:bg-[var(--status-error-bg)] cursor-pointer transition-colors"
+                                className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--status-error-fg)] hover:bg-[var(--status-error-bg)] cursor-pointer"
                               >
                                 <Trash2 size={13} strokeWidth={1.5} />
                                 <span>Delete</span>
@@ -502,12 +508,12 @@ export const DebtView: React.FC<DebtProps> = ({
                             </div>
                           </>
                         )}
-                      </td>
-                    </tr>
+                      </Table.Cell>
+                    </Table.Row>
                   );
                 })}
-              </tbody>
-            </table>
+              </Table.Body>
+            </Table>
           </div>
 
           {/* Mobile Card List Layout */}
@@ -638,7 +644,7 @@ export const DebtView: React.FC<DebtProps> = ({
             })}
           </div>
 
-        </div>
+        </LayerCard>
       )}
 
       {/* Add Debt Modal */}
@@ -650,7 +656,7 @@ export const DebtView: React.FC<DebtProps> = ({
           />
           <div className="relative z-10 w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 text-[var(--text-primary)]">
             <div className="flex items-center justify-between pb-1">
-              <h3 className="text-base font-medium text-[var(--text-primary)] tracking-tight">Add Liability Record</h3>
+              <h3 className="text-base font-medium text-[var(--text-primary)]">Add liability record</h3>
               <button 
                 type="button"
                 onClick={() => setIsAddOpen(false)} 
@@ -733,15 +739,15 @@ export const DebtView: React.FC<DebtProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAddOpen(false)}
-                  className="btn btn--outline h-[34px] px-4 rounded-[6px] text-[12px] font-medium cursor-pointer"
+                  className="btn btn--outline px-4 text-sm font-medium cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn btn--primary h-[34px] px-4 rounded-[6px] text-[12px] font-medium cursor-pointer"
+                  className="btn btn--primary px-4 text-sm font-medium cursor-pointer"
                 >
-                  Save Record
+                  Save record
                 </button>
               </div>
             </form>
@@ -754,44 +760,44 @@ export const DebtView: React.FC<DebtProps> = ({
       {isPaymentOpen && createPortal(
         <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/80 transition-opacity animate-in fade-in duration-150" 
+            className="fixed inset-0 bg-black/80 animate-in fade-in duration-150" 
             onClick={() => setIsPaymentOpen(false)} 
           />
-          <div className="relative z-10 w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 text-[var(--text-primary)]">
+          <div className="relative z-10 w-full max-w-[420px] bg-[var(--bg-surface)] border border-[var(--border-default)] ring-1 ring-white/5 rounded-[8px] px-6 py-5 space-y-4 animate-in zoom-in-95 duration-150 text-[var(--text-primary)]">
             <div className="flex items-center justify-between pb-1">
-              <h3 className="text-base font-medium text-[var(--text-primary)] tracking-tight">Log Partial Payment</h3>
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Log partial payment</h3>
               <button 
                 type="button"
                 onClick={() => setIsPaymentOpen(false)} 
-                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] cursor-pointer"
                 aria-label="Close"
               >
                 <X size={15} strokeWidth={1.5} />
               </button>
             </div>
 
-            <form onSubmit={handleAddPartialPayment} className="space-y-3.5 text-[12px]">
+            <form onSubmit={handleAddPartialPayment} className="space-y-3.5 text-sm">
               <div>
-                <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Payment Amount ({currencySymbol})</label>
+                <label className="text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Payment amount ({currencySymbol})</label>
                 <input
                   type="number"
                   step="0.01"
                   placeholder="0.00"
                   value={paymentAmount}
                   onChange={e => setPaymentAmount(e.target.value)}
-                  className="w-full h-[36px] bg-[var(--field-bg)] border border-[var(--border-default)] focus:border-[var(--accent)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] font-mono placeholder:text-[var(--text-muted)]/50 outline-none transition-colors"
+                  className="w-full h-[36px] bg-[var(--field-bg)] border border-[var(--border-default)] focus:border-[var(--accent)] rounded-[6px] px-3 text-sm text-[var(--text-primary)] font-mono placeholder:text-[var(--text-muted)]/50 outline-none"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-[12px] font-medium text-[var(--text-secondary)] block mb-1.5">Payment Note (Optional)</label>
+                <label className="text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Payment note (optional)</label>
                 <input
                   type="text"
                   placeholder="e.g. Bank transfer reference"
                   value={paymentNote}
                   onChange={e => setPaymentNote(e.target.value)}
-                  className="w-full h-[36px] bg-[var(--field-bg)] border border-[var(--border-default)] focus:border-[var(--accent)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 outline-none transition-colors"
+                  className="w-full h-[36px] bg-[var(--field-bg)] border border-[var(--border-default)] focus:border-[var(--accent)] rounded-[6px] px-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)]/50 outline-none"
                 />
               </div>
 
@@ -799,15 +805,15 @@ export const DebtView: React.FC<DebtProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsPaymentOpen(false)}
-                  className="btn btn--outline h-[34px] px-4 rounded-[6px] text-[12px] font-medium cursor-pointer"
+                  className="btn btn--outline px-4 text-sm font-medium cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn btn--primary h-[34px] px-4 rounded-[6px] text-[12px] font-medium cursor-pointer"
+                  className="btn btn--primary px-4 text-sm font-medium cursor-pointer"
                 >
-                  Record Payment
+                  Record payment
                 </button>
               </div>
             </form>

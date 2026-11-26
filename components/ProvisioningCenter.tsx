@@ -54,7 +54,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
             {/* Cloudflare-Style Section Header Outside Card */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
                 <div>
-                    <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Upcoming Expenses</h2>
+                    <h2 className="text-xl font-semibold text-[var(--text-primary)]">Upcoming expenses</h2>
                     <p className="text-xs text-[var(--text-secondary)] mt-0.5">Schedule planned future purchases or bills to monitor 30-day liabilities.</p>
                 </div>
                 <button
@@ -73,10 +73,10 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
 
             {/* Total Summary Card */}
             {data.provisions.length > 0 && (
-                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-6 rounded-[10px] flex items-center justify-between">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] px-5 py-4 rounded-[8px] flex items-center justify-between">
                     <div>
-                        <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Total Scheduled Liabilities</p>
-                        <p className="text-2xl font-bold text-[var(--text-primary)] tracking-tight mt-1">
+                        <p className="text-xs font-medium text-[var(--text-secondary)]">Total scheduled liabilities</p>
+                        <p className="text-2xl font-semibold text-[var(--text-primary)] font-mono mt-1">
                             {formatMoney(totalProvisioned, data.settings.currencySymbol)}
                         </p>
                     </div>
@@ -94,7 +94,7 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
                         return (
                             <div 
                                 key={p.id} 
-                                className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all"
+                                className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] px-5 py-4 rounded-[8px] flex items-center justify-between group"
                             >
                                 <div className="space-y-1 min-w-0 pr-2">
                                     <h4 className="text-[14px] font-medium text-[var(--text-primary)] truncate">{p.name}</h4>
@@ -147,38 +147,38 @@ export const ProvisioningCenter: React.FC<ProvisioningCenterProps> = ({ data, up
             <Modal
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
-                title="Add Upcoming Expense"
+                title="Add upcoming expense"
             >
                 <div className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Expense Name</label>
+                        <label className="text-sm font-medium text-[var(--text-primary)]">Expense name</label>
                         <input 
                             type="text" 
                             placeholder="e.g. MacBook Pro, Taxes, Rent..."
                             value={name}
                             onChange={e => setName(e.target.value)}
-                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all"
+                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-sm text-[var(--text-primary)] border border-[var(--field-border)] outline-none"
                         />
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Amount ({data.settings.currencySymbol})</label>
+                        <label className="text-sm font-medium text-[var(--text-primary)]">Amount ({data.settings.currencySymbol})</label>
                         <input 
                             type="number" 
                             placeholder="0.00"
                             value={amount}
                             onChange={e => setAmount(e.target.value)}
-                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all font-mono"
+                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-sm text-[var(--text-primary)] border border-[var(--field-border)] outline-none font-mono"
                         />
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Due Date</label>
+                        <label className="text-sm font-medium text-[var(--text-primary)]">Due date</label>
                         <input 
                             type="date" 
                             value={date}
                             onChange={e => setDate(e.target.value)}
-                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all color-scheme-dark"
+                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-sm text-[var(--text-primary)] border border-[var(--field-border)] outline-none color-scheme-dark"
                         />
                     </div>
 

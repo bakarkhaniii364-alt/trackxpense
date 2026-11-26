@@ -1,5 +1,11 @@
 import { AppData, TransactionType } from '../types';
 
+const getWalletTransactions = (data: AppData) => {
+  const activeId = data.currentWalletId;
+  if (!activeId) return data.transactions || [];
+  return (data.transactions || []).filter(t => t.walletId === activeId);
+};
+
 export const PredictiveEngine = {
   /**
    * Calculates the "Adjusted Liquidity" by deducting future provisions.
@@ -15,11 +21,12 @@ export const PredictiveEngine = {
   getRunwayDays: (data: AppData, currentBalance: number) => {
     if (currentBalance <= 0) return 0;
 
-    const expenses = data.transactions.filter(t => t.type === TransactionType.EXPENSE);
+    const walletTxs = getWalletTransactions(data);
+    const expenses = walletTxs.filter(t => t.type === TransactionType.EXPENSE);
     
-    // Account for recurring rules in the burn
+    // Account for recurring rules in the burn (scoped to active wallet if set)
     const monthlyRecurring = (data.recurringRules || [])
-        .filter(r => r.isActive)
+        .filter(r => r.isActive && (!data.currentWalletId || !r.walletId || r.walletId === data.currentWalletId))
         .reduce((sum, r) => {
             const factor = r.frequency === 'DAILY' ? 30 : r.frequency === 'WEEKLY' ? 4 : r.frequency === 'MONTHLY' ? 1 : 1/12;
             return sum + (r.amount * factor);
@@ -49,7 +56,7 @@ export const PredictiveEngine = {
     futureLimit.setDate(now.getDate() + days);
 
     return (data.recurringRules || [])
-        .filter(r => r.isActive)
+        .filter(r => r.isActive && (!data.currentWalletId || !r.walletId || r.walletId === data.currentWalletId))
         .reduce((sum, r) => {
             let nextDue = new Date(r.nextDueDate);
             let total = 0;
@@ -68,7 +75,7 @@ export const PredictiveEngine = {
    * Generates a 30-day projected Net Worth trajectory.
    */
   getNetWorthTrajectory: (data: AppData, currentBalance: number) => {
-    const expenses = data.transactions.filter(t => t.type === TransactionType.EXPENSE);
+    const expenses = getWalletTransactions(data).filter(t => t.type === TransactionType.EXPENSE);
     const days = new Set(expenses.map(t => t.date.split('T')[0]));
     const totalSpent = expenses.reduce((sum, t) => sum + t.amount, 0);
     const avgDailyBurn = totalSpent / Math.max(days.size, 1);
@@ -86,10 +93,11 @@ export const PredictiveEngine = {
    * Detects spending anomalies (spending > 1.5x of moving average).
    */
   detectAnomalies: (data: AppData) => {
+    const walletTxs = getWalletTransactions(data);
     const categoryAverages: Record<string, number> = {};
     const categoryCounts: Record<string, number> = {};
 
-    data.transactions.forEach(t => {
+    walletTxs.forEach(t => {
         if (t.type === TransactionType.EXPENSE) {
             categoryAverages[t.category] = (categoryAverages[t.category] || 0) + t.amount;
             categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
@@ -101,7 +109,7 @@ export const PredictiveEngine = {
     });
 
     const today = new Date().toISOString().split('T')[0];
-    const todaysTransactions = data.transactions.filter(t => t.date.startsWith(today) && t.type === TransactionType.EXPENSE);
+    const todaysTransactions = walletTxs.filter(t => t.date.startsWith(today) && t.type === TransactionType.EXPENSE);
 
     return todaysTransactions.filter(t => {
         const avg = categoryAverages[t.category];
@@ -113,7 +121,7 @@ export const PredictiveEngine = {
    * Detects recurring income patterns (e.g., paydays).
    */
   detectPaydayCycles: (data: AppData) => {
-    const income = data.transactions.filter(t => t.type === TransactionType.INCOME && t.amount > 0);
+    const income = getWalletTransactions(data).filter(t => t.type === TransactionType.INCOME && t.amount > 0);
     if (income.length < 3) return null;
 
     // Look for similar amounts on similar days of the month
@@ -134,7 +142,7 @@ export const PredictiveEngine = {
    * Detects potential subscription-like bills from history.
    */
   detectBillCycles: (data: AppData) => {
-    const expenses = data.transactions.filter(t => t.type === TransactionType.EXPENSE);
+    const expenses = getWalletTransactions(data).filter(t => t.type === TransactionType.EXPENSE);
     const categoryPatterns: Record<string, { amounts: number[], dates: number[] }> = {};
 
     expenses.forEach(t => {
@@ -166,7 +174,7 @@ export const PredictiveEngine = {
    */
   getLocalAdvice: (data: AppData) => {
     const insights: string[] = [];
-    const expenses = data.transactions.filter(t => t.type === TransactionType.EXPENSE);
+    const expenses = getWalletTransactions(data).filter(t => t.type === TransactionType.EXPENSE);
     if (expenses.length < 5) return ["Transaction history too short for pattern recognition. Keep tracking to reveal insights."];
 
     // 1. Payday Proximity

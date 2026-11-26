@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { AppData, TransactionType } from '../../types';
 import { PredictiveEngine } from '../../services/PredictiveEngine';
 import { NoDataWave } from '../shared/NoDataWave';
+import { LayerCard } from '../shared/LayerCard';
 
 interface LocalAdvisorProps {
     data: AppData;
@@ -9,12 +10,18 @@ interface LocalAdvisorProps {
 }
 
 export const LocalAdvisor: React.FC<LocalAdvisorProps> = ({ data, formatMoney }) => {
-    const currency = data.settings.currencySymbol;
+    const activeWallet = data.wallets.find(w => w.id === data.currentWalletId);
+    const currency = activeWallet?.currency || data.settings.currencySymbol;
+    const walletTxs = useMemo(() => (
+        data.currentWalletId
+            ? data.transactions.filter(t => t.walletId === data.currentWalletId)
+            : data.transactions
+    ), [data.transactions, data.currentWalletId]);
 
     const insights = useMemo(() => {
         const list: { type: 'normal' | 'alert' | 'positive' | 'warning'; text: string }[] = [];
-        const expenses = data.transactions.filter(t => t.type === TransactionType.EXPENSE);
-        const income = data.transactions.filter(t => t.type === TransactionType.INCOME);
+        const expenses = walletTxs.filter(t => t.type === TransactionType.EXPENSE);
+        const income = walletTxs.filter(t => t.type === TransactionType.INCOME);
         const totalExpense = expenses.reduce((s, t) => s + t.amount, 0);
         const totalIncome = income.reduce((s, t) => s + t.amount, 0);
         const balance = totalIncome - totalExpense;
@@ -146,20 +153,20 @@ export const LocalAdvisor: React.FC<LocalAdvisorProps> = ({ data, formatMoney })
     }, [data, formatMoney, currency]);
 
     return (
-        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-full">
+        <LayerCard className="px-5 py-4 flex flex-col justify-between h-full">
             <div>
                 <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)]">
-                        Financial Intelligence
+                    <span className="text-[12px] font-medium text-[var(--text-muted)]">
+                        Financial intelligence
                     </span>
                     <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)] shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
-                        <span className="text-[11px] font-medium text-[var(--text-secondary)]">Live Analysis</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)]" />
+                        <span className="text-[12px] font-medium text-[var(--text-secondary)]">Live analysis</span>
                     </div>
                 </div>
 
                 {/* Direct text items with no nested card boxes or NoDataWave */}
-                {data.transactions.length > 0 ? (
+                {walletTxs.length > 0 ? (
                     <div className="space-y-3.5 divide-y divide-[var(--border-default)]">
                         {insights.map((item, idx) => (
                             <div key={idx} className={`flex items-start gap-2.5 ${idx > 0 ? 'pt-3.5' : ''}`}>
@@ -170,7 +177,7 @@ export const LocalAdvisor: React.FC<LocalAdvisorProps> = ({ data, formatMoney })
                                             ? 'bg-[var(--status-warning-fg)]' 
                                             : 'bg-[var(--status-success-fg)]'
                                 }`} />
-                                <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed font-normal">
+                                <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed font-normal">
                                     {item.text}
                                 </p>
                             </div>
@@ -181,10 +188,10 @@ export const LocalAdvisor: React.FC<LocalAdvisorProps> = ({ data, formatMoney })
                 )}
             </div>
 
-            <div className="pt-3 mt-4 border-t border-[var(--border-default)] flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-                <span>Real-time Financial Engine</span>
+            <div className="pt-3 mt-4 border-t border-[var(--border-default)] flex items-center justify-between text-[12px] text-[var(--text-muted)]">
+                <span>Real-time financial engine</span>
                 <span>Continuously updated</span>
             </div>
-        </div>
+        </LayerCard>
     );
 };

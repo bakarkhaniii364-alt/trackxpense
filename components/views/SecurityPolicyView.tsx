@@ -28,6 +28,13 @@ interface PolicySection {
 export const SecurityPolicyView: React.FC<SecurityPolicyViewProps> = ({ onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [contactCopied, setContactCopied] = useState(false);
+
+  const handleCopyContact = () => {
+    navigator.clipboard?.writeText('bakarkhaniii364@gmail.com');
+    setContactCopied(true);
+    setTimeout(() => setContactCopied(false), 2500);
+  };
 
   useEffect(() => {
     const originalTitle = document.title;
@@ -202,7 +209,7 @@ export const SecurityPolicyView: React.FC<SecurityPolicyViewProps> = ({ onNaviga
       className="w-full h-[100dvh] max-h-[100dvh] overflow-y-auto overflow-x-hidden bg-[var(--bg-page)] text-[var(--text-primary)] font-sans flex flex-col selection:bg-[var(--accent-solid)] selection:text-[var(--accent-text)]"
       style={{
         scrollbarWidth: 'thin',
-        scrollbarColor: 'var(--border-strong) transparent'
+        scrollbarColor: 'rgba(255, 255, 255, 0.1) transparent'
       }}
     >
       
@@ -237,83 +244,33 @@ export const SecurityPolicyView: React.FC<SecurityPolicyViewProps> = ({ onNaviga
       </header>
 
       {/* ========================================================================= */}
-      {/* 2. HERO SECTION                                                           */}
+      {/* 2. MINIMAL HEADER BLOCK                                                   */}
       {/* ========================================================================= */}
-      <section 
-        className="w-full shrink-0 border-b border-[var(--border-default)] py-12 sm:py-16 px-4 sm:px-8 relative overflow-hidden print:hidden"
-        style={{
-          backgroundImage: 'repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.075) 0px, rgba(255, 255, 255, 0.075) 1.25px, transparent 1.25px, transparent 10px)'
-        }}
-      >
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-8 relative z-10">
-          
-          {/* Left Column: Heading, Subtitle & Pills */}
-          <div className="space-y-4 max-w-2xl text-left">
-            <h2 className="text-2xl sm:text-3xl font-medium text-[var(--text-primary)] tracking-tight">
-              Security Architecture &amp; Controls
-            </h2>
-            <p className="text-[13.5px] sm:text-[14px] text-[var(--text-secondary)] leading-relaxed max-w-xl">
-              Technical security specifications covering Zero-Trust client isolation, TLS 1.3 transit encryption, database row-level security, and coordinated vulnerability response.
-            </p>
-
-            {/* Pill Row */}
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              <div className="h-[28px] px-3 rounded-full border border-[var(--border-default)] bg-[var(--bg-page)] text-[12px] text-[var(--text-secondary)] flex items-center">
-                <span>Zero-Trust Sandbox</span>
-              </div>
-              <div className="h-[28px] px-3 rounded-full border border-[var(--border-default)] bg-[var(--bg-page)] text-[12px] text-[var(--text-secondary)] flex items-center">
-                <span>TLS 1.3 &amp; RLS</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigateTo('privacy-policy')}
-                className="h-[28px] px-3 rounded-full border border-[var(--border-default)] bg-[var(--bg-page)] hover:bg-[var(--bg-surface-hover)] hover:border-[var(--border-active)] text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <span>Privacy Policy</span>
-                <ArrowSquareOut size={11} className="opacity-70" />
-              </button>
-              <button
-                type="button"
-                onClick={() => navigateTo('terms-of-service')}
-                className="h-[28px] px-3 rounded-full border border-[var(--border-default)] bg-[var(--bg-page)] hover:bg-[var(--bg-surface-hover)] hover:border-[var(--border-active)] text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <span>Terms of Service</span>
-                <ArrowSquareOut size={11} className="opacity-70" />
-              </button>
-            </div>
+      <section className="w-full shrink-0 border-b border-[var(--border-default)] py-10 sm:py-12 px-4 sm:px-8 print:hidden">
+        <div className="max-w-5xl mx-auto space-y-3 text-left">
+          <h2 className="text-2xl sm:text-3xl font-medium text-[var(--text-primary)]">
+            Security Policy
+          </h2>
+          <p className="text-[14px] text-[var(--text-secondary)] leading-relaxed max-w-2xl">
+            Technical security specifications covering client isolation, transit encryption, database row-level security, and coordinated vulnerability response.
+          </p>
+          <div className="flex flex-wrap items-center gap-4 pt-1 text-[13px] text-[var(--text-muted)]">
+            <button
+              type="button"
+              onClick={() => navigateTo('privacy-policy')}
+              className="hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            >
+              Privacy Policy
+            </button>
+            <span>·</span>
+            <button
+              type="button"
+              onClick={() => navigateTo('terms-of-service')}
+              className="hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            >
+              Terms of Service
+            </button>
           </div>
-
-          {/* Right Column: Signature Trio of Badges (Security Motifs: Shield, Lock, Key) */}
-          <div className="relative flex items-center justify-center md:justify-end shrink-0 py-4 pr-4">
-            <div className="relative w-[180px] h-[100px] flex items-center justify-center select-none pointer-events-none">
-              
-              {/* Badge 1: Lock */}
-              <div 
-                className="absolute left-2 top-3 w-[46px] h-[46px] rounded-[14px] border border-dashed border-[#f6821f]/60 bg-[#f6821f]/10 flex items-center justify-center transition-transform hover:scale-105"
-                style={{ transform: 'rotate(-12deg)' }}
-              >
-                <Lock size={22} strokeWidth={1.5} className="text-[#f6821f]" />
-              </div>
-
-              {/* Badge 2: Shield */}
-              <div 
-                className="absolute left-[66px] top-0 w-[48px] h-[48px] rounded-[14px] border border-dashed border-[#f6821f]/70 bg-[#f6821f]/12 flex items-center justify-center transition-transform hover:scale-105 z-10"
-                style={{ transform: 'rotate(4deg)' }}
-              >
-                <ShieldCheck size={22} strokeWidth={1.5} className="text-[#f6821f]" />
-              </div>
-
-              {/* Badge 3: Key */}
-              <div 
-                className="absolute right-2 top-5 w-[46px] h-[46px] rounded-[14px] border border-dashed border-[#f6821f]/60 bg-[#f6821f]/10 flex items-center justify-center transition-transform hover:scale-105"
-                style={{ transform: 'rotate(15deg)' }}
-              >
-                <Key size={20} strokeWidth={1.5} className="text-[#f6821f]" />
-              </div>
-
-            </div>
-          </div>
-
         </div>
       </section>
 
@@ -386,41 +343,16 @@ export const SecurityPolicyView: React.FC<SecurityPolicyViewProps> = ({ onNaviga
                     idx !== 0 ? 'pt-10 border-t border-[var(--border-default)]' : ''
                   }`}
                 >
-                  {/* Section Title & Header with Clean Deep-Link Affordance */}
-                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--text-muted)]">
-                          Section {sec.sectionNumber} • {sec.kicker}
-                        </span>
-                      </div>
-                      <h3 className="text-[17px] font-medium text-[var(--text-primary)] tracking-tight">
-                        {sec.title}
-                      </h3>
-                    </div>
+                  <h3 className="text-[17px] font-medium text-[var(--text-primary)]">
+                    {sec.title}
+                  </h3>
 
-                    {/* Copy Link Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleCopyLink(sec.id)}
-                      className="h-[24px] px-2 rounded-[4px] border border-[var(--border-default)] hover:border-[var(--border-active)] bg-[var(--bg-page)] text-[11px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer self-start shrink-0 print:hidden"
-                      title="Copy section link"
-                    >
-                      {copiedId === sec.id ? (
-                        <span className="text-emerald-500 font-medium">Copied</span>
-                      ) : (
-                        <span>#link</span>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Summary Callout */}
-                  <p className="text-[13.5px] font-medium text-[var(--text-primary)] leading-relaxed bg-[var(--bg-page)] p-3.5 rounded-[6px] border border-[var(--border-default)]">
+                  <p className="text-[14px] font-medium text-[var(--text-primary)] leading-relaxed">
                     {sec.summary}
                   </p>
 
                   {/* Detailed Paragraphs */}
-                  <div className="space-y-3 text-[13px] text-[var(--text-secondary)] leading-relaxed">
+                  <div className="space-y-3 text-[14px] text-[var(--text-secondary)] leading-relaxed">
                     {sec.paragraphs.map((p, pIdx) => (
                       <p key={pIdx}>{p}</p>
                     ))}
@@ -430,7 +362,7 @@ export const SecurityPolicyView: React.FC<SecurityPolicyViewProps> = ({ onNaviga
                   {sec.bulletPoints && sec.bulletPoints.length > 0 && (
                     <div className="pt-2 space-y-2.5">
                       {sec.bulletPoints.map((b, bIdx) => (
-                        <div key={bIdx} className="flex items-start gap-2.5 text-[13px] leading-relaxed">
+                        <div key={bIdx} className="flex items-start gap-2.5 text-[14px] leading-relaxed">
                           <span className="text-[var(--text-muted)] text-[12px] select-none pt-0.5 font-mono">
                             •
                           </span>
@@ -510,12 +442,13 @@ export const SecurityPolicyView: React.FC<SecurityPolicyViewProps> = ({ onNaviga
               Terms of Service
             </button>
             <span>•</span>
-            <a 
-              href="mailto:bakarkhaniii364@gmail.com" 
+            <button
+              type="button"
+              onClick={() => navigateTo('contact')}
               className="hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
             >
               Contact
-            </a>
+            </button>
             <span>•</span>
             <button 
               onClick={() => onNavigate ? onNavigate('dashboard') : navigateTo('dashboard')} 

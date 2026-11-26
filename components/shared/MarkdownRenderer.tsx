@@ -1,4 +1,5 @@
 import React from 'react';
+import { Table } from './Table';
 
 interface MarkdownRendererProps {
   content: string;
@@ -56,26 +57,26 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
       elements.push(
         <div key={`table-${elements.length}`} className="overflow-x-auto my-2 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)]">
-          <table className="w-full text-[12px] text-left border-collapse">
+          <Table className="w-full text-[13px] text-left border-collapse">
             {headerRow && (
-              <thead>
-                <tr className="border-b border-[var(--border-default)] bg-[var(--bg-subtle)] text-[var(--text-muted)] uppercase text-[10px] font-semibold">
+              <Table.Header>
+                <Table.Row className="border-b border-[var(--border-default)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] text-[12px] font-medium">
                   {headerRow.map((cell, idx) => (
-                    <th key={idx} className="px-3 py-1.5">{renderInline(cell.trim())}</th>
+                    <Table.Head key={idx} className="px-3 py-2">{renderInline(cell.trim())}</Table.Head>
                   ))}
-                </tr>
-              </thead>
+                </Table.Row>
+              </Table.Header>
             )}
-            <tbody>
+            <Table.Body>
               {bodyRows.map((row, rIdx) => (
-                <tr key={rIdx} className="border-b last:border-b-0 border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)]">
+                <Table.Row key={rIdx} className="border-b last:border-b-0 border-[var(--border-default)] hover:bg-[var(--bg-surface-hover)]">
                   {row.map((cell, cIdx) => (
-                    <td key={cIdx} className="px-3 py-1.5 text-[var(--text-primary)] font-mono">{renderInline(cell.trim())}</td>
+                    <Table.Cell key={cIdx} className="px-3 py-2 text-[var(--text-primary)] font-mono text-[13px]">{renderInline(cell.trim())}</Table.Cell>
                   ))}
-                </tr>
+                </Table.Row>
               ))}
-            </tbody>
-          </table>
+            </Table.Body>
+          </Table>
         </div>
       );
       inTable = false;
@@ -143,7 +144,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
     if (line.startsWith('## ')) {
       flushList();
       elements.push(
-        <h3 key={`h3-${elements.length}`} className="text-[14px] font-semibold text-[var(--text-primary)] mt-3.5 mb-1.5 tracking-tight">
+        <h3 key={`h3-${elements.length}`} className="text-[14px] font-semibold text-[var(--text-primary)] mt-3.5 mb-1.5">
           {renderInline(line.slice(3))}
         </h3>
       );
@@ -152,7 +153,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
     if (line.startsWith('# ')) {
       flushList();
       elements.push(
-        <h2 key={`h2-${elements.length}`} className="text-[15px] font-bold text-[var(--text-primary)] mt-4 mb-2 tracking-tight">
+        <h2 key={`h2-${elements.length}`} className="text-[15px] font-semibold text-[var(--text-primary)] mt-4 mb-2">
           {renderInline(line.slice(2))}
         </h2>
       );

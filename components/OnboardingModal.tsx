@@ -12,10 +12,10 @@ interface OnboardingProps {
 }
 
 const COMMON_CURRENCIES = [
+  { symbol: '৳', code: 'BDT', name: 'Bangladeshi Taka' },
   { symbol: '$', code: 'USD', name: 'US Dollar' },
   { symbol: '€', code: 'EUR', name: 'Euro' },
   { symbol: '£', code: 'GBP', name: 'British Pound' },
-  { symbol: '৳', code: 'BDT', name: 'Bangladeshi Taka' },
   { symbol: '₹', code: 'INR', name: 'Indian Rupee' },
   { symbol: '¥', code: 'JPY', name: 'Japanese Yen' },
   { symbol: 'C$', code: 'CAD', name: 'Canadian Dollar' },
@@ -25,7 +25,7 @@ const COMMON_CURRENCIES = [
 export const OnboardingModal: React.FC<OnboardingProps> = ({ isOpen, onComplete }) => {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
-  const [currency, setCurrency] = useState('$');
+  const [currency, setCurrency] = useState('৳');
   const [balance, setBalance] = useState('');
   const [dailyGoal, setDailyGoal] = useState('');
   const [enableAi, setEnableAi] = useState(true);
@@ -66,9 +66,9 @@ export const OnboardingModal: React.FC<OnboardingProps> = ({ isOpen, onComplete 
           <div className="flex-none flex items-center justify-between h-[52px] px-5 border-b border-[var(--border-default)]">
             <div className="flex items-center gap-2">
               <img src="/icon.png" alt="TrackXpense" className="w-5 h-5 rounded-[4px] object-contain shrink-0" />
-              <span className="text-[14px] font-semibold text-[var(--text-primary)] tracking-tight">TrackXpense</span>
+              <span className="text-[14px] font-semibold text-[var(--text-primary)]">TrackXpense</span>
             </div>
-            <span className="text-[11px] font-mono text-[var(--text-muted)]">
+            <span className="text-[12px] font-mono tabular-nums text-[var(--text-muted)]">
               {step + 1} / 2
             </span>
           </div>
@@ -86,32 +86,32 @@ export const OnboardingModal: React.FC<OnboardingProps> = ({ isOpen, onComplete 
               {/* ── Step 1: Identity & Currency ── */}
               {step === 0 && (
                 <div className="space-y-6 animate-in fade-in duration-150">
-                  <div>
-                    <h1 className="text-[22px] sm:text-[24px] font-semibold text-[var(--text-primary)] tracking-tight mb-1">
+                  <div className="grid gap-1.5">
+                    <h1 className="text-[22px] sm:text-[24px] font-semibold text-[var(--text-primary)]">
                       Set up your vault
                     </h1>
-                    <p className="text-[13px] text-[var(--text-secondary)]">
+                    <p className="text-[14px] text-[var(--text-secondary)]">
                       Your display name and primary currency.
                     </p>
                   </div>
 
                   <div className="space-y-5">
                     <div>
-                      <label className="text-[12px] text-[var(--text-secondary)] font-medium block mb-1.5">
+                      <label className="text-[14px] text-[var(--text-secondary)] font-medium block mb-1.5">
                         Name
                       </label>
                       <input
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
-                        placeholder="e.g. Alex"
-                        className="w-full h-[40px] px-3 rounded-[6px] bg-transparent border border-[var(--border-default)] focus:border-[var(--text-primary)] text-[13px] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors"
+                        placeholder="e.g. Goldberg"
+                        className="field-input w-full h-[40px] px-3 rounded-[6px] bg-[var(--bg-page)] border border-[var(--border-default)] text-[14px] text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors"
                         autoFocus
                       />
                     </div>
 
                     <div>
-                      <label className="text-[12px] text-[var(--text-secondary)] font-medium block mb-2">
+                      <label className="text-[14px] text-[var(--text-secondary)] font-medium block mb-2">
                         Currency
                       </label>
                       <div className="grid grid-cols-4 gap-1.5">
@@ -148,76 +148,82 @@ export const OnboardingModal: React.FC<OnboardingProps> = ({ isOpen, onComplete 
               {/* ── Step 2: Balance & RabbAi ── */}
               {step === 1 && (
                 <div className="space-y-6 animate-in fade-in duration-150">
-                  <div>
-                    <h1 className="text-[22px] sm:text-[24px] font-semibold text-[var(--text-primary)] tracking-tight mb-1">
+                  <div className="grid gap-1.5">
+                    <h1 className="text-[22px] sm:text-[24px] font-semibold text-[var(--text-primary)]">
                       Starting balance
                     </h1>
-                    <p className="text-[13px] text-[var(--text-secondary)]">
+                    <p className="text-[14px] text-[var(--text-secondary)]">
                       Your opening balance and daily budget.
                     </p>
                   </div>
 
                   <div className="space-y-5">
                     <div>
-                      <label className="text-[12px] text-[var(--text-secondary)] font-medium block mb-1.5">
+                      <label className="text-[14px] text-[var(--text-secondary)] font-medium block mb-1.5">
                         Wallet balance ({currency})
                       </label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[14px] text-[var(--text-muted)]">{currency}</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[14px] text-[var(--text-muted)] pointer-events-none">{currency}</span>
                         <input
                           type="number"
+                          inputMode="decimal"
                           step="any"
                           value={balance}
                           onChange={e => setBalance(e.target.value)}
                           placeholder="0.00"
-                          className="w-full h-[42px] pl-8 pr-3 rounded-[6px] bg-transparent border border-[var(--border-default)] focus:border-[var(--text-primary)] text-[16px] font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors font-semibold"
+                          className="field-input w-full h-[42px] pl-8 pr-3 rounded-[6px] bg-[var(--bg-page)] border border-[var(--border-default)] text-[14px] font-mono tabular-nums text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           autoFocus
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-[12px] text-[var(--text-secondary)] font-medium block mb-1.5">
+                      <label className="text-[14px] text-[var(--text-secondary)] font-medium block mb-1.5">
                         Daily spending limit ({currency})
                         <span className="text-[var(--text-muted)] font-normal ml-1">— optional</span>
                       </label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[12px] text-[var(--text-muted)]">{currency}</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-[14px] text-[var(--text-muted)] pointer-events-none">{currency}</span>
                         <input
                           type="number"
+                          inputMode="decimal"
                           step="any"
                           value={dailyGoal}
                           onChange={e => setDailyGoal(e.target.value)}
                           placeholder="e.g. 50"
-                          className="w-full h-[38px] pl-7 pr-3 rounded-[6px] bg-transparent border border-[var(--border-default)] focus:border-[var(--text-primary)] text-[13px] font-mono text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors"
+                          className="field-input w-full h-[40px] pl-8 pr-3 rounded-[6px] bg-[var(--bg-page)] border border-[var(--border-default)] text-[14px] font-mono tabular-nums text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
 
                     {/* RabbAi Toggle */}
-                    <div className="pt-3 border-t border-[var(--border-default)]">
-                      <label className="flex items-center justify-between cursor-pointer py-2">
-                        <div className="min-w-0">
+                    <div className="pt-4 border-t border-[var(--border-default)]">
+                      <div className="flex items-center justify-between gap-4 py-1">
+                        <div className="min-w-0 grid gap-1">
                           <div className="flex items-center gap-1.5">
-                            <AiStarIcon size={14} strokeWidth={1.5} className="text-[var(--text-secondary)]" />
-                            <span className="text-[13px] font-medium text-[var(--text-primary)]">
+                            <AiStarIcon size={14} strokeWidth={1.5} className="text-[var(--text-secondary)] shrink-0" />
+                            <span className="text-[14px] font-medium text-[var(--text-primary)]">
                               RabbAi assistant
                             </span>
                           </div>
-                          <span className="text-[11px] text-[var(--text-muted)] block mt-0.5">
+                          <span className="text-[14px] text-[var(--text-muted)]">
                             {enableAi ? 'Natural language entry and receipt scanning.' : 'Disabled. Pure manual ledger, zero network calls.'}
                           </span>
                         </div>
-                        <input
-                          type="checkbox"
-                          checked={enableAi}
-                          onChange={e => {
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={enableAi}
+                          aria-label="Toggle RabbAi assistant"
+                          onClick={() => {
                             Haptics.light();
-                            setEnableAi(e.target.checked);
+                            setEnableAi(prev => !prev);
                           }}
-                          className="w-4 h-4 rounded border-[var(--border-default)] accent-[var(--text-primary)] cursor-pointer shrink-0 ml-4"
-                        />
-                      </label>
+                          className={`toggle-switch ${enableAi ? 'is-active' : ''}`}
+                        >
+                          <span className="toggle-switch-thumb" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -233,9 +239,9 @@ export const OnboardingModal: React.FC<OnboardingProps> = ({ isOpen, onComplete 
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="h-[36px] px-3 rounded-[6px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-[12px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="btn btn--outline btn--md"
                 >
-                  <ArrowLeft size={13} strokeWidth={1.5} />
+                  <ArrowLeft size={14} weight="regular" />
                   Back
                 </button>
               ) : (
@@ -245,10 +251,10 @@ export const OnboardingModal: React.FC<OnboardingProps> = ({ isOpen, onComplete 
               <button
                 type="button"
                 onClick={handleNext}
-                className="h-[36px] px-5 rounded-[6px] bg-[var(--accent-solid)] hover:opacity-90 active:scale-[0.98] text-[var(--accent-text)] font-medium text-[12.5px] transition-all flex items-center gap-1.5 cursor-pointer"
+                className="btn btn--primary btn--md"
               >
                 {step === 1 ? 'Enter vault' : 'Continue'}
-                <ArrowRight size={13} strokeWidth={2} />
+                <ArrowRight size={14} weight="regular" />
               </button>
             </div>
           </div>

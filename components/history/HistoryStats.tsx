@@ -105,8 +105,8 @@ export const HistoryStats: React.FC<HistoryStatsProps> = ({
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="text-center">
-                            <span className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-muted)]">TOTAL</span>
-                            <p className="text-[18px] font-bold font-mono text-[var(--text-primary)] mt-0.5 tracking-tight">
+                            <span className="text-[10px] font-mono text-[var(--text-muted)]">Total</span>
+                            <p className="text-[18px] font-semibold font-mono text-[var(--text-primary)] mt-0.5">
                                 {formatMoney(totalSpending, currencySymbol)}
                             </p>
                         </div>

@@ -22,7 +22,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
       />
 
       {/* Modal Dialog */}
-      <div className="relative bg-[var(--bg-surface)] border border-[var(--border-default)] w-full max-w-lg rounded-[12px] p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150 select-none text-left">
+      <div className="relative bg-[var(--bg-surface)] border border-[var(--border-default)] ring-1 ring-white/5 w-full max-w-lg rounded-[8px] px-6 py-5 space-y-4 animate-in fade-in zoom-in-95 duration-150 select-none text-left">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[var(--border-default)]">
@@ -30,16 +30,16 @@ export const LegalModal: React.FC<LegalModalProps> = ({ type, onClose }) => {
             {type === 'privacy' && <ShieldCheck size={18} strokeWidth={1.5} className="text-[var(--status-success-fg)]" />}
             {type === 'terms' && <FileText size={18} strokeWidth={1.5} className="text-[var(--text-primary)]" />}
             {type === 'security' && <Lock size={18} strokeWidth={1.5} className="text-[var(--status-warning-fg)]" />}
-            <h3 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
-              {type === 'privacy' && 'Privacy Policy'}
-              {type === 'terms' && 'Terms of Service'}
-              {type === 'security' && 'Security Architecture'}
+            <h3 className="text-base font-semibold text-[var(--text-primary)]">
+              {type === 'privacy' && 'Privacy policy'}
+              {type === 'terms' && 'Terms of service'}
+              {type === 'security' && 'Security architecture'}
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-7 h-7 rounded-[6px] hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center transition-colors cursor-pointer"
+            className="w-7 h-7 rounded-[6px] hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center cursor-pointer"
             aria-label="Close"
           >
             <X size={15} strokeWidth={1.5} />

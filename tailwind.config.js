@@ -5,7 +5,8 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
     "./App.tsx",
-    "./index.tsx"
+    "./index.tsx",
+    "./node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}"
   ],
   darkMode: 'class',
   theme: {
@@ -19,13 +20,27 @@ export default {
         surface: 'var(--bg-surface, #0D0D10)',
         main: 'var(--text-main, #F4F4F5)',
         muted: 'var(--text-muted, #71717A)',
+        kumo: {
+          canvas: 'var(--color-kumo-canvas, var(--bg-page))',
+          base: 'var(--color-kumo-base, var(--bg-surface))',
+          elevated: 'var(--color-kumo-elevated, var(--bg-surface-hover))',
+          recessed: 'var(--color-kumo-recessed, var(--bg-subtle))',
+          line: 'var(--color-kumo-line, var(--border-default))',
+          hairline: 'var(--color-kumo-hairline, var(--border-subtle))',
+          fill: 'var(--color-kumo-fill, var(--border-strong))',
+          subtle: 'var(--text-color-kumo-subtle, var(--text-secondary))',
+          default: 'var(--text-color-kumo-default, var(--text-primary))',
+          strong: 'var(--text-color-kumo-strong, #FFFFFF)',
+          brand: 'var(--color-kumo-brand, var(--accent))',
+          tint: 'var(--color-kumo-tint, var(--accent-bg-soft))',
+        },
       },
       fontFamily: {
         sans: [
           'Geist',
+          '"Hind Siliguri"', 
           '-apple-system', 
           'BlinkMacSystemFont', 
-          '"Hind Siliguri"', 
           '"Segoe UI"', 
           'Roboto', 
           'Helvetica', 
@@ -34,6 +49,7 @@ export default {
         ],
         mono: [
           '"Geist Mono"',
+          '"Hind Siliguri"',
           'ui-monospace',
           'SFMono-Regular',
           'Menlo',
@@ -42,6 +58,7 @@ export default {
         ]
       },
       boxShadow: {
+        'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         'glow': '0 0 20px rgba(246, 130, 31, 0.4)',
         'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
       },

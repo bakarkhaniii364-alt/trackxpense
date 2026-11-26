@@ -32,10 +32,10 @@ export function SegmentedSubTabs<T extends string>({
             <span>{tab.label}</span>
             {tab.count !== undefined && (
               <span
-                className={`text-[11px] font-mono px-1.5 py-0.5 rounded-full ${
+                className={`text-[0.9em] font-mono px-2 py-0.5 rounded-full ${
                   isActive
-                    ? 'bg-black/30 text-[var(--ds-text)]'
-                    : 'bg-white/5 text-[var(--ds-text-faint)]'
+                    ? 'bg-black/20 text-[var(--text-primary)]'
+                    : 'bg-white/5 text-[var(--text-muted)]'
                 }`}
               >
                 {tab.count}

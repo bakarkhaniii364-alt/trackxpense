@@ -5,6 +5,9 @@ import { PredictiveEngine } from './services/PredictiveEngine';
 import * as StorageService from './services/storage';
 import { AddTransactionModal } from './components/AddTransactionModal';
 import { DesktopDashboard } from './components/pc/DesktopDashboard';
+import { MobileDashboard } from './components/mobile/MobileDashboard';
+import { MobileDock } from './components/mobile/MobileDock';
+import { MobileMoreSheet } from './components/mobile/MobileMoreSheet';
 import { ErrorBoundary } from './components/shared/ErrorBoundary';
 import { VaultLock } from './components/VaultLock';
 import { loadRabbAiConversations, saveRabbAiConversations, RabbAiConversation } from './services/rabbAiService';
@@ -19,6 +22,7 @@ const DesktopControl = React.lazy(() => import('./components/pc/DesktopManagemen
 const ProvisioningCenter = React.lazy(() => import('./components/ProvisioningCenter').then(m => ({ default: m.ProvisioningCenter })));
 import { SubscriptionManager } from './components/SubscriptionManager';
 import { PrivacyPolicyView } from './components/views/PrivacyPolicyView';
+import { ContactView } from './components/views/ContactView';
 import { SecurityPolicyView } from './components/views/SecurityPolicyView';
 import { TermsOfServiceView } from './components/views/TermsOfServiceView';
 import { OnboardingModal } from './components/OnboardingModal';
@@ -71,6 +75,7 @@ export default function App() {
   const [data, setData] = useState<AppData | null>(null);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
 
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
@@ -111,11 +116,8 @@ export default function App() {
   });
   const [rabbaiPendingQuery, setRabbaiPendingQuery] = useState<{ text: string; image?: string } | null>(null);
   const [isRabbaiConvDropdownOpen, setIsRabbaiConvDropdownOpen] = useState(false);
-  const [isRabbaiOptionsOpen, setIsRabbaiOptionsOpen] = useState(false);
   const rabbaiDropdownRef = useRef<HTMLDivElement>(null);
   const rabbaiDesktopDropdownRef = useRef<HTMLDivElement>(null);
-  const rabbaiOptionsRef = useRef<HTMLDivElement>(null);
-  const rabbaiDesktopOptionsRef = useRef<HTMLDivElement>(null);
 
   const activeRabbAiConv = conversations.find(c => c.id === activeConvId) || conversations[0];
 
@@ -231,21 +233,15 @@ export default function App() {
       ) {
         setIsRabbaiConvDropdownOpen(false);
       }
-      if (
-        (!rabbaiOptionsRef.current || !rabbaiOptionsRef.current.contains(target)) &&
-        (!rabbaiDesktopOptionsRef.current || !rabbaiDesktopOptionsRef.current.contains(target))
-      ) {
-        setIsRabbaiOptionsOpen(false);
-      }
     };
-    if (isRabbaiConvDropdownOpen || isRabbaiOptionsOpen) {
+    if (isRabbaiConvDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isRabbaiConvDropdownOpen, isRabbaiOptionsOpen]);
+  }, [isRabbaiConvDropdownOpen]);
 
-  // Mobile Visual Viewport Detection: Adjust window height when software keyboard opens (e.g. RabbAi chat) instead of scrolling
   const [visualViewportHeight, setVisualViewportHeight] = useState<number | null>(null);
+  const isMobileKeyboardOpen = visualViewportHeight !== null && typeof window !== 'undefined' && (window.innerHeight - visualViewportHeight > 140);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -461,12 +457,15 @@ export default function App() {
   useEffect(() => {
     if (data) {
       StorageService.saveAppData(data);
+      const isDark = !!data.settings.darkMode;
       const classes = [
         'theme-orange',
-        data.settings.darkMode ? '' : 'light-mode',
+        isDark ? '' : 'light-mode',
         isDesktop ? 'desktop-ui' : ''
       ].filter(Boolean).join(' ');
       document.body.className = classes;
+      document.documentElement.setAttribute('data-mode', isDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', 'kumo');
     }
   }, [data, isDesktop]);
 
@@ -672,8 +671,10 @@ export default function App() {
   // Spending Streaks Engine
   useStreaks({ data, updateData });
 
+  const PUBLIC_VIEWS: ViewState[] = ['privacy-policy', 'security-policy', 'terms-of-service', 'contact'];
+
   useEffect(() => {
-     if (!isAuthenticated) {
+     if (!isAuthenticated && !PUBLIC_VIEWS.includes(view)) {
          setView('dashboard');
          navigateTo('dashboard');
      }
@@ -1046,7 +1047,8 @@ export default function App() {
   if (view === 'privacy-policy') {
     return (
       <PrivacyPolicyView 
-        onNavigate={requestViewChange} 
+        onNavigate={requestViewChange}
+        isAuthenticated={isAuthenticated}
       />
     );
   }
@@ -1062,6 +1064,14 @@ export default function App() {
   if (view === 'terms-of-service') {
     return (
       <TermsOfServiceView 
+        onNavigate={requestViewChange} 
+      />
+    );
+  }
+
+  if (view === 'contact') {
+    return (
+      <ContactView 
         onNavigate={requestViewChange} 
       />
     );
@@ -1091,36 +1101,49 @@ export default function App() {
       
       <OnboardingModal isOpen={!data.settings.hasOnboarded} onComplete={handleOnboardingComplete} />
       
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
-        data={data} 
-        updateData={updateData} 
-        onViewChange={requestViewChange} 
-        isStatic={isDesktop} 
-        currentView={view} 
-        onLogout={signOut}
-        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-      />
+      {isDesktop && (
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          onClose={() => setIsSidebarOpen(false)} 
+          data={data} 
+          updateData={updateData} 
+          onViewChange={requestViewChange} 
+          isStatic={isDesktop} 
+          currentView={view} 
+          onLogout={signOut}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        />
+      )}
       
       <div className="flex-1 min-w-0 min-h-0 w-full max-w-full flex flex-col overflow-hidden overflow-x-hidden h-full relative z-10">
-        {/* Header - Mobile (Cloudflare Technical Design) */}
+        {/* Header - Mobile (Solid Kumo Surface) */}
         {!isDesktop && (
           <header className={`flex-none pt-[calc(env(safe-area-inset-top,0px)+6px)] pb-2 px-3 border-b z-40 select-none ${
             view === 'rabbai'
-              ? 'bg-transparent border-transparent'
-              : 'bg-[var(--bg-surface)]/95 backdrop-blur-md border-[var(--border-default)]'
+              ? 'bg-[var(--bg-page)] border-transparent'
+              : 'bg-[var(--bg-page)] border-[var(--border-default)]'
           }`}>
-            <div className="flex items-center justify-between gap-2 max-w-md mx-auto">
+            <div className="flex items-center justify-between gap-2 max-w-md mx-auto min-h-[38px]">
               {view === 'rabbai' ? (
                 <>
-                  {/* Left: History dropdown (container-free) */}
-                  <div className="flex items-center gap-1 min-w-0">
+                  {/* Left: Back button + History dropdown */}
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        Haptics.light();
+                        requestViewChange('dashboard');
+                      }}
+                      className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-[6px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                      title="Back to Home"
+                    >
+                      <ChevronLeft size={18} strokeWidth={1.5} />
+                    </button>
                     <div ref={rabbaiDropdownRef} className="relative">
                       <button
                         type="button"
                         onClick={() => setIsRabbaiConvDropdownOpen(!isRabbaiConvDropdownOpen)}
-                        className="flex items-center gap-1 text-[13px] font-medium text-[var(--text-primary)] hover:text-white py-1 px-1 cursor-pointer transition-colors"
+                        className="flex items-center gap-1 text-[13px] font-medium text-[var(--text-primary)] hover:text-white min-h-[36px] px-1.5 rounded-[6px] cursor-pointer transition-colors"
                       >
                         <span className="truncate max-w-[170px]">{activeRabbAiConv?.title || 'New conversation'}</span>
                         <ChevronDown size={12} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
@@ -1128,9 +1151,12 @@ export default function App() {
 
                       {/* Dropdown Popover (History Only) */}
                       {isRabbaiConvDropdownOpen && (
-                        <div className="absolute left-0 top-full mt-1.5 w-64 bg-[#141418] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-1.5 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-100">
-                          <div className="px-2 py-1 text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-                            Chat History
+                        <div
+                          style={{ backgroundColor: '#121216' }}
+                          className="absolute left-0 top-full mt-1.5 w-64 bg-[#121216] border border-[var(--border-default)] rounded-[8px] shadow-[0_12px_32px_rgba(0,0,0,0.8)] p-1.5 z-50 text-[13px] animate-in fade-in zoom-in-95 duration-100"
+                        >
+                          <div className="px-2.5 py-1.5 text-[12px] font-medium text-[var(--text-muted)]">
+                            Chat history
                           </div>
 
                           <div className="max-h-56 overflow-y-auto space-y-0.5 no-scrollbar">
@@ -1143,21 +1169,21 @@ export default function App() {
                                     setActiveConvId(c.id);
                                     setIsRabbaiConvDropdownOpen(false);
                                   }}
-                                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[6px] cursor-pointer transition-colors group ${
-                                    isActive ? 'bg-white/10 text-white font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-white/5'
+                                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-[6px] cursor-pointer transition-colors group ${
+                                    isActive ? 'bg-[var(--bg-surface-hover)] text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
                                   }`}
                                 >
                                   <div className="flex items-center gap-2 min-w-0 pr-2">
-                                    <ClockCounterClockwise size={12} className="shrink-0 text-[var(--text-muted)]" />
+                                    <ClockCounterClockwise size={13} className="shrink-0 text-[var(--text-muted)]" />
                                     <span className="truncate">{c.title || 'Conversation'}</span>
                                   </div>
                                   <button
                                     type="button"
                                     onClick={(e) => requestDeleteRabbAiConversation(c.id, e)}
-                                    className="opacity-0 group-hover:opacity-100 text-[var(--text-muted)] hover:text-red-400 p-0.5 transition-opacity"
+                                    className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 text-[var(--text-muted)] hover:text-[var(--status-error-fg)] p-1.5 rounded-[4px] transition-opacity cursor-pointer"
                                     title="Delete chat"
                                   >
-                                    <Trash2 size={12} />
+                                    <Trash2 size={13} />
                                   </button>
                                 </div>
                               );
@@ -1168,54 +1194,12 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Right: Options (Keep last message on top toggle popover), NotePencil (new conversation), and ✕ (close) */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* In-Chat Options Popover */}
-                    <div ref={rabbaiOptionsRef} className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setIsRabbaiOptionsOpen(!isRabbaiOptionsOpen)}
-                        className={`p-1.5 transition-all cursor-pointer ${
-                          isRabbaiOptionsOpen 
-                            ? 'text-white' 
-                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                        }`}
-                        title="Chat options"
-                      >
-                        <Sliders size={18} strokeWidth={1.5} />
-                      </button>
-
-                      {isRabbaiOptionsOpen && (
-                        <div className="absolute right-0 top-full mt-1.5 w-60 bg-[#141418] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-3 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-100">
-                          <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)] mb-2.5">
-                            <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Assistant</span>
-                            <span className="text-[10px] text-emerald-400 font-mono">Top-Anchored</span>
-                          </div>
-
-                          <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                            Questions automatically anchor to the top of the reading pane with answers streaming below.
-                          </p>
-
-                          <div className="mt-2.5 pt-2 border-t border-[var(--border-default)] flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsRabbaiOptionsOpen(false);
-                                requestViewChange('identity');
-                              }}
-                              className="text-[11px] text-[var(--text-secondary)] hover:text-white transition-colors cursor-pointer"
-                            >
-                              All Settings →
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
+                  {/* Right: NotePencil (new conversation) and ✕ (close) */}
+                  <div className="flex items-center gap-0.5 shrink-0">
                     <button
                       type="button"
                       onClick={handleCreateNewRabbAiConversation}
-                      className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                      className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-[6px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
                       title="New conversation"
                     >
                       <NotePencil size={18} strokeWidth={1.5} />
@@ -1223,7 +1207,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => requestViewChange('dashboard')}
-                      className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                      className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-[6px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
                       title="Close RabbAi"
                     >
                       <X size={18} strokeWidth={1.5} />
@@ -1232,37 +1216,8 @@ export default function App() {
                 </>
               ) : (
                 <>
-                  {/* Left: Container-Free Navigation & Wallet Dropdown (with Wallet Icon, NO page title) */}
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        Haptics.light();
-                        setIsSidebarOpen(prev => !prev);
-                      }}
-                      className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
-                      title={isSidebarOpen ? "Close navigation menu" : "Open navigation menu"}
-                    >
-                      <div className="relative w-5 h-5 flex items-center justify-center pointer-events-none">
-                        <span
-                          className={`absolute h-[1.5px] w-4 bg-current rounded-full transition-all duration-300 ease-in-out ${
-                            isSidebarOpen ? 'rotate-45 translate-y-0' : '-translate-y-1.5'
-                          }`}
-                        />
-                        <span
-                          className={`absolute h-[1.5px] w-4 bg-current rounded-full transition-all duration-200 ease-in-out ${
-                            isSidebarOpen ? 'opacity-0 scale-x-0' : 'opacity-100 scale-x-100'
-                          }`}
-                        />
-                        <span
-                          className={`absolute h-[1.5px] w-4 bg-current rounded-full transition-all duration-300 ease-in-out ${
-                            isSidebarOpen ? '-rotate-45 translate-y-0' : 'translate-y-1.5'
-                          }`}
-                        />
-                      </div>
-                    </button>
-
-                    {/* Wallet Dropdown with Wallet Icon (Container-Free) */}
+                  {/* Left: Wallet Switcher (Sidebar drawer removed on mobile in favor of bottom dock + More sheet) */}
+                  <div className="flex items-center gap-1 min-w-0">
                     <button 
                       type="button"
                       onClick={() => {
@@ -1270,18 +1225,18 @@ export default function App() {
                         setWalletSearchQuery('');
                         setIsWalletModalOpen(true);
                       }} 
-                      className="flex items-center gap-1.5 text-[12.5px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-colors cursor-pointer py-1 px-1"
+                      className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--text-primary)] hover:text-[var(--text-secondary)] active:scale-95 transition-colors cursor-pointer min-h-[36px] px-1.5 rounded-[6px]"
                       title="Switch wallet"
                     >
                       <WalletIcon size={16} strokeWidth={1.5} className="text-[var(--text-secondary)] shrink-0" />
-                      <span className="truncate max-w-[125px]">
+                      <span className="truncate max-w-[160px]">
                         {data.wallets.find(w => w.id === data.currentWalletId)?.name || 'Wallet'}
                       </span>
                       <ChevronDown size={12} className="text-[var(--text-muted)] shrink-0 stroke-[1.5px]" />
                     </button>
                   </div>
 
-                  {/* Right: AI Icon (Opens RabbAi if enabled) + Search Icon (All Container-Free) */}
+                  {/* Right: AI Icon and Search Icon */}
                   <div className="flex items-center gap-1 shrink-0">
                     {Boolean(data.settings?.enableAiParsing) && (
                       <button 
@@ -1290,10 +1245,10 @@ export default function App() {
                           Haptics.light();
                           requestViewChange('rabbai');
                         }}
-                        className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                        className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-[6px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
                         title="Open RabbAi Assistant"
                       >
-                        <AiStarIcon size={19} strokeWidth={1.5} />
+                        <AiStarIcon size={18} strokeWidth={1.5} />
                       </button>
                     )}
 
@@ -1303,10 +1258,10 @@ export default function App() {
                         Haptics.light();
                         setIsCommandPaletteOpen(true);
                       }}
-                      className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+                      className="min-w-[36px] min-h-[36px] flex items-center justify-center rounded-[6px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
                       title="Quick search (Ctrl+K)"
                     >
-                      <Search size={18} strokeWidth={1.5} />
+                      <Search size={17} strokeWidth={1.5} />
                     </button>
                   </div>
                 </>
@@ -1316,7 +1271,7 @@ export default function App() {
         )}
 
         {isDesktop && (
-          <div className={`flex-none ${view === 'rabbai' ? 'h-[48px]' : 'h-[52px]'} bg-transparent flex items-center justify-between px-8 relative z-50`}>
+          <div className="flex-none h-[52px] bg-[var(--bg-page)]/80 backdrop-blur-sm border-b border-[var(--border-default)] flex items-center justify-between px-8 relative z-50">
             {view === 'rabbai' ? (
               <div className="flex items-center justify-between w-full">
                 {/* Left: History dropdown */}
@@ -1399,50 +1354,8 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Right: Options & + New Chat */}
+                {/* Right: + New Chat */}
                 <div className="flex items-center gap-2">
-                  <div ref={rabbaiDesktopOptionsRef} className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setIsRabbaiOptionsOpen(!isRabbaiOptionsOpen)}
-                      className={`h-[32px] px-2.5 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-surface-hover)] flex items-center gap-1.5 text-[12px] transition-colors cursor-pointer ${
-                        isRabbaiOptionsOpen 
-                          ? 'text-white border-[var(--border-active)]' 
-                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                      }`}
-                      title="Chat options"
-                    >
-                      <Sliders size={14} strokeWidth={1.5} />
-                      <span>Options</span>
-                    </button>
-
-                    {isRabbaiOptionsOpen && (
-                      <div className="absolute right-0 top-full mt-1.5 w-60 bg-[#141418] border border-[var(--border-default)] rounded-[8px] shadow-2xl p-3 z-50 text-[12px] animate-in fade-in zoom-in-95 duration-100">
-                        <div className="flex items-center justify-between pb-2 border-b border-[var(--border-default)] mb-2.5">
-                          <span className="text-[10px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Assistant</span>
-                          <span className="text-[10px] text-emerald-400 font-mono">Top-Anchored</span>
-                        </div>
-
-                        <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                          Questions automatically anchor to the top of the reading pane with answers streaming below.
-                        </p>
-
-                        <div className="mt-2.5 pt-2 border-t border-[var(--border-default)] flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsRabbaiOptionsOpen(false);
-                              requestViewChange('identity');
-                            }}
-                            className="text-[11px] text-[var(--text-secondary)] hover:text-white transition-colors cursor-pointer"
-                          >
-                            All Settings →
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
                   <button
                     type="button"
                     onClick={handleCreateNewRabbAiConversation}
@@ -1647,24 +1560,22 @@ export default function App() {
 
               {view === 'dashboard' && (
                 <div className="w-full max-w-full view-transition">
-                  <div className="h-auto p-0 lg:p-4">
-                      <DesktopDashboard 
-                          data={data} 
-                          setView={setView} 
-                          updateData={updateData} 
-                          formatMoney={formatMoney} 
-                          onAddTransactionRequest={(t, q) => openAddModal(undefined, t, q)} 
-                          onEditTransaction={openEditModal}
-                          onDeleteTemplate={handleDeleteTemplate}
-                          onAddTransaction={handleAddTransaction}
-                          onOpenRabbAi={(q) => {
-                            const newConvId = `conv_${Date.now()}`;
-                            setActiveConvId(newConvId);
-                            setRabbaiPendingQuery(q);
-                            requestViewChange('rabbai');
-                          }}
-                      />
-                  </div>
+                  <MobileDashboard
+                    data={data}
+                    setView={requestViewChange}
+                    updateData={updateData}
+                    formatMoney={formatMoney}
+                    onAddTransactionRequest={(t, q) => openAddModal(undefined, t, q)}
+                    onEditTransaction={openEditModal}
+                    onDeleteTemplate={handleDeleteTemplate}
+                    onAddTransaction={handleAddTransaction}
+                    onOpenRabbAi={(q) => {
+                      const newConvId = `conv_${Date.now()}`;
+                      setActiveConvId(newConvId);
+                      setRabbaiPendingQuery(q);
+                      requestViewChange('rabbai');
+                    }}
+                  />
                 </div>
               )}
 
@@ -1751,6 +1662,35 @@ export default function App() {
           </Suspense>
           </ErrorBoundary>
         </main>
+
+        {/* Thumb-Zone Mobile Bottom Navigation (stays accessible in RabbAi too, hides only when software keyboard is open) */}
+        {!isDesktop && !isMobileKeyboardOpen && (
+          <MobileDock
+            currentView={view}
+            enableAi={Boolean(data.settings?.enableAiParsing)}
+            isDrawerOpen={isMobileMoreOpen}
+            onSelectView={(target) => {
+              setIsMobileMoreOpen(false);
+              requestViewChange(target);
+            }}
+            onAddTransaction={() => {
+              setIsMobileMoreOpen(false);
+              openAddModal(undefined, TransactionType.EXPENSE);
+            }}
+            onOpenDrawer={() => setIsMobileMoreOpen(prev => !prev)}
+          />
+        )}
+
+        {!isDesktop && (
+          <MobileMoreSheet
+            isOpen={isMobileMoreOpen}
+            currentView={view}
+            data={data}
+            onClose={() => setIsMobileMoreOpen(false)}
+            onSelectView={(target, subTab) => requestViewChange(target, subTab)}
+            onLogout={signOut}
+          />
+        )}
       </div>
 
 
@@ -1871,12 +1811,13 @@ export default function App() {
           </div>
         )}
 
-        {/* Create Wallet Modal (2-Step Flow) */}
+        {/* Create Wallet Modal (2-Step Flow, Bottom Sheet on Mobile) */}
         {isCreateWalletModalOpen && createPortal(
-          <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-end sm:items-center justify-center p-0 sm:p-4">
             <div className="fixed inset-0 bg-black/80 transition-opacity animate-in fade-in duration-150" onClick={() => setIsCreateWalletModalOpen(false)} />
             
-            <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] rounded-[8px] p-6 border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)] animate-in zoom-in-95 duration-150 space-y-4">
+            <div className="relative w-full max-w-[460px] bg-[var(--bg-surface)] rounded-t-[14px] rounded-b-none sm:rounded-[8px] px-5 sm:px-6 pt-3 sm:py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] max-h-[90dvh] overflow-y-auto border border-[var(--border-default)] shadow-2xl z-10 text-[var(--text-primary)] animate-in zoom-in-95 duration-150 space-y-4">
+              <div className="sm:hidden w-9 h-1 rounded-full bg-[var(--border-active)] mx-auto" />
               {/* Modal Header */}
               <div className="flex items-center justify-between">
                 <div>
@@ -1917,8 +1858,8 @@ export default function App() {
                   </div>
 
                   {/* Info Callout Banner */}
-                  <div className="p-3 rounded-[8px] bg-[var(--accent-bg-soft)] border border-[var(--accent)]/20 flex items-start gap-2.5 text-[12px] text-[var(--accent)] leading-relaxed">
-                    <div className="w-4 h-4 rounded-full bg-[var(--accent)] flex items-center justify-center text-white shrink-0 mt-0.5 font-bold text-[10px]">i</div>
+                  <div className="p-3 rounded-[8px] bg-[var(--accent-bg-soft)] flex items-start gap-2.5 text-[12px] text-[#fdba74] leading-relaxed">
+                    <div className="w-4 h-4 rounded-full bg-[var(--accent)] flex items-center justify-center text-white shrink-0 mt-0.5 font-medium text-[10px]">i</div>
                     <span>This Wallet will be created with default settings. You can customize currency, target goals, and color theme anytime.</span>
                   </div>
 

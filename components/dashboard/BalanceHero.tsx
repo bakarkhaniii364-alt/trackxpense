@@ -5,6 +5,7 @@ import {
 } from '@phosphor-icons/react';
 import { AppData, TransactionType, Wallet } from '../../types';
 import { Haptics } from '../../services/haptics';
+import { LayerCard } from '../shared/LayerCard';
 
 interface BalanceHeroProps {
     balance: number;
@@ -55,31 +56,31 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
     };
 
     return (
-        <div 
+        <LayerCard 
             onClick={handleCardClick}
             onDoubleClick={togglePrivacy} 
-            className={`w-full h-full min-h-[160px] sm:min-h-[175px] p-4 sm:p-5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] transition-colors select-none cursor-pointer flex flex-col justify-between overflow-hidden text-[var(--text-primary)] ${className || ''}`}
+            className={`w-full h-full min-h-[160px] sm:min-h-[175px] px-5 py-4 select-none cursor-pointer flex flex-col justify-between overflow-hidden text-[var(--text-primary)] ${className || ''}`}
         >
             {/* Top Row: Eyebrow + Live Dot + Privacy Toggle */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-[var(--status-success-fg)]" />
-                    <span className="text-[10px] uppercase font-medium text-[var(--text-muted)] tracking-[0.06em]">
-                        {currentWallet?.type === 'GOAL' ? 'Savings Goal' : 'Total Balance'}
+                    <span className="text-[12px] font-medium text-[var(--text-muted)]">
+                        {currentWallet?.type === 'GOAL' ? 'Savings goal' : 'Total balance'}
                     </span>
                 </div>
                 <button 
                     onClick={(e) => { e.stopPropagation(); updateData({ settings: { ...data.settings, privacyMode: !data.settings.privacyMode } }) }} 
-                    className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                    className="w-7 h-7 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
                     title={data.settings.privacyMode ? "Show balance" : "Hide balance"}
                 >
                     {data.settings.privacyMode ? <Eye size={14} /> : <EyeOff size={14} />}
                 </button>
             </div>
 
-            {/* Center: Big Metric Readout (28-32px per Lumen specification) */}
+            {/* Center: Big Metric Readout (28-32px per Kumo specification, font-semibold) */}
             <div className="my-auto py-2">
-                <h1 className="text-[30px] font-bold text-[var(--text-primary)] tracking-tight font-mono">
+                <h1 className="text-[28px] sm:text-[30px] font-semibold text-[var(--text-primary)] font-mono">
                     {!data.settings.privacyMode ? formatMoney(balance, walletSymbol) : '•••• ••••'}
                 </h1>
             </div>
@@ -90,25 +91,25 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
                     <div className="flex items-center gap-5">
                         <div 
                             onClick={(e) => { e.stopPropagation(); onAddTransactionRequest(TransactionType.INCOME); }}
-                            className="cursor-pointer hover:opacity-80 transition-opacity"
+                            className="cursor-pointer hover:opacity-80"
                         >
-                            <span className="text-[10px] text-[var(--text-muted)] uppercase font-medium block tracking-[0.05em]">Income</span>
+                            <span className="text-[11px] text-[var(--text-muted)] font-medium block">Income</span>
                             <span className="text-[13px] font-medium text-[var(--status-success-fg)] font-mono">
                                 {!data.settings.privacyMode ? formatMoney(totalIncome, walletSymbol) : '•••'}
                             </span>
                         </div>
                         <div 
                             onClick={(e) => { e.stopPropagation(); onAddTransactionRequest(TransactionType.EXPENSE); }}
-                            className="cursor-pointer hover:opacity-80 transition-opacity"
+                            className="cursor-pointer hover:opacity-80"
                         >
-                            <span className="text-[10px] text-[var(--text-muted)] uppercase font-medium block tracking-[0.05em]">Expense</span>
+                            <span className="text-[11px] text-[var(--text-muted)] font-medium block">Expense</span>
                             <span className="text-[13px] font-medium text-[var(--status-error-fg)] font-mono">
                                 {!data.settings.privacyMode ? formatMoney(totalExpense, walletSymbol) : '•••'}
                             </span>
                         </div>
                     </div>
                     <div className="text-right">
-                        <span className="text-[10px] text-[var(--text-muted)] uppercase font-medium block tracking-[0.05em]">Available</span>
+                        <span className="text-[11px] text-[var(--text-muted)] font-medium block">Available</span>
                         <span className="text-[13px] font-medium text-[var(--text-primary)] font-mono">
                             {formatMoney(adjustedBalance, walletSymbol)}
                         </span>
@@ -117,17 +118,17 @@ export const BalanceHero: React.FC<BalanceHeroProps> = ({
             ) : (
                 <div className="pt-3 border-t border-[var(--border-default)]">
                     <div className="flex justify-between text-[11px] text-[var(--text-muted)] mb-2 font-medium">
-                        <span>{Math.round(goalProgress)}% Saved</span>
+                        <span>{Math.round(goalProgress)}% saved</span>
                         <span className="font-mono">Target: {formatMoney(currentWallet.targetAmount || 0, walletSymbol)}</span>
                     </div>
                     <div className="h-1.5 bg-[var(--bg-subtle)] rounded-full overflow-hidden border border-[var(--border-default)]">
                         <div 
-                            className="h-full bg-[var(--accent-solid)] rounded-full transition-all duration-500" 
+                            className="h-full bg-[var(--accent-solid)] rounded-full" 
                             style={{ width: `${Math.min(100, goalProgress)}%` }} 
                         />
                     </div>
                 </div>
             )}
-        </div>
+        </LayerCard>
     );
 };

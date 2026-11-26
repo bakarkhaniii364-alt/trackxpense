@@ -29,6 +29,7 @@ import {
   RabbAiConversation, 
   RabbAiMessage, 
   RabbAiAction, 
+  safeUUID,
   sendRabbAiTextMessage, 
   sendRabbAiImageMessage 
 } from '../../services/rabbAiService';
@@ -36,6 +37,8 @@ import { GroqClient } from '../../services/groqClient';
 import { MarkdownRenderer } from '../shared/MarkdownRenderer';
 import { StreamedMarkdownRenderer } from '../shared/StreamedMarkdownRenderer';
 import { Haptics } from '../../services/haptics';
+import { getRabbAiGreeting } from '../../utils/greetings';
+import { resolveTransactionTimestamp } from '../../utils/formatters';
 import { saveAs } from 'file-saver';
 
 interface RabbAiViewProps {
@@ -408,21 +411,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     };
   }, [isLoading, displayMessages, updateBottomSpacer]);
 
-  // Time & Shabbat-based Jewish cultural greeting
-  const greeting = useMemo(() => {
-    const now = new Date();
-    const day = now.getDay(); // 0 = Sun, 5 = Fri, 6 = Sat
-    const hour = now.getHours();
-
-    // Friday sundown (from 4pm) or Saturday Shabbat
-    if ((day === 5 && hour >= 16) || day === 6) {
-      return 'Shabbat Shalom.';
-    }
-    if (hour >= 5 && hour < 12) return 'Shalom, good morning.';
-    if (hour >= 12 && hour < 18) return 'Shalom, good afternoon.';
-    if (hour >= 18 && hour < 22) return 'Shalom, good evening.';
-    return 'Shalom, good night.';
-  }, []);
+  // Time, Shabbat & personality-based greeting
+  const greeting = useMemo(() => getRabbAiGreeting(data.profile?.name), [data.profile?.name]);
 
   const formatChatTime = (ts: string) => {
     if (!ts) return '';
@@ -814,7 +804,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
           amount: ext.amount,
           type: ext.type,
           category: ext.category,
-          date: ext.date || new Date().toISOString().split('T')[0],
+          date: resolveTransactionTimestamp(ext.date),
           note: ext.description,
           walletId: data.currentWalletId || data.wallets?.[0]?.id || 'default'
         };
@@ -953,7 +943,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       amount: ext.amount,
       type: ext.type,
       category: ext.category,
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString(),
       note: ext.description,
       walletId: data.currentWalletId || data.wallets?.[0]?.id || 'default'
     };
@@ -973,7 +963,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
       amount: ext.amount,
       type: ext.type,
       category: ext.category,
-      date: chosenDate,
+      date: resolveTransactionTimestamp(chosenDate),
       note: ext.description,
       walletId: data.currentWalletId || data.wallets?.[0]?.id || 'default'
     };
@@ -983,8 +973,71 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
     });
   };
 
+  const formatActionSummary = (action: RabbAiAction): string => {
+    const curr = data.settings?.currencySymbol || '$';
+    switch (action.type) {
+      case 'SET_BUDGET':
+        return `Set ${action.payload.period || 'MONTHLY'} budget for ${action.payload.category} → ${curr}${action.payload.limit}`;
+      case 'REMOVE_BUDGET':
+        return `Remove budget limit for ${action.payload.category}`;
+      case 'SET_DAILY_LIMIT':
+        return action.payload.limit > 0
+          ? `Set daily spending limit → ${curr}${action.payload.limit}`
+          : 'Remove daily spending limit';
+      case 'SET_MONTHLY_LIMIT':
+        return action.payload.limit > 0
+          ? `Set monthly spending goal → ${curr}${action.payload.limit}`
+          : 'Remove monthly spending goal';
+      case 'ADD_WALLET':
+        return `Create ${action.payload.walletType === 'GOAL' ? 'goal ' : ''}wallet "${action.payload.name}" (${action.payload.currency})${action.payload.targetAmount ? ` · target ${action.payload.currency}${action.payload.targetAmount}` : ''}`;
+      case 'UPDATE_WALLET': {
+        const parts: string[] = [];
+        if (action.payload.newName) parts.push(`rename to "${action.payload.newName}"`);
+        if (action.payload.currency) parts.push(`currency ${action.payload.currency}`);
+        if (action.payload.targetAmount !== undefined) parts.push(`target ${curr}${action.payload.targetAmount}`);
+        if (action.payload.walletType) parts.push(`type ${action.payload.walletType}`);
+        return `Update wallet "${action.payload.name}"${parts.length ? ` (${parts.join(', ')})` : ''}`;
+      }
+      case 'SWITCH_WALLET':
+        return `Switch active wallet → ${action.payload.name}`;
+      case 'TRANSFER_WALLET':
+        return `Transfer ${curr}${action.payload.amount} from ${action.payload.from} → ${action.payload.to}`;
+      case 'DELETE_WALLET':
+        return `Delete wallet "${action.payload.name}"`;
+      case 'SET_CURRENCY':
+        return `Set default currency → ${action.payload.currency}`;
+      case 'UPDATE_PROFILE':
+        return `Update display name → ${action.payload.name || 'User'}`;
+      case 'ADD_DEBT':
+        return `${action.payload.debtType === 'OWES_ME' ? `${action.payload.person} owes you` : `You owe ${action.payload.person}`} ${curr}${action.payload.amount}`;
+      case 'SETTLE_DEBT':
+        return action.payload.amount
+          ? `Record ${curr}${action.payload.amount} payment with ${action.payload.person}`
+          : `Mark debt with ${action.payload.person} as settled`;
+      case 'ADD_RECURRING':
+        return `Add ${action.payload.frequency || 'MONTHLY'} ${action.payload.transactionType === 'INCOME' ? 'income' : 'bill'}: ${action.payload.name} (${curr}${action.payload.amount})`;
+      case 'ADD_PROVISION':
+        return `Add upcoming bill: ${action.payload.name} (${curr}${action.payload.amount} on ${action.payload.date})`;
+      case 'ADD_CATEGORY':
+        return `Add ${action.payload.categoryType} category: ${action.payload.name}`;
+      case 'DELETE_CATEGORY':
+        return `Delete category: ${action.payload.name}`;
+      case 'MERGE_CATEGORY':
+        return `Merge "${action.payload.from}" into "${action.payload.into}"`;
+      case 'DELETE_TRANSACTION':
+        return `Delete transaction: ${action.payload.description || 'Item'}${action.payload.amount !== undefined ? ` (${curr}${action.payload.amount})` : ''}`;
+      case 'EXPORT_CSV':
+        return 'Export ledger to CSV';
+      case 'DELETE_ALL_DATA':
+        return 'Delete all ledger data';
+      default:
+        return 'Execute action';
+    }
+  };
+
   const handleExecuteAction = (msgId: string, action: RabbAiAction) => {
     Haptics.light();
+    const nowIso = new Date().toISOString();
     switch (action.type) {
       case 'ADD_CATEGORY':
         onAddCategory({
@@ -999,8 +1052,68 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
         break;
       }
       case 'ADD_WALLET':
-        onAddWallet(action.payload.name, 'STANDARD', 0, action.payload.currency);
+        onAddWallet(
+          action.payload.name,
+          action.payload.walletType === 'GOAL' ? 'GOAL' : 'STANDARD',
+          action.payload.targetAmount || 0,
+          action.payload.currency
+        );
         break;
+      case 'UPDATE_WALLET': {
+        if (updateData) {
+          const updatedWallets = data.wallets.map(w => {
+            if (w.name.toLowerCase() !== action.payload.name.toLowerCase()) return w;
+            return {
+              ...w,
+              name: action.payload.newName?.trim() || w.name,
+              currency: action.payload.currency || w.currency,
+              type: action.payload.walletType || w.type,
+              targetAmount: action.payload.targetAmount !== undefined ? action.payload.targetAmount : w.targetAmount,
+              stealthMode: action.payload.stealthMode !== undefined ? action.payload.stealthMode : w.stealthMode,
+              updated_at: nowIso
+            };
+          });
+          updateData({ wallets: updatedWallets });
+        }
+        break;
+      }
+      case 'SWITCH_WALLET': {
+        if (updateData) {
+          const target = data.wallets.find(w => w.name.toLowerCase() === action.payload.name.toLowerCase());
+          if (target) updateData({ currentWalletId: target.id });
+        }
+        break;
+      }
+      case 'TRANSFER_WALLET': {
+        if (updateData) {
+          const fromW = data.wallets.find(w => w.name.toLowerCase() === action.payload.from.toLowerCase());
+          const toW = data.wallets.find(w => w.name.toLowerCase() === action.payload.to.toLowerCase());
+          if (fromW && toW && fromW.id !== toW.id) {
+            const outTx = {
+              id: `tx_${safeUUID()}`,
+              amount: action.payload.amount,
+              type: TransactionType.EXPENSE,
+              category: 'Transfer',
+              date: nowIso,
+              note: action.payload.note || `Transfer to ${toW.name}`,
+              walletId: fromW.id,
+              updated_at: nowIso
+            };
+            const inTx = {
+              id: `tx_${safeUUID()}`,
+              amount: action.payload.amount,
+              type: TransactionType.INCOME,
+              category: 'Transfer',
+              date: nowIso,
+              note: action.payload.note || `Transfer from ${fromW.name}`,
+              walletId: toW.id,
+              updated_at: nowIso
+            };
+            updateData({ transactions: [inTx, outTx, ...data.transactions] });
+          }
+        }
+        break;
+      }
       case 'DELETE_WALLET': {
         const w = data.wallets.find(x => x.name.toLowerCase() === action.payload.name.toLowerCase());
         if (w) onDeleteWallet(w.id);
@@ -1028,6 +1141,139 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
               budgetLimits: newLimits
             }
           });
+        }
+        break;
+      }
+      case 'REMOVE_BUDGET': {
+        if (updateData) {
+          const currentLimits = { ...(data.settings?.budgetLimits || {}) };
+          const matchingKey = Object.keys(currentLimits).find(
+            k => k.toLowerCase() === action.payload.category.toLowerCase()
+          );
+          if (matchingKey) {
+            delete currentLimits[matchingKey];
+            updateData({
+              settings: {
+                ...data.settings,
+                budgetLimits: currentLimits
+              }
+            });
+          }
+        }
+        break;
+      }
+      case 'SET_DAILY_LIMIT': {
+        if (updateData) {
+          updateData({
+            profile: {
+              ...data.profile,
+              dailyGoal: action.payload.limit
+            }
+          });
+        }
+        break;
+      }
+      case 'SET_MONTHLY_LIMIT': {
+        if (updateData) {
+          updateData({
+            profile: {
+              ...data.profile,
+              monthlyGoal: action.payload.limit
+            }
+          });
+        }
+        break;
+      }
+      case 'SET_CURRENCY': {
+        if (updateData) {
+          updateData({
+            settings: {
+              ...data.settings,
+              currencySymbol: action.payload.currency
+            }
+          });
+        }
+        break;
+      }
+      case 'UPDATE_PROFILE': {
+        if (updateData && action.payload.name) {
+          updateData({
+            profile: {
+              ...data.profile,
+              name: action.payload.name.trim()
+            }
+          });
+        }
+        break;
+      }
+      case 'ADD_DEBT': {
+        if (updateData) {
+          const newDebt = {
+            id: `debt_${safeUUID()}`,
+            person: action.payload.person,
+            amount: action.payload.amount,
+            type: action.payload.debtType,
+            note: action.payload.note,
+            dueDate: action.payload.dueDate,
+            isSettled: false,
+            payments: [],
+            updated_at: nowIso
+          };
+          updateData({ debts: [newDebt, ...(data.debts || [])] });
+        }
+        break;
+      }
+      case 'SETTLE_DEBT': {
+        if (updateData) {
+          const updatedDebts = (data.debts || []).map(d => {
+            if (d.isSettled || d.person.toLowerCase() !== action.payload.person.toLowerCase()) return d;
+            const paidSoFar = (d.payments || []).reduce((s, p) => s + p.amount, 0);
+            const remaining = Math.max(0, d.amount - paidSoFar);
+            const payAmt = action.payload.amount !== undefined ? action.payload.amount : remaining;
+            const newPayments = [
+              ...(d.payments || []),
+              { id: `dp_${safeUUID()}`, amount: payAmt, date: nowIso }
+            ];
+            const isNowSettled = paidSoFar + payAmt >= d.amount - 0.01;
+            return {
+              ...d,
+              payments: newPayments,
+              isSettled: isNowSettled,
+              updated_at: nowIso
+            };
+          });
+          updateData({ debts: updatedDebts });
+        }
+        break;
+      }
+      case 'ADD_RECURRING': {
+        if (updateData) {
+          const newRule = {
+            id: `rec_${safeUUID()}`,
+            name: action.payload.name,
+            amount: action.payload.amount,
+            type: action.payload.transactionType === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE,
+            category: action.payload.category || 'Bills & Utilities',
+            frequency: action.payload.frequency || 'MONTHLY',
+            nextDueDate: nowIso.split('T')[0],
+            walletId: data.currentWalletId,
+            isActive: true,
+            updated_at: nowIso
+          };
+          updateData({ recurringRules: [newRule, ...(data.recurringRules || [])] });
+        }
+        break;
+      }
+      case 'ADD_PROVISION': {
+        if (updateData) {
+          const newProv = {
+            id: `prov_${safeUUID()}`,
+            name: action.payload.name,
+            amount: action.payload.amount,
+            date: action.payload.date,
+            updated_at: nowIso
+          };
+          updateData({ provisions: [newProv, ...(data.provisions || [])] });
         }
         break;
       }
@@ -1247,11 +1493,11 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
 
             {/* Greeting */}
             <div className="text-center space-y-0.5 sm:space-y-1 px-2">
-              <h2 className="text-[18px] sm:text-[22px] font-semibold text-[var(--text-primary)] tracking-tight">
-                {greeting}
+              <h2 className="text-[18px] sm:text-[22px] font-semibold text-[var(--text-primary)]">
+                {greeting.title}
               </h2>
               <p className="text-[12px] sm:text-[13px] text-[var(--text-secondary)] leading-tight">
-                A penny saved is peace of mind. Nu, what's doing with your gelt?
+                {greeting.subtitle}
               </p>
             </div>
 
@@ -1445,7 +1691,7 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                       </div>
 
                       <div className="flex items-baseline justify-between">
-                        <span className="text-[17px] font-bold font-mono tracking-tight text-[var(--text-primary)]">
+                        <span className="text-[17px] font-semibold font-mono text-[var(--text-primary)]">
                           {data.settings.currencySymbol}{msg.extractedTransaction.amount.toFixed(2)}
                         </span>
                         <span className="pill pill--muted text-[11px] py-0.5 px-2.5">
@@ -1528,16 +1774,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                           </span>
                         )}
                       </div>
-                      <p className="text-[12px] text-[var(--text-primary)] font-medium">
-                        {msg.aiAction.type === 'SET_BUDGET' ? (
-                          <span>Set Budget: <strong className="text-white">{(msg.aiAction.payload as any).category}</strong> → {data.settings?.currencySymbol || '$'}{(msg.aiAction.payload as any).limit} / {(msg.aiAction.payload as any).period || 'MONTHLY'}</span>
-                        ) : msg.aiAction.type === 'DELETE_TRANSACTION' ? (
-                          <span>Delete Transaction: <strong className="text-white">{(msg.aiAction.payload as any).description || 'Item'}</strong> {(msg.aiAction.payload as any).amount !== undefined ? `(${data.settings?.currencySymbol || '$'}${(msg.aiAction.payload as any).amount})` : ''}</span>
-                        ) : msg.aiAction.type === 'DELETE_ALL_DATA' ? (
-                          <span>Delete All Data</span>
-                        ) : (
-                          msg.aiAction.type.replace(/_/g, ' ')
-                        )}
+                      <p className="text-[13px] text-[var(--text-primary)] font-medium">
+                        {formatActionSummary(msg.aiAction)}
                       </p>
                       {msg.aiAction.executed ? (
                         <div className="pt-2 border-t border-[var(--border-default)] flex items-center justify-between text-[11px]">
@@ -1555,7 +1793,8 @@ export const RabbAiView: React.FC<RabbAiViewProps> = ({
                             msg.aiAction.type === 'DELETE_TRANSACTION' ||
                             msg.aiAction.type === 'DELETE_ALL_DATA' ||
                             msg.aiAction.type === 'DELETE_CATEGORY' ||
-                            msg.aiAction.type === 'DELETE_WALLET'
+                            msg.aiAction.type === 'DELETE_WALLET' ||
+                            msg.aiAction.type === 'REMOVE_BUDGET'
                               ? 'btn--danger'
                               : 'btn--primary'
                           } w-full h-[30px] text-[12px] rounded-[6px] font-medium cursor-pointer`}

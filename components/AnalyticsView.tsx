@@ -26,6 +26,7 @@ import { CustomSelect } from './shared/CustomSelect';
 import { SimulationModule } from './dashboard/SimulationModule';
 import { NoDataWave } from './shared/NoDataWave';
 import { Haptics } from '../services/haptics';
+import { LayerCard } from './shared/LayerCard';
 
 interface AnalyticsProps {
   data: AppData;
@@ -236,7 +237,7 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
       {/* HEADER: 'Analytics' on left, Cloudflare Controls on right                 */}
       {/* ========================================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-        <h1 className="text-[20px] font-semibold text-[var(--text-primary)] tracking-tight">
+        <h1 className="text-[20px] font-semibold text-[var(--text-primary)]">
           Analytics
         </h1>
 
@@ -266,7 +267,7 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
             type="button"
             onClick={handleExportCSV}
             title="Export CSV"
-            className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--border-active)] hover:bg-[var(--bg-surface-hover)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-[6px] border border-[var(--border-default)] bg-[var(--bg-surface)] hover:border-[var(--border-active)] hover:bg-[var(--bg-surface-hover)] flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
           >
             <Download size={14} strokeWidth={1.5} />
           </button>
@@ -278,38 +279,43 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
       {/* Card 1: Total Spend with Blue Peak Chart (or No Data Wave)                 */}
       {/* Card 2: Total Income with Active Curve (or No Data Wave)                   */}
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
+      {/* ROW 1: 2 Columns (50% / 50%)                                              */}
+      {/* Card 1: Total Spend with Blue Peak Chart (or No Data Wave)                 */}
+      {/* Card 2: Total Income with Active Curve (or No Data Wave)                   */}
+      {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
         
         {/* 1. Total Requests / Total Spend */}
-        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-[230px]">
-          <div>
-            <div className="flex items-center justify-between text-[12.5px] text-[var(--text-secondary)] font-normal mb-1">
-              <span>Total spend</span>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setActiveMenu(activeMenu === 'spend' ? null : 'spend')}
-                  className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] transition-colors cursor-pointer"
-                  title="Options"
-                >
-                  <DotsThree size={16} weight="bold" />
-                </button>
-                {activeMenu === 'spend' && (
-                  <div className="absolute right-0 top-full mt-1 w-40 bg-[#16161A] border border-[var(--border-default)] rounded-[6px] shadow-2xl py-1 z-50 text-[12px]">
-                    <button onClick={handleExportCSV} className="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)]">
-                      Export dataset
-                    </button>
-                    <button onClick={() => setIsSimOpen(true)} className="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)]">
-                      Simulate scenario
-                    </button>
-                  </div>
-                )}
-              </div>
+        <LayerCard className="h-[250px]">
+          <LayerCard.Secondary>
+            <span>Total spend</span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setActiveMenu(activeMenu === 'spend' ? null : 'spend')}
+                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] cursor-pointer"
+                title="Options"
+              >
+                <DotsThree size={16} weight="bold" />
+              </button>
+              {activeMenu === 'spend' && (
+                <div className="absolute right-0 top-full mt-1 w-40 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] ring-1 ring-[var(--border-strong)] py-1 z-50 text-[12px]">
+                  <button onClick={handleExportCSV} className="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)]">
+                    Export dataset
+                  </button>
+                  <button onClick={() => setIsSimOpen(true)} className="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)]">
+                    Simulate scenario
+                  </button>
+                </div>
+              )}
             </div>
+          </LayerCard.Secondary>
 
+          <LayerCard.Primary className="flex-1 justify-between p-3.5">
             {/* Readout + Trend badge */}
             <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono tracking-tight">
+              <span className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono">
                 {formatCompactK(metrics.totalExpense)}
               </span>
               {metrics.spendTrend !== null && (
@@ -321,119 +327,119 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
                 </span>
               )}
             </div>
-          </div>
 
-          {/* Chart Area */}
-          <div className="h-[140px] w-full">
-            {metrics.hasExpenseData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartPoints} margin={{ top: 8, right: 0, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="cfOrangeSpend" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#F6821F" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#F6821F" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="rgba(255, 255, 255, 0.06)" vertical={false} />
-                  <XAxis dataKey="name" hide />
-                  <YAxis 
-                    orientation="right" 
-                    tickLine={false} 
-                    axisLine={false} 
-                    tickCount={5}
-                    tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--ds-font-mono)' }} 
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#121216', borderColor: '#24242C', borderRadius: '6px', fontSize: '12px' }}
-                    formatter={(val: any) => [formatMoney(val, currencySymbol), 'Spend']}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="spent" 
-                    stroke="#F6821F" 
-                    strokeWidth={2} 
-                    fill="url(#cfOrangeSpend)" 
-                    activeDot={{ r: 4, fill: '#F6821F', stroke: 'var(--bg-surface)', strokeWidth: 2 }} 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <NoDataWave height={140} />
-            )}
-          </div>
-        </div>
+            {/* Chart Area */}
+            <div className="h-[120px] w-full">
+              {metrics.hasExpenseData ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartPoints} margin={{ top: 8, right: 0, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="cfOrangeSpend" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#F6821F" stopOpacity={0.25} />
+                        <stop offset="100%" stopColor="#F6821F" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="rgba(255, 255, 255, 0.06)" vertical={false} />
+                    <XAxis dataKey="name" hide />
+                    <YAxis 
+                      orientation="right" 
+                      tickLine={false} 
+                      axisLine={false} 
+                      tickCount={5}
+                      tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--ds-font-mono)' }} 
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-default)', borderRadius: '6px', fontSize: '12px' }}
+                      formatter={(val: any) => [formatMoney(val, currencySymbol), 'Spend']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="spent" 
+                      stroke="#F6821F" 
+                      strokeWidth={2} 
+                      fill="url(#cfOrangeSpend)" 
+                      activeDot={{ r: 4, fill: '#F6821F', stroke: 'var(--bg-surface)', strokeWidth: 2 }} 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <NoDataWave height={120} />
+              )}
+            </div>
+          </LayerCard.Primary>
+        </LayerCard>
 
         {/* 2. Worker Invocations / Total Income */}
-        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-[230px]">
-          <div>
-            <div className="flex items-center justify-between text-[12.5px] text-[var(--text-secondary)] font-normal mb-1">
-              <span>Total income</span>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setActiveMenu(activeMenu === 'income' ? null : 'income')}
-                  className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] transition-colors cursor-pointer"
-                  title="Options"
-                >
-                  <DotsThree size={16} weight="bold" />
-                </button>
-                {activeMenu === 'income' && (
-                  <div className="absolute right-0 top-full mt-1 w-40 bg-[#16161A] border border-[var(--border-default)] rounded-[6px] shadow-2xl py-1 z-50 text-[12px]">
-                    <button onClick={handleExportCSV} className="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)]">
-                      Export dataset
-                    </button>
-                  </div>
-                )}
-              </div>
+        <LayerCard className="h-[250px]">
+          <LayerCard.Secondary>
+            <span>Total income</span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setActiveMenu(activeMenu === 'income' ? null : 'income')}
+                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] cursor-pointer"
+                title="Options"
+              >
+                <DotsThree size={16} weight="bold" />
+              </button>
+              {activeMenu === 'income' && (
+                <div className="absolute right-0 top-full mt-1 w-40 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] ring-1 ring-[var(--border-strong)] py-1 z-50 text-[12px]">
+                  <button onClick={handleExportCSV} className="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)]">
+                    Export dataset
+                  </button>
+                </div>
+              )}
             </div>
+          </LayerCard.Secondary>
 
+          <LayerCard.Primary className="flex-1 justify-between p-3.5">
             {/* Readout */}
             <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono tracking-tight">
+              <span className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono">
                 {formatCompactK(metrics.totalIncome)}
               </span>
             </div>
-          </div>
 
-          {/* Chart Area */}
-          <div className="h-[140px] w-full">
-            {metrics.hasIncomeData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartPoints} margin={{ top: 8, right: 0, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="cfGreenIncome" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#22c55e" stopOpacity={0.25} />
-                      <stop offset="100%" stopColor="#22c55e" stopOpacity={0.0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="rgba(255, 255, 255, 0.06)" vertical={false} />
-                  <XAxis dataKey="name" hide />
-                  <YAxis 
-                    orientation="right" 
-                    tickLine={false} 
-                    axisLine={false} 
-                    tickCount={5}
-                    tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--ds-font-mono)' }} 
-                  />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#121216', borderColor: '#24242C', borderRadius: '6px', fontSize: '12px' }}
-                    formatter={(val: any) => [formatMoney(val, currencySymbol), 'Income']}
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="income" 
-                    stroke="#22c55e" 
-                    strokeWidth={2} 
-                    fill="url(#cfGreenIncome)" 
-                    activeDot={{ r: 4, fill: '#22c55e', stroke: 'var(--bg-surface)', strokeWidth: 2 }} 
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <NoDataWave height={140} />
-            )}
-          </div>
-        </div>
+            {/* Chart Area */}
+            <div className="h-[120px] w-full">
+              {metrics.hasIncomeData ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartPoints} margin={{ top: 8, right: 0, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="cfGreenIncome" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#22c55e" stopOpacity={0.25} />
+                        <stop offset="100%" stopColor="#22c55e" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="rgba(255, 255, 255, 0.06)" vertical={false} />
+                    <XAxis dataKey="name" hide />
+                    <YAxis 
+                      orientation="right" 
+                      tickLine={false} 
+                      axisLine={false} 
+                      tickCount={5}
+                      tick={{ fill: 'var(--text-muted)', fontSize: 11, fontFamily: 'var(--ds-font-mono)' }} 
+                    />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-default)', borderRadius: '6px', fontSize: '12px' }}
+                      formatter={(val: any) => [formatMoney(val, currencySymbol), 'Income']}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="income" 
+                      stroke="#22c55e" 
+                      strokeWidth={2} 
+                      fill="url(#cfGreenIncome)" 
+                      activeDot={{ r: 4, fill: '#22c55e', stroke: 'var(--bg-surface)', strokeWidth: 2 }} 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <NoDataWave height={120} />
+              )}
+            </div>
+          </LayerCard.Primary>
+        </LayerCard>
 
       </div>
 
@@ -447,150 +453,154 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
         
         {/* 1. Workers errors / Active liabilities */}
-        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-[200px]">
-          <div>
-            <div className="flex items-center justify-between text-[12.5px] text-[var(--text-secondary)] font-normal mb-1">
-              <span>Active liabilities</span>
-              <button
-                type="button"
-                onClick={() => setActiveMenu(activeMenu === 'liab' ? null : 'liab')}
-                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] transition-colors cursor-pointer"
-                title="Options"
-              >
-                <DotsThree size={16} weight="bold" />
-              </button>
-            </div>
-            <div className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono tracking-tight mb-2">
+        <LayerCard className="h-[210px]">
+          <LayerCard.Secondary className="flex items-center justify-between">
+            <span>Active liabilities</span>
+            <button
+              type="button"
+              onClick={() => setActiveMenu(activeMenu === 'liab' ? null : 'liab')}
+              className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] cursor-pointer"
+              title="Options"
+            >
+              <DotsThree size={16} weight="bold" />
+            </button>
+          </LayerCard.Secondary>
+
+          <LayerCard.Primary className="flex-1 justify-between">
+            <div className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono mb-2">
               {formatCompactK(metrics.totalLiabilities)}
             </div>
-          </div>
 
-          <div className="h-[105px] w-full">
-            {metrics.hasLiabilityData ? (
-              <div className="h-full flex flex-col justify-end">
-                <div className="text-[12px] text-[var(--status-warning-fg)] mb-2 font-mono">
-                  {formatMoney(metrics.totalLiabilities, currencySymbol)} unsettled
+            <div className="h-[75px] w-full">
+              {metrics.hasLiabilityData ? (
+                <div className="h-full flex flex-col justify-end">
+                  <div className="text-[12px] text-[var(--status-warning-fg)] mb-2 font-mono">
+                    {formatMoney(metrics.totalLiabilities, currencySymbol)} unsettled
+                  </div>
+                  <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden">
+                    <div className="h-full bg-[var(--status-warning-fg)] rounded-full w-3/4" />
+                  </div>
                 </div>
-                <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden">
-                  <div className="h-full bg-[var(--status-warning-fg)] rounded-full w-3/4" />
-                </div>
-              </div>
-            ) : (
-              <NoDataWave height={105} />
-            )}
-          </div>
-        </div>
+              ) : (
+                <NoDataWave height={75} />
+              )}
+            </div>
+          </LayerCard.Primary>
+        </LayerCard>
 
         {/* 2. Cache hit rate / Savings rate */}
-        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-[200px]">
-          <div>
-            <div className="flex items-center justify-between text-[12.5px] text-[var(--text-secondary)] font-normal mb-1">
-              <span>Savings rate</span>
-              <button
-                type="button"
-                onClick={() => setActiveMenu(activeMenu === 'savings' ? null : 'savings')}
-                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] transition-colors cursor-pointer"
-                title="Options"
-              >
-                <DotsThree size={16} weight="bold" />
-              </button>
-            </div>
-            <div className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono tracking-tight mb-2">
+        <LayerCard className="h-[210px]">
+          <LayerCard.Secondary className="flex items-center justify-between">
+            <span>Savings rate</span>
+            <button
+              type="button"
+              onClick={() => setActiveMenu(activeMenu === 'savings' ? null : 'savings')}
+              className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] cursor-pointer"
+              title="Options"
+            >
+              <DotsThree size={16} weight="bold" />
+            </button>
+          </LayerCard.Secondary>
+
+          <LayerCard.Primary className="flex-1 justify-between">
+            <div className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono mb-2">
               {metrics.savingsRate.toFixed(2)}%
             </div>
-          </div>
 
-          <div className="h-[105px] w-full">
-            {metrics.hasSavingsData ? (
-              <div className="h-full flex flex-col justify-end">
-                <div className="text-[12px] text-[var(--status-success-fg)] mb-2 font-mono">
-                  {metrics.savingsRate.toFixed(1)}% of income saved
+            <div className="h-[75px] w-full">
+              {metrics.hasSavingsData ? (
+                <div className="h-full flex flex-col justify-end">
+                  <div className="text-[12px] text-[var(--status-success-fg)] mb-2 font-mono">
+                    {metrics.savingsRate.toFixed(1)}% of income saved
+                  </div>
+                  <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[var(--status-success-fg)] rounded-full" 
+                      style={{ width: `${Math.min(100, metrics.savingsRate)}%` }} 
+                    />
+                  </div>
                 </div>
-                <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-[var(--status-success-fg)] rounded-full" 
-                    style={{ width: `${Math.min(100, metrics.savingsRate)}%` }} 
-                  />
-                </div>
-              </div>
-            ) : (
-              <NoDataWave height={105} />
-            )}
-          </div>
-        </div>
+              ) : (
+                <NoDataWave height={75} />
+              )}
+            </div>
+          </LayerCard.Primary>
+        </LayerCard>
 
         {/* 3. CPU time P90 / Daily burn rate */}
-        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-[200px]">
-          <div>
-            <div className="flex items-center justify-between text-[12.5px] text-[var(--text-secondary)] font-normal mb-1">
-              <span>Daily burn rate</span>
-              <button
-                type="button"
-                onClick={() => setActiveMenu(activeMenu === 'burn' ? null : 'burn')}
-                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] transition-colors cursor-pointer"
-                title="Options"
-              >
-                <DotsThree size={16} weight="bold" />
-              </button>
-            </div>
-            <div className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono tracking-tight mb-2">
+        <LayerCard className="h-[210px]">
+          <LayerCard.Secondary className="flex items-center justify-between">
+            <span>Daily burn rate</span>
+            <button
+              type="button"
+              onClick={() => setActiveMenu(activeMenu === 'burn' ? null : 'burn')}
+              className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] cursor-pointer"
+              title="Options"
+            >
+              <DotsThree size={16} weight="bold" />
+            </button>
+          </LayerCard.Secondary>
+
+          <LayerCard.Primary className="flex-1 justify-between">
+            <div className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono mb-2">
               {metrics.avgDailyBurn > 0 ? formatCompactK(metrics.avgDailyBurn) : '0'}
             </div>
-          </div>
 
-          <div className="h-[105px] w-full">
-            {metrics.hasBurnData ? (
-              <div className="h-full flex flex-col justify-end">
-                <div className="text-[12px] text-[var(--text-secondary)] mb-2 font-mono">
-                  {formatMoney(metrics.avgDailyBurn, currencySymbol)} / day
+            <div className="h-[75px] w-full">
+              {metrics.hasBurnData ? (
+                <div className="h-full flex flex-col justify-end">
+                  <div className="text-[12px] text-[var(--text-secondary)] mb-2 font-mono">
+                    {formatMoney(metrics.avgDailyBurn, currencySymbol)} / day
+                  </div>
+                  <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden">
+                    <div className="h-full bg-sky-400 rounded-full w-2/3" />
+                  </div>
                 </div>
-                <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden">
-                  <div className="h-full bg-sky-400 rounded-full w-2/3" />
-                </div>
-              </div>
-            ) : (
-              <NoDataWave height={105} />
-            )}
-          </div>
-        </div>
+              ) : (
+                <NoDataWave height={75} />
+              )}
+            </div>
+          </LayerCard.Primary>
+        </LayerCard>
 
         {/* 4. Build minutes / Runway trajectory */}
-        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-[200px]">
-          <div>
-            <div className="flex items-center justify-between text-[12.5px] text-[var(--text-secondary)] font-normal mb-1">
-              <span>Runway trajectory</span>
-              <button
-                type="button"
-                onClick={() => setActiveMenu(activeMenu === 'runway' ? null : 'runway')}
-                className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] transition-colors cursor-pointer"
-                title="Options"
-              >
-                <DotsThree size={16} weight="bold" />
-              </button>
-            </div>
-            <div className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono tracking-tight mb-2">
+        <LayerCard className="h-[210px]">
+          <LayerCard.Secondary className="flex items-center justify-between">
+            <span>Runway trajectory</span>
+            <button
+              type="button"
+              onClick={() => setActiveMenu(activeMenu === 'runway' ? null : 'runway')}
+              className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] cursor-pointer"
+              title="Options"
+            >
+              <DotsThree size={16} weight="bold" />
+            </button>
+          </LayerCard.Secondary>
+
+          <LayerCard.Primary className="flex-1 justify-between">
+            <div className="text-2xl sm:text-[28px] font-semibold text-[var(--text-primary)] font-mono mb-2">
               {metrics.hasRunwayData ? (metrics.runwayDays >= 365 ? '365+' : `${metrics.runwayDays}`) : '0'}
             </div>
-          </div>
 
-          <div className="h-[105px] w-full">
-            {metrics.hasRunwayData ? (
-              <div className="h-full flex flex-col justify-end">
-                <div className="text-[12px] text-[var(--text-secondary)] mb-2 font-mono">
-                  {metrics.runwayDays} days capital buffer
+            <div className="h-[75px] w-full">
+              {metrics.hasRunwayData ? (
+                <div className="h-full flex flex-col justify-end">
+                  <div className="text-[12px] text-[var(--text-secondary)] mb-2 font-mono">
+                    {metrics.runwayDays} days capital buffer
+                  </div>
+                  <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-400 rounded-full" 
+                      style={{ width: `${Math.min(100, (metrics.runwayDays / 90) * 100)}%` }} 
+                    />
+                  </div>
                 </div>
-                <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-emerald-400 rounded-full" 
-                    style={{ width: `${Math.min(100, (metrics.runwayDays / 90) * 100)}%` }} 
-                  />
-                </div>
-              </div>
-            ) : (
-              <NoDataWave height={105} />
-            )}
-          </div>
-        </div>
+              ) : (
+                <NoDataWave height={75} />
+              )}
+            </div>
+          </LayerCard.Primary>
+        </LayerCard>
 
       </div>
 
@@ -600,83 +610,81 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ data, updateData, form
       <div className="pt-2 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-3.5 items-start">
         
         {/* Category Breakdown (7 cols) */}
-        <div className="lg:col-span-7 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[12.5px] font-medium text-[var(--text-primary)]">
-              Category Distribution
-            </span>
+        <LayerCard className="lg:col-span-7">
+          <LayerCard.Secondary className="flex items-center justify-between">
+            <span>Category distribution</span>
             <span className="text-[11px] font-mono text-[var(--text-muted)]">
               {data.categories.length} categories
             </span>
-          </div>
-
-          {filteredTransactions.filter(t => t.type === TransactionType.EXPENSE).length > 0 ? (
-            <div className="space-y-3">
-              {data.categories.map(cat => {
-                const amount = filteredTransactions
-                  .filter(t => t.category === cat.name && t.type === TransactionType.EXPENSE)
-                  .reduce((sum, t) => sum + t.amount, 0);
-                if (amount <= 0) return null;
-                const percent = metrics.totalExpense > 0 ? (amount / metrics.totalExpense) * 100 : 0;
-                return (
-                  <div key={cat.id || cat.name} className="space-y-1.5">
-                    <div className="flex justify-between items-center text-[12px]">
-                      <span className="font-medium text-[var(--text-primary)] truncate">{cat.name}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[var(--text-secondary)]">{formatMoney(amount, currencySymbol)}</span>
-                        <span className="text-[11px] font-mono text-[var(--text-muted)] w-8 text-right">{Math.round(percent)}%</span>
+          </LayerCard.Secondary>
+          <LayerCard.Primary className="p-4">
+            {filteredTransactions.filter(t => t.type === TransactionType.EXPENSE).length > 0 ? (
+              <div className="space-y-3">
+                {data.categories.map(cat => {
+                  const amount = filteredTransactions
+                    .filter(t => t.category === cat.name && t.type === TransactionType.EXPENSE)
+                    .reduce((sum, t) => sum + t.amount, 0);
+                  if (amount <= 0) return null;
+                  const percent = metrics.totalExpense > 0 ? (amount / metrics.totalExpense) * 100 : 0;
+                  return (
+                    <div key={cat.id || cat.name} className="space-y-1.5">
+                      <div className="flex justify-between items-center text-[12px]">
+                        <span className="font-medium text-[var(--text-primary)] truncate">{cat.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[var(--text-secondary)]">{formatMoney(amount, currencySymbol)}</span>
+                          <span className="text-[11px] font-mono text-[var(--text-muted)] w-8 text-right">{Math.round(percent)}%</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full transition-all duration-700 bg-[var(--accent-solid)]"
+                          style={{ width: `${Math.min(100, percent)}%`, backgroundColor: cat.color || 'var(--accent-solid)' }}
+                        />
                       </div>
                     </div>
-                    <div className="h-1.5 w-full bg-[var(--bg-subtle)] rounded-full overflow-hidden">
-                      <div 
-                        className="h-full rounded-full transition-all duration-700 bg-[var(--accent-solid)]"
-                        style={{ width: `${Math.min(100, percent)}%`, backgroundColor: cat.color || 'var(--accent-solid)' }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <NoDataWave height={100} />
-          )}
-        </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <NoDataWave height={100} />
+            )}
+          </LayerCard.Primary>
+        </LayerCard>
 
         {/* Ledger Activity (5 cols) */}
-        <div className="lg:col-span-5 rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[12.5px] font-medium text-[var(--text-primary)]">
-              Recent Transactions
-            </span>
+        <LayerCard className="lg:col-span-5">
+          <LayerCard.Secondary className="flex items-center justify-between">
+            <span>Recent transactions</span>
             <span className="text-[11px] font-mono text-[var(--text-muted)]">
               {filteredTransactions.length} total
             </span>
-          </div>
-
-          {filteredTransactions.length > 0 ? (
-            <div className="divide-y divide-[var(--border-default)] max-h-[220px] overflow-y-auto no-scrollbar">
-              {filteredTransactions.slice(0, 5).map(tx => (
-                <div key={tx.id} className="py-2.5 flex items-center justify-between text-[12.5px]">
-                  <div className="min-w-0 pr-2">
-                    <div className="font-medium text-[var(--text-primary)] truncate">
-                      {tx.note || tx.category || 'Transaction'}
+          </LayerCard.Secondary>
+          <LayerCard.Primary className="p-4">
+            {filteredTransactions.length > 0 ? (
+              <div className="divide-y divide-[var(--border-default)] max-h-[220px] overflow-y-auto no-scrollbar">
+                {filteredTransactions.slice(0, 5).map(tx => (
+                  <div key={tx.id} className="py-2.5 flex items-center justify-between text-[12.5px]">
+                    <div className="min-w-0 pr-2">
+                      <div className="font-medium text-[var(--text-primary)] truncate">
+                        {tx.note || tx.category || 'Transaction'}
+                      </div>
+                      <div className="text-[11px] text-[var(--text-muted)] font-mono">
+                        {tx.date.split('T')[0]} • {tx.category}
+                      </div>
                     </div>
-                    <div className="text-[11px] text-[var(--text-muted)] font-mono">
-                      {tx.date.split('T')[0]} • {tx.category}
-                    </div>
+                    <span className={`font-mono font-medium shrink-0 ${
+                      tx.type === TransactionType.INCOME ? 'text-emerald-400' : 'text-[var(--text-primary)]'
+                    }`}>
+                      {tx.type === TransactionType.INCOME ? '+' : '-'}{formatMoney(tx.amount, currencySymbol)}
+                    </span>
                   </div>
-                  <span className={`font-mono font-medium shrink-0 ${
-                    tx.type === TransactionType.INCOME ? 'text-emerald-400' : 'text-[var(--text-primary)]'
-                  }`}>
-                    {tx.type === TransactionType.INCOME ? '+' : '-'}{formatMoney(tx.amount, currencySymbol)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <NoDataWave height={100} />
-          )}
-        </div>
+                ))}
+              </div>
+            ) : (
+              <NoDataWave height={100} />
+            )}
+          </LayerCard.Primary>
+        </LayerCard>
 
       </div>
 

@@ -308,7 +308,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               >
                 {/* Top Row: Date Number & Spike Badges */}
                 <div className="w-full flex items-center justify-between px-0.5 leading-none">
-                  <span className={`text-[11px] font-mono ${isSelected ? 'text-[var(--text-primary)] font-bold' : ''}`}>
+                  <span className={`text-[11px] font-mono ${isSelected ? 'text-[var(--text-primary)] font-semibold' : ''}`}>
                     {stat.day}
                   </span>
 

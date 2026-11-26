@@ -20,6 +20,7 @@ import {
   ArrowDown
 } from '@phosphor-icons/react';
 import { COLOR_PRESETS, GlassSelect, GlassCheckbox } from '../shared/CommonUI';
+import { Table } from '../shared/Table';
 import { TablePaginationFooter } from '../shared/TablePaginationFooter';
 import { SegmentedSubTabs } from '../shared/SegmentedSubTabs';
 import { CategoryIcon } from '../shared/CategoryIcon';
@@ -385,7 +386,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
           {/* Cloudflare-Style Section Header Outside Card */}
           <div className="flex items-center justify-between pb-2">
             <div>
-              <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Budgets</h2>
+              <h2 className="text-xl font-semibold text-[var(--text-primary)]">Budgets</h2>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">Set daily or monthly spending limits per category to keep your budget on track.</p>
             </div>
             <button
@@ -407,11 +408,11 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               {activeBudgets.map(([cat, config]) => (
                 <div 
                   key={cat} 
-                  className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all"
+                  className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] px-5 py-4 rounded-[8px] flex items-center justify-between group"
                 >
                   <div className="flex items-center gap-3.5">
                     <div 
-                      className={`w-9 h-9 rounded-[8px] flex items-center justify-center text-[11px] font-bold ${
+                      className={`w-9 h-9 rounded-[8px] flex items-center justify-center text-[11px] font-semibold ${
                         config.period === 'DAILY' 
                           ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' 
                           : 'bg-[var(--accent-bg-soft)] text-[var(--accent)] border border-[var(--accent)]/20'
@@ -420,7 +421,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                       {config.period === 'DAILY' ? 'D' : 'M'}
                     </div>
                     <div>
-                      <span className="text-[14px] font-medium text-[var(--text-primary)] block tracking-tight">{cat}</span>
+                      <span className="text-[14px] font-medium text-[var(--text-primary)] block">{cat}</span>
                       <span className="text-[12px] text-[var(--text-muted)] font-mono">
                         {formatMoney(config.limit, data.settings.currencySymbol)} / {config.period.toLowerCase()}
                       </span>
@@ -476,7 +477,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
           {/* Cloudflare-Style Section Header Outside Card */}
           <div className="flex items-center justify-between pb-2">
             <div>
-              <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Categories</h2>
+              <h2 className="text-xl font-semibold text-[var(--text-primary)]">Categories</h2>
               <p className="text-xs text-[var(--text-secondary)] mt-0.5">Manage transaction categories and visual color swatches.</p>
             </div>
 
@@ -535,7 +536,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                 return (
                   <div 
                     key={cat.id} 
-                    className={`bg-[var(--bg-surface)] border p-4 rounded-[10px] flex items-center justify-between group transition-all relative ${
+                    className={`bg-[var(--bg-surface)] border px-5 py-4 rounded-[8px] flex items-center justify-between group relative ${
                       isSelected ? 'border-[var(--accent)] bg-[var(--bg-subtle)]' : 'border-[var(--border-default)] hover:border-[var(--border-active)]'
                     }`}
                   >
@@ -554,7 +555,7 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                       )}
 
                       <div className="min-w-0">
-                        <span className="text-[13px] font-medium text-[var(--text-primary)] block tracking-tight truncate">{cat.name}</span>
+                        <span className="text-[14px] font-medium text-[var(--text-primary)] block truncate">{cat.name}</span>
                         <span className="text-[11px] text-[var(--text-muted)] block font-mono mt-0.5">
                           {stats.count} {stats.count === 1 ? 'entry' : 'entries'} • {formatMoney(stats.total, data.settings.currencySymbol)}
                         </span>
@@ -648,45 +649,45 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
               )}
 
               <div className="w-full overflow-x-auto no-scrollbar">
-                <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-[var(--border-default)] bg-[var(--bg-surface)] text-[10.5px] font-medium text-[var(--text-muted)] uppercase tracking-[0.06em]">
+                <Table className="w-full text-left border-collapse">
+                <Table.Header>
+                  <Table.Row className="border-b border-[var(--color-kumo-hairline)] bg-[var(--bg-surface)] text-[12px] font-medium text-[var(--text-secondary)]">
                     {selectedCategoryIds.length > 0 && (
-                      <th className="px-4 py-2 w-10 leading-tight">
+                      <Table.Head className="px-4 py-2.5 w-10 leading-tight">
                         <GlassCheckbox 
                           checked={data.categories?.length > 0 && selectedCategoryIds.length === data.categories?.length}
                           onChange={selectAllCategories}
                         />
-                      </th>
+                      </Table.Head>
                     )}
-                    <th 
-                      className="px-4 py-2 cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
+                    <Table.Head 
+                      className="px-4 py-2.5 cursor-pointer hover:text-[var(--text-primary)] select-none leading-tight"
                       onClick={() => handleCatSort('type')}
                     >
                       <div className="flex items-center gap-1.5">
                         Type {catSortKey === 'type' && (catSortDirection === 'asc' ? <ArrowUp size={11}/> : <ArrowDown size={11}/>)}
                       </div>
-                    </th>
-                    <th 
-                      className="px-4 py-2 cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
+                    </Table.Head>
+                    <Table.Head 
+                      className="px-4 py-2.5 cursor-pointer hover:text-[var(--text-primary)] select-none leading-tight"
                       onClick={() => handleCatSort('name')}
                     >
                       <div className="flex items-center gap-1.5">
-                        Category Name {catSortKey === 'name' && (catSortDirection === 'asc' ? <ArrowUp size={11}/> : <ArrowDown size={11}/>)}
+                        Category name {catSortKey === 'name' && (catSortDirection === 'asc' ? <ArrowUp size={11}/> : <ArrowDown size={11}/>)}
                       </div>
-                    </th>
-                    <th 
-                      className="px-4 py-2 cursor-pointer hover:text-[var(--text-primary)] transition-colors select-none leading-tight"
+                    </Table.Head>
+                    <Table.Head 
+                      className="px-4 py-2.5 cursor-pointer hover:text-[var(--text-primary)] select-none leading-tight"
                       onClick={() => handleCatSort('volume')}
                     >
                       <div className="flex items-center gap-1.5">
-                        Total Volume {catSortKey === 'volume' && (catSortDirection === 'asc' ? <ArrowUp size={11}/> : <ArrowDown size={11}/>)}
+                        Total volume {catSortKey === 'volume' && (catSortDirection === 'asc' ? <ArrowUp size={11}/> : <ArrowDown size={11}/>)}
                       </div>
-                    </th>
-                    <th className="px-4 py-2 text-right select-none leading-tight">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-default)] text-[12px]">
+                    </Table.Head>
+                    <Table.Head className="px-4 py-2.5 text-right select-none leading-tight">Actions</Table.Head>
+                  </Table.Row>
+                </Table.Header>
+                <Table.Body className="divide-y divide-[var(--color-kumo-hairline)] text-[14px]">
                   {sortedCategories
                     .slice((catCurrentPage - 1) * CAT_PAGE_SIZE, catCurrentPage * CAT_PAGE_SIZE)
                     .map((cat: CategoryItem, idx: number, arr: CategoryItem[]) => {
@@ -697,90 +698,101 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                     const openUpwards = idx >= Math.max(1, arr.length - 2);
 
                     return (
-                      <tr 
+                      <Table.Row 
                         key={cat.id} 
-                        className={`hover:bg-[var(--bg-surface-hover)] transition-colors cursor-pointer ${
+                        variant={isSelected ? 'selected' : 'default'}
+                        className={`hover:bg-[var(--bg-surface-hover)] cursor-pointer ${
                           isSelected ? 'bg-[var(--bg-surface-hover)]/70' : ''
                         }`}
                       >
                         {selectedCategoryIds.length > 0 && (
-                          <td className="px-4 py-2 leading-tight w-10">
+                          <Table.Cell className="px-4 py-2.5 leading-tight w-10">
                             <GlassCheckbox 
                               checked={isSelected}
                               onChange={() => toggleSelectCategory(cat.id)}
                             />
-                          </td>
+                          </Table.Cell>
                         )}
-                        <td className="px-4 py-2 leading-tight">
+                        <Table.Cell className="px-4 py-2.5 leading-tight">
                           <div className="flex items-center gap-2">
                             {isIncome ? (
                               <ArrowUpRight size={13} strokeWidth={1.5} className="shrink-0 text-[var(--status-success-fg)]" />
                             ) : (
                               <ArrowDownRight size={13} strokeWidth={1.5} className="shrink-0 text-[var(--status-error-fg)]" />
                             )}
-                            <span className="text-[10.5px] font-mono uppercase tracking-[0.04em] text-[var(--text-secondary)]">
-                              {cat.type}
+                            <span className={`pill ${isIncome ? 'pill--success' : 'pill--error'}`}>
+                              {isIncome ? 'Income' : 'Expense'}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-4 py-2 leading-tight">
-                          <span className="font-medium text-[var(--text-primary)] tracking-tight">{cat.name}</span>
-                        </td>
-                        <td className="px-4 py-2 leading-tight">
-                          <div className="text-[12px] font-mono flex items-center gap-2">
-                            <span className="text-[var(--text-primary)] font-medium">
+                        </Table.Cell>
+                        <Table.Cell className="px-4 py-2.5 leading-tight">
+                          <div className="flex items-center gap-2.5">
+                            <CategoryIcon category={cat.name} color={cat.color} />
+                            <span className="font-medium text-[14px] text-[var(--text-primary)]">{cat.name}</span>
+                            {cat.isSystem && (
+                              <span className="text-[11px] text-[var(--text-muted)] bg-[var(--bg-subtle)] px-1.5 py-0.5 rounded border border-[var(--border-default)] font-mono">
+                                Core
+                              </span>
+                            )}
+                          </div>
+                        </Table.Cell>
+                        <Table.Cell className="px-4 py-2.5 leading-tight">
+                          <div className="flex flex-col">
+                            <span className="font-mono font-medium text-[14px] text-[var(--text-primary)]">
                               {formatMoney(stats.total, data.settings.currencySymbol)}
                             </span>
-                            <span className="text-[10.5px] text-[var(--text-muted)] font-normal">
-                              ({stats.count} {stats.count === 1 ? 'entry' : 'entries'})
+                            <span className="text-[12px] text-[var(--text-muted)]">
+                              {stats.count} {stats.count === 1 ? 'transaction' : 'transactions'}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-4 py-2 text-right leading-tight">
+                        </Table.Cell>
+                        <Table.Cell className="px-4 py-2.5 text-right leading-tight" onClick={(e) => e.stopPropagation()}>
                           <div className="relative inline-block text-left">
                             <button
                               onClick={() => setActiveCatMenuId(isMenuOpen ? null : cat.id)}
-                              className="w-6 h-6 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-[4px] hover:bg-[var(--bg-surface-hover)] inline-flex items-center justify-center transition-colors cursor-pointer"
-                              title="Actions"
+                              className="p-1 rounded-[4px] hover:bg-[var(--bg-surface-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                              title="Category actions"
                             >
-                              <DotsThree size={16} weight="bold" />
+                              <DotsThree size={16} weight="regular" />
                             </button>
 
-                            {/* Context Menu Dropdown */}
                             {isMenuOpen && (
                               <>
                                 <div 
-                                  className="fixed inset-0 z-[50]" 
+                                  className="fixed inset-0 z-40" 
                                   onClick={() => setActiveCatMenuId(null)} 
                                 />
-                                <div className={`absolute right-0 z-[60] w-36 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-[0_8px_24px_rgba(0,0,0,0.5)] p-1 text-[12px] animate-in fade-in zoom-in-95 duration-100 ${openUpwards ? 'bottom-8' : 'top-7'}`}>
-                                  {/* Select / Deselect Action */}
-                                  <button
-                                    onClick={() => {
-                                      toggleSelectCategory(cat.id);
-                                      setActiveCatMenuId(null);
-                                    }}
-                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left cursor-pointer"
-                                  >
-                                    <CheckSquare size={13} strokeWidth={1.5} />
-                                    <span>{isSelected ? 'Deselect' : 'Select'}</span>
-                                  </button>
-
+                                <div className={`absolute right-0 w-36 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[6px] shadow-2xl p-1 z-50 animate-in fade-in zoom-in-95 duration-100 ${
+                                  openUpwards ? 'bottom-full mb-1' : 'top-full mt-1'
+                                }`}>
                                   <button
                                     onClick={() => {
                                       setRenamingCategory(cat);
                                       setRenameInput(cat.name);
                                       setActiveCatMenuId(null);
                                     }}
-                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left cursor-pointer"
+                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left cursor-pointer"
                                   >
-                                    <Edit3 size={13} strokeWidth={1.5} />
+                                    <Edit2 size={13} strokeWidth={1.5} />
                                     <span>Rename</span>
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedCategoryIds([cat.id]);
+                                      setSelectedMergeTarget(cat.name);
+                                      setIsMergeModalOpen(true);
+                                      setActiveCatMenuId(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left cursor-pointer"
+                                  >
+                                    <GitMerge size={13} strokeWidth={1.5} />
+                                    <span>Merge</span>
                                   </button>
                                   {!cat.isSystem && (
                                     <button
                                       onClick={() => {
-                                        setDeletingCategory(cat);
+                                        setSelectedCategoryIds([cat.id]);
+                                        setIsBatchDeleteModalOpen(true);
                                         setActiveCatMenuId(null);
                                       }}
                                       className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-[var(--status-error-fg)] hover:bg-red-500/10 transition-colors text-left cursor-pointer"
@@ -793,12 +805,12 @@ export const BudgetSettings: React.FC<BudgetSettingsProps> = ({
                               </>
                             )}
                           </div>
-                        </td>
-                      </tr>
+                        </Table.Cell>
+                      </Table.Row>
                     );
                   })}
-                </tbody>
-              </table>
+                </Table.Body>
+              </Table>
               </div>
 
               <TablePaginationFooter

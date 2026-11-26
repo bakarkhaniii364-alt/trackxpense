@@ -20,12 +20,24 @@ export function safeUUID(): string {
 }
 
 export type RabbAiAction =
-  | { type: 'ADD_WALLET'; payload: { name: string; currency: string }; executed?: boolean }
+  | { type: 'ADD_WALLET'; payload: { name: string; currency: string; walletType?: 'STANDARD' | 'GOAL'; targetAmount?: number }; executed?: boolean }
+  | { type: 'UPDATE_WALLET'; payload: { name: string; newName?: string; currency?: string; targetAmount?: number; walletType?: 'STANDARD' | 'GOAL'; stealthMode?: boolean }; executed?: boolean }
+  | { type: 'SWITCH_WALLET'; payload: { name: string }; executed?: boolean }
+  | { type: 'TRANSFER_WALLET'; payload: { from: string; to: string; amount: number; note?: string }; executed?: boolean }
   | { type: 'DELETE_WALLET'; payload: { name: string }; executed?: boolean }
   | { type: 'ADD_CATEGORY'; payload: { name: string; categoryType: string }; executed?: boolean }
   | { type: 'DELETE_CATEGORY'; payload: { name: string }; executed?: boolean }
   | { type: 'MERGE_CATEGORY'; payload: { from: string; into: string }; executed?: boolean }
   | { type: 'SET_BUDGET'; payload: { category: string; limit: number; period?: 'DAILY' | 'MONTHLY' }; executed?: boolean }
+  | { type: 'REMOVE_BUDGET'; payload: { category: string }; executed?: boolean }
+  | { type: 'SET_DAILY_LIMIT'; payload: { limit: number }; executed?: boolean }
+  | { type: 'SET_MONTHLY_LIMIT'; payload: { limit: number }; executed?: boolean }
+  | { type: 'SET_CURRENCY'; payload: { currency: string }; executed?: boolean }
+  | { type: 'UPDATE_PROFILE'; payload: { name?: string }; executed?: boolean }
+  | { type: 'ADD_DEBT'; payload: { person: string; amount: number; debtType: 'I_OWE' | 'OWES_ME'; note?: string; dueDate?: string }; executed?: boolean }
+  | { type: 'SETTLE_DEBT'; payload: { person: string; amount?: number }; executed?: boolean }
+  | { type: 'ADD_RECURRING'; payload: { name: string; amount: number; category?: string; frequency?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'; transactionType?: 'EXPENSE' | 'INCOME' }; executed?: boolean }
+  | { type: 'ADD_PROVISION'; payload: { name: string; amount: number; date: string }; executed?: boolean }
   | { type: 'EXPORT_CSV'; payload: Record<string, never>; executed?: boolean }
   | { type: 'DELETE_ALL_DATA'; payload: { userName?: string }; executed?: boolean }
   | { type: 'DELETE_TRANSACTION'; payload: { transactionId?: string; description?: string; amount?: number }; executed?: boolean };
@@ -136,15 +148,44 @@ export async function sendRabbAiTextMessage(
   const now = new Date();
   const dayOfWeek = now.toLocaleDateString('en-US', { weekday: 'long' });
   const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const income = data.transactions.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0);
-  const expense = data.transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
+  const activeWallet = (data.wallets || []).find(w => w.id === data.currentWalletId);
+  const activeWalletTxs = data.currentWalletId
+    ? (data.transactions || []).filter(t => t.walletId === data.currentWalletId)
+    : (data.transactions || []);
+  const income = activeWalletTxs.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0);
+  const expense = activeWalletTxs.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
-  const categories = (data.categories || []).map(c => c.name).join(', ');
-  const wallets = (data.wallets || []).map(w => w.name).join(', ');
-  const curr = data.settings.currencySymbol || '$';
+  const categories = (data.categories || [])
+    .filter(c => c.name.toLowerCase() !== 'transfer')
+    .map(c => c.name)
+    .join(', ');
+  const walletDetails = (data.wallets || []).map(w => {
+    const wTxs = (data.transactions || []).filter(t => t.walletId === w.id);
+    const wBal = wTxs.filter(t => t.type === TransactionType.INCOME).reduce((s, t) => s + t.amount, 0)
+               - wTxs.filter(t => t.type === TransactionType.EXPENSE).reduce((s, t) => s + t.amount, 0);
+    const wCurr = w.currency || data.settings.currencySymbol || '$';
+    const activeMark = w.id === data.currentWalletId ? ' [ACTIVE]' : '';
+    const goalPart = w.type === 'GOAL' && w.targetAmount ? `, Goal target: ${wCurr}${w.targetAmount}` : '';
+    return `  - ${w.name}${activeMark} (${w.type}, Currency: ${wCurr}, Balance: ${wCurr}${wBal.toFixed(2)}${goalPart})`;
+  }).join('\n');
+  const curr = activeWallet?.currency || data.settings.currencySymbol || '$';
+  const activeDebtsList = (data.debts || [])
+    .filter(d => !d.isSettled)
+    .map(d => {
+      const paid = (d.payments || []).reduce((s, p) => s + p.amount, 0);
+      const rem = Math.max(0, d.amount - paid);
+      return `  - ${d.person}: ${d.type === 'OWES_ME' ? 'Owes user' : 'User owes'} ${curr}${rem.toFixed(2)}${d.note ? ` (${d.note})` : ''}`;
+    }).join('\n');
+  const recurringList = (data.recurringRules || [])
+    .filter(r => r.isActive)
+    .map(r => `  - ${r.name}: ${curr}${r.amount} (${r.frequency}, ${r.category})`)
+    .join('\n');
+  const provisionsList = (data.provisions || [])
+    .map(p => `  - ${p.name}: ${curr}${p.amount} on ${p.date}`)
+    .join('\n');
 
-  // Compute current month expenses and category totals
-  const mtdExpenses = data.transactions.filter(t => t.type === TransactionType.EXPENSE && (t.date || '').startsWith(currentMonthStr));
+  // Compute current month expenses and category totals (scoped to active wallet)
+  const mtdExpenses = activeWalletTxs.filter(t => t.type === TransactionType.EXPENSE && (t.date || '').startsWith(currentMonthStr));
   const catSpent: Record<string, number> = {};
   mtdExpenses.forEach(t => {
     catSpent[t.category] = (catSpent[t.category] || 0) + t.amount;
@@ -167,12 +208,12 @@ export async function sendRabbAiTextMessage(
     .filter(d => !d.isSettled && d.type === 'I_OWE')
     .reduce((sum, d) => sum + (d.amount - (d.payments?.reduce((p, x) => p + x.amount, 0) || 0)), 0);
 
-  const recentTxs = (data.transactions || [])
+  const recentTxs = activeWalletTxs
     .slice(0, 10)
     .map(t => `  - [${t.date ? t.date.split('T')[0] : 'Recent'}] ${t.type}: ${curr}${t.amount.toFixed(2)} (${t.category}${t.note ? ` - "${t.note}"` : ''}, ID: ${t.id})`)
     .join('\n');
 
-  const transportHistory = (data.transactions || [])
+  const transportHistory = activeWalletTxs
     .filter(t => (t.category || '').toLowerCase().includes('transport') || (t.note && /bus|ride|rickshaw|cng|uber|metro|fare|ticket|train|azimpur|dhanmondi/i.test(t.note)))
     .slice(0, 15)
     .map(t => `  - "${t.note || t.category}": ${curr}${t.amount.toFixed(2)}`)
@@ -262,30 +303,51 @@ Think of a beloved, astute Jewish elder or uncle: you know every trick in the bo
 
 Financial Context:
 - User: ${data.profile?.name || 'Friend'}
-- Current Date: ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}
+- Current Date & Local Time: ${now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })} at ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 - Balance: ${curr}${balance.toFixed(2)} | Total Inflows: ${curr}${income.toFixed(2)} | Total Outflows: ${curr}${expense.toFixed(2)}
 - Calculated Financial Runway: ~${runwayDays} days
 - Outstanding Debts: User owes ${curr}${debtsUserOwes.toFixed(2)} | Others owe user ${curr}${debtsOwedToUser.toFixed(2)}
+- Daily Spending Limit: ${curr}${data.profile?.dailyGoal || 0}
 - Monthly Target Spending Goal: ${curr}${data.profile?.monthlyGoal || 0}
-- Wallets: ${wallets}
+- Active Wallet: ${activeWallet?.name || 'Default'} (${curr})
+- All Wallets:
+${walletDetails || '  - None configured.'}
 - Existing Categories: ${categories}
 - Configured Category Budget Limits (${currentMonthStr}):
 ${budgetOverview}
+- Active Debts & IOUs:
+${activeDebtsList || '  - None.'}
+- Active Recurring Bills / Subscriptions:
+${recurringList || '  - None.'}
+- Upcoming Planned Bills (Provisions):
+${provisionsList || '  - None.'}
 - MTD Outflow Total: ${curr}${mtdExpenses.reduce((s, t) => s + t.amount, 0).toFixed(2)} across ${mtdExpenses.length} entries
 - Recent 10 Transactions:
 ${recentTxs || '  - None recorded yet.'}
 - Known Past Route / Transit Fares:
 ${transportHistory || '  - None recorded yet.'}
 
-## Semantic Categorization & Taxonomy Rules:
+## Semantic Categorization & Taxonomy Rules (STRICT):
 - "description": The specific item, service, or merchant (e.g., "Moglai", "RTX 4090", "Uber ride", "Challah", "Books").
-- "category": Must ALWAYS be a broad, high-level spending domain (e.g., "Food & Dining", "Transportation", "Shopping", "Entertainment", "Health & Fitness", "Education", "Utilities", "Travel", "Personal").
-- CRITICAL: NEVER put the item or product name (e.g. "Moglai", "Pizza") as the category name!
+- "category": Must ALWAYS be the most accurate spending or income category—NEVER put the item or product name (e.g. "Moglai", "Pizza") as the category name!
+- CRITICAL TRANSFER RULE:
+  * "Transfer" is ONLY for moving money between two of the user's OWN wallets (using the \`TRANSFER_WALLET\` action).
+  * NEVER categorize paying someone, sending money to a friend/vendor, bKash/Nagad/card payments, rent, bills, gifts, or purchases as "Transfer"!
+- How to distinguish categories accurately:
+  * Meals & Food: use \`Breakfast\`, \`Lunch\`, \`Dinner\` (matching meal/time of day), \`Snacks\` (tea, coffee, moglai, singara, street food, desserts), or \`Food Delivery\` (Foodpanda, Pathao Food, online takeout) — or \`Food & Dining\` if already in existing categories.
+  * Transit & Rides: \`Transportation\` (bus, rickshaw, CNG, Uber, Pathao ride, metro, train, fuel, parking, tolls).
+  * Bills, Rent & Utilities: \`Bills & Utilities\` (house rent, electricity, water, gas, internet/Wi-Fi, mobile recharge, phone bill).
+  * Retail & Purchases: \`Shopping\` (clothes, shoes, electronics, groceries, household supplies, books, gifts).
+  * Medical & Wellness: \`Health & Fitness\` (doctor, pharmacy, medicine, hospital, lab test, gym).
+  * Leisure & Subscriptions: \`Entertainment\` (movies, games, streaming, concerts, outings).
+  * Paying back borrowed money / sending owed cash: \`Loan Payment\` (or use \`ADD_DEBT\` / \`SETTLE_DEBT\` if they want to track who owes whom).
+  * Income sources: \`Salary\` (paycheck), \`Gig\` (freelance, contract, side work), \`Tuition\` (tutoring/teaching), \`Loan\` (borrowed cash received).
+  * \`Other\`: Only when none of the above apply.
 - Category Selection:
-  1. Check existing categories: [${categories}]. If a suitable domain exists, use it.
-  2. If no existing category fits the domain, pick the canonical standard domain (e.g. "Food & Dining", "Transportation", "Shopping").
+  1. Check existing categories: [${categories}]. Pick the best matching domain from that list whenever one fits.
+  2. Never use "Transfer" for an \`ADD_TRANSACTION\` or \`PROPOSE_TRANSACTION\`.
 
-## Permitted Actions (Return JSON block when requested):
+## Permitted Actions (Return JSON block when requested — you have full control over limits, wallets, categories, debts, bills & settings):
 
 1. Log a transaction ("Spent 45 on moglai", "Earned 200 freelance"):
 \`\`\`json
@@ -297,47 +359,95 @@ ${transportHistory || '  - None recorded yet.'}
 { "action": "PROPOSE_TRANSACTION", "amount": 10, "category": "Transportation", "description": "Bus from Azimpur to Dhanmondi", "type": "EXPENSE" }
 \`\`\`
 
-2. Delete a transaction ("Delete the 10 tk moglai entry", "remove that transaction"):
+3. Delete a transaction ("Delete the 10 tk moglai entry", "remove that transaction"):
 \`\`\`json
 { "action": "DELETE_TRANSACTION", "description": "Moglai", "amount": 10 }
 \`\`\`
 
-3. Set or update a category budget limit ("Set budget of 500 for Food", "Limit shopping to 200"):
+4. Set or update a category budget limit ("Set budget of 500 for Food", "Limit shopping to 200 daily"):
 \`\`\`json
 { "action": "SET_BUDGET", "category": "Food & Dining", "limit": 500, "period": "MONTHLY" }
 \`\`\`
 
-4. Add a wallet:
+5. Remove a category budget limit ("Remove Food budget", "Clear shopping limit"):
 \`\`\`json
-{ "action": "ADD_WALLET", "name": "Savings", "currency": "$" }
+{ "action": "REMOVE_BUDGET", "category": "Food & Dining" }
 \`\`\`
 
-5. Delete a wallet:
+6. Set or clear the overall Daily Spending Limit ("Set daily limit to 500", "Remove daily spending limit" -> limit 0):
+\`\`\`json
+{ "action": "SET_DAILY_LIMIT", "limit": 500 }
+\`\`\`
+
+7. Set or clear the overall Monthly Spending Limit / Goal ("Set monthly limit to 20000", "Clear monthly goal" -> limit 0):
+\`\`\`json
+{ "action": "SET_MONTHLY_LIMIT", "limit": 20000 }
+\`\`\`
+
+8. Add a wallet (standard or savings goal wallet, e.g. "Create wallet Cash", "Add goal wallet Laptop with target 80000"):
+\`\`\`json
+{ "action": "ADD_WALLET", "name": "Laptop", "currency": "${curr}", "walletType": "GOAL", "targetAmount": 80000 }
+\`\`\`
+
+9. Switch active wallet ("Switch to Savings wallet", "Use Cash"):
+\`\`\`json
+{ "action": "SWITCH_WALLET", "name": "Savings" }
+\`\`\`
+
+10. Update or rename a wallet ("Rename Savings to Emergency Fund", "Set Laptop goal target to 90000", "Change Cash currency to $"):
+\`\`\`json
+{ "action": "UPDATE_WALLET", "name": "Savings", "newName": "Emergency Fund", "targetAmount": 90000 }
+\`\`\`
+
+11. Transfer funds between two wallets ("Transfer 500 from Main Wallet to Savings"):
+\`\`\`json
+{ "action": "TRANSFER_WALLET", "from": "Main Wallet", "to": "Savings", "amount": 500, "note": "Monthly savings" }
+\`\`\`
+
+12. Delete a wallet:
 \`\`\`json
 { "action": "DELETE_WALLET", "name": "Savings" }
 \`\`\`
 
-6. Add a category:
+13. Change default currency or profile name ("Change currency to ৳", "Change my name to Goldberg"):
+\`\`\`json
+{ "action": "SET_CURRENCY", "currency": "৳" }
+\`\`\`
+\`\`\`json
+{ "action": "UPDATE_PROFILE", "name": "Goldberg" }
+\`\`\`
+
+14. Add or settle a debt / IOU ("Rafiq owes me 500 for dinner", "I owe Karim 300", "Rafiq paid back 500"):
+\`\`\`json
+{ "action": "ADD_DEBT", "person": "Rafiq", "amount": 500, "debtType": "OWES_ME", "note": "Dinner" }
+\`\`\`
+\`\`\`json
+{ "action": "SETTLE_DEBT", "person": "Rafiq", "amount": 500 }
+\`\`\`
+
+15. Add a recurring subscription/bill or upcoming planned bill:
+\`\`\`json
+{ "action": "ADD_RECURRING", "name": "Netflix", "amount": 1200, "category": "Entertainment", "frequency": "MONTHLY", "transactionType": "EXPENSE" }
+\`\`\`
+\`\`\`json
+{ "action": "ADD_PROVISION", "name": "Internet Bill", "amount": 1000, "date": "2026-12-05" }
+\`\`\`
+
+16. Add / Delete / Merge categories:
 \`\`\`json
 { "action": "ADD_CATEGORY", "name": "Tzedakah", "categoryType": "EXPENSE" }
 \`\`\`
-
-7. Delete a category:
 \`\`\`json
 { "action": "DELETE_CATEGORY", "name": "Fitness" }
 \`\`\`
-
-8. Merge categories:
 \`\`\`json
 { "action": "MERGE_CATEGORY", "from": "OldCat", "into": "NewCat" }
 \`\`\`
 
-9. Export CSV:
+17. Export CSV or Delete all site data:
 \`\`\`json
 { "action": "EXPORT_CSV" }
 \`\`\`
-
-10. Delete all site data:
 \`\`\`json
 { "action": "DELETE_ALL_DATA" }
 \`\`\`
@@ -407,11 +517,16 @@ Keep it to 1 sentence pointing to the screen:
 
             if ((act === 'ADD_TRANSACTION' || act === 'PROPOSE_TRANSACTION') && typeof parsed.amount === 'number' && parsed.amount > 0) {
               const isAutoLogged = act === 'ADD_TRANSACTION' && parsed.isLogged !== false;
+              const txType = parsed.type === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE;
+              const rawCat = (parsed.category || '').trim();
+              const safeCat = !rawCat || rawCat.toLowerCase() === 'transfer'
+                ? (txType === TransactionType.INCOME ? 'Gig' : 'Other')
+                : rawCat;
               extracted = {
                 amount: parsed.amount,
-                category: parsed.category || 'Transportation',
+                category: safeCat,
                 description: parsed.description || 'Quick Log',
-                type: parsed.type === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE,
+                type: txType,
                 isLogged: isAutoLogged
               };
             } else if (act === 'DELETE_TRANSACTION') {
@@ -424,7 +539,34 @@ Keep it to 1 sentence pointing to the screen:
                 }
               };
             } else if (act === 'ADD_WALLET' && parsed.name) {
-              aiAction = { type: 'ADD_WALLET', payload: { name: parsed.name, currency: parsed.currency || '$' } };
+              aiAction = {
+                type: 'ADD_WALLET',
+                payload: {
+                  name: parsed.name,
+                  currency: parsed.currency || curr,
+                  walletType: parsed.walletType === 'GOAL' ? 'GOAL' : 'STANDARD',
+                  targetAmount: typeof parsed.targetAmount === 'number' ? parsed.targetAmount : undefined
+                }
+              };
+            } else if (act === 'UPDATE_WALLET' && parsed.name) {
+              aiAction = {
+                type: 'UPDATE_WALLET',
+                payload: {
+                  name: parsed.name,
+                  newName: parsed.newName,
+                  currency: parsed.currency,
+                  targetAmount: typeof parsed.targetAmount === 'number' ? parsed.targetAmount : undefined,
+                  walletType: parsed.walletType === 'GOAL' || parsed.walletType === 'STANDARD' ? parsed.walletType : undefined,
+                  stealthMode: typeof parsed.stealthMode === 'boolean' ? parsed.stealthMode : undefined
+                }
+              };
+            } else if (act === 'SWITCH_WALLET' && parsed.name) {
+              aiAction = { type: 'SWITCH_WALLET', payload: { name: parsed.name } };
+            } else if (act === 'TRANSFER_WALLET' && parsed.from && parsed.to && typeof parsed.amount === 'number' && parsed.amount > 0) {
+              aiAction = {
+                type: 'TRANSFER_WALLET',
+                payload: { from: parsed.from, to: parsed.to, amount: parsed.amount, note: parsed.note }
+              };
             } else if (act === 'DELETE_WALLET' && parsed.name) {
               aiAction = { type: 'DELETE_WALLET', payload: { name: parsed.name } };
             } else if (act === 'ADD_CATEGORY' && parsed.name) {
@@ -440,6 +582,55 @@ Keep it to 1 sentence pointing to the screen:
                   category: parsed.category,
                   limit: parsed.limit,
                   period: parsed.period === 'DAILY' ? 'DAILY' : 'MONTHLY'
+                }
+              };
+            } else if (act === 'REMOVE_BUDGET' && parsed.category) {
+              aiAction = { type: 'REMOVE_BUDGET', payload: { category: parsed.category } };
+            } else if (act === 'SET_DAILY_LIMIT' && typeof parsed.limit === 'number' && parsed.limit >= 0) {
+              aiAction = { type: 'SET_DAILY_LIMIT', payload: { limit: parsed.limit } };
+            } else if (act === 'SET_MONTHLY_LIMIT' && typeof parsed.limit === 'number' && parsed.limit >= 0) {
+              aiAction = { type: 'SET_MONTHLY_LIMIT', payload: { limit: parsed.limit } };
+            } else if (act === 'SET_CURRENCY' && parsed.currency) {
+              aiAction = { type: 'SET_CURRENCY', payload: { currency: parsed.currency } };
+            } else if (act === 'UPDATE_PROFILE' && parsed.name) {
+              aiAction = { type: 'UPDATE_PROFILE', payload: { name: parsed.name } };
+            } else if (act === 'ADD_DEBT' && parsed.person && typeof parsed.amount === 'number' && parsed.amount > 0) {
+              aiAction = {
+                type: 'ADD_DEBT',
+                payload: {
+                  person: parsed.person,
+                  amount: parsed.amount,
+                  debtType: parsed.debtType === 'I_OWE' ? 'I_OWE' : 'OWES_ME',
+                  note: parsed.note,
+                  dueDate: parsed.dueDate
+                }
+              };
+            } else if (act === 'SETTLE_DEBT' && parsed.person) {
+              aiAction = {
+                type: 'SETTLE_DEBT',
+                payload: {
+                  person: parsed.person,
+                  amount: typeof parsed.amount === 'number' ? parsed.amount : undefined
+                }
+              };
+            } else if (act === 'ADD_RECURRING' && parsed.name && typeof parsed.amount === 'number' && parsed.amount > 0) {
+              aiAction = {
+                type: 'ADD_RECURRING',
+                payload: {
+                  name: parsed.name,
+                  amount: parsed.amount,
+                  category: parsed.category || 'Bills & Utilities',
+                  frequency: ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'].includes(parsed.frequency) ? parsed.frequency : 'MONTHLY',
+                  transactionType: parsed.transactionType === 'INCOME' ? 'INCOME' : 'EXPENSE'
+                }
+              };
+            } else if (act === 'ADD_PROVISION' && parsed.name && typeof parsed.amount === 'number' && parsed.amount > 0) {
+              aiAction = {
+                type: 'ADD_PROVISION',
+                payload: {
+                  name: parsed.name,
+                  amount: parsed.amount,
+                  date: parsed.date || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
                 }
               };
             } else if (act === 'EXPORT_CSV') {
@@ -490,12 +681,16 @@ function parseLocalFallbackCommand(userText: string, data: AppData, history?: Ra
   try {
     const text = userText.trim();
     const lower = text.toLowerCase();
-    const curr = data.settings?.currencySymbol || '$';
+    const activeWallet = (data.wallets || []).find(w => w.id === data.currentWalletId);
+    const curr = activeWallet?.currency || data.settings?.currencySymbol || '$';
     const now = new Date();
     const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    const incomeTxs = (data.transactions || []).filter(t => t.type === TransactionType.INCOME);
-    const expenseTxs = (data.transactions || []).filter(t => t.type === TransactionType.EXPENSE);
+    const activeWalletTxs = data.currentWalletId
+      ? (data.transactions || []).filter(t => t.walletId === data.currentWalletId)
+      : (data.transactions || []);
+    const incomeTxs = activeWalletTxs.filter(t => t.type === TransactionType.INCOME);
+    const expenseTxs = activeWalletTxs.filter(t => t.type === TransactionType.EXPENSE);
     const totalIncome = incomeTxs.reduce((s, t) => s + t.amount, 0);
     const totalExpense = expenseTxs.reduce((s, t) => s + t.amount, 0);
     const netBalance = totalIncome - totalExpense;
@@ -590,7 +785,122 @@ function parseLocalFallbackCommand(userText: string, data: AppData, history?: Ra
       };
     }
 
-    // Add wallet command matching
+    // Daily / Monthly Spending Limit commands
+    const removeDailyMatch = lower.match(/(?:remove|clear|reset|disable)\s+(?:my\s+)?daily\s+(?:spending\s+)?(?:limit|cap|goal|budget)/i);
+    if (removeDailyMatch) {
+      return {
+        id: `msg_${safeUUID()}`,
+        sender: 'rabbai',
+        text: `Got it—let's remove your daily spending limit.`,
+        timestamp: new Date().toISOString(),
+        aiAction: { type: 'SET_DAILY_LIMIT', payload: { limit: 0 } }
+      };
+    }
+
+    const setDailyMatch = text.match(/(?:set|change|update|make)\s+(?:my\s+)?daily\s+(?:spending\s+)?(?:limit|cap|goal|budget)\s*(?:to|at|of)?\s*(?:[$€£৳₹¥\s]*)([\d,]+(?:\.\d+)?)/i);
+    if (setDailyMatch) {
+      const lim = parseFloat(setDailyMatch[1].replace(/,/g, ''));
+      if (!isNaN(lim) && lim >= 0) {
+        return {
+          id: `msg_${safeUUID()}`,
+          sender: 'rabbai',
+          text: `Let's set your daily spending limit to **${curr}${lim.toLocaleString()}**. Confirm below to apply.`,
+          timestamp: new Date().toISOString(),
+          aiAction: { type: 'SET_DAILY_LIMIT', payload: { limit: lim } }
+        };
+      }
+    }
+
+    const removeMonthlyMatch = lower.match(/(?:remove|clear|reset|disable)\s+(?:my\s+)?monthly\s+(?:spending\s+)?(?:limit|cap|goal|budget)/i);
+    if (removeMonthlyMatch) {
+      return {
+        id: `msg_${safeUUID()}`,
+        sender: 'rabbai',
+        text: `Got it—let's clear your monthly spending goal.`,
+        timestamp: new Date().toISOString(),
+        aiAction: { type: 'SET_MONTHLY_LIMIT', payload: { limit: 0 } }
+      };
+    }
+
+    const setMonthlyMatch = text.match(/(?:set|change|update|make)\s+(?:my\s+)?monthly\s+(?:spending\s+)?(?:limit|cap|goal|budget)\s*(?:to|at|of)?\s*(?:[$€£৳₹¥\s]*)([\d,]+(?:\.\d+)?)/i);
+    if (setMonthlyMatch) {
+      const lim = parseFloat(setMonthlyMatch[1].replace(/,/g, ''));
+      if (!isNaN(lim) && lim >= 0) {
+        return {
+          id: `msg_${safeUUID()}`,
+          sender: 'rabbai',
+          text: `Let's set your monthly spending goal to **${curr}${lim.toLocaleString()}**. Confirm below to apply.`,
+          timestamp: new Date().toISOString(),
+          aiAction: { type: 'SET_MONTHLY_LIMIT', payload: { limit: lim } }
+        };
+      }
+    }
+
+    // Switch / Delete / Rename / Transfer wallet commands
+    const switchWalletMatch = text.match(/(?:switch|change|go)\s+(?:to\s+)?(?:wallet\s+)?([a-zA-Z0-9\s_-]+?)(?:\s+wallet)?$/i);
+    if (switchWalletMatch && (lower.includes('wallet') || data.wallets.some(w => w.name.toLowerCase() === switchWalletMatch[1].trim().toLowerCase()))) {
+      const wName = switchWalletMatch[1].trim();
+      const targetW = data.wallets.find(w => w.name.toLowerCase() === wName.toLowerCase());
+      if (targetW) {
+        return {
+          id: `msg_${safeUUID()}`,
+          sender: 'rabbai',
+          text: `Ready to switch your active wallet to **${targetW.name}**.`,
+          timestamp: new Date().toISOString(),
+          aiAction: { type: 'SWITCH_WALLET', payload: { name: targetW.name } }
+        };
+      }
+    }
+
+    const transferMatch = text.match(/transfer\s+(?:[$€£৳₹¥\s]*)([\d,]+(?:\.\d+)?)\s+from\s+([a-zA-Z0-9\s_-]+?)\s+to\s+([a-zA-Z0-9\s_-]+)/i);
+    if (transferMatch) {
+      const amt = parseFloat(transferMatch[1].replace(/,/g, ''));
+      const fromW = transferMatch[2].trim();
+      const toW = transferMatch[3].trim();
+      if (!isNaN(amt) && amt > 0 && fromW && toW) {
+        return {
+          id: `msg_${safeUUID()}`,
+          sender: 'rabbai',
+          text: `Ready to transfer **${curr}${amt.toLocaleString()}** from **${fromW}** to **${toW}**.`,
+          timestamp: new Date().toISOString(),
+          aiAction: { type: 'TRANSFER_WALLET', payload: { from: fromW, to: toW, amount: amt } }
+        };
+      }
+    }
+
+    const deleteWalletMatch = text.match(/(?:delete|remove)\s+wallet\s+([a-zA-Z0-9\s_-]+)/i);
+    if (deleteWalletMatch) {
+      const wName = deleteWalletMatch[1].trim();
+      if (wName) {
+        return {
+          id: `msg_${safeUUID()}`,
+          sender: 'rabbai',
+          text: `Confirm below if you want to delete the **${wName}** wallet.`,
+          timestamp: new Date().toISOString(),
+          aiAction: { type: 'DELETE_WALLET', payload: { name: wName } }
+        };
+      }
+    }
+
+    // Add wallet command matching (supports standard or goal wallet with target)
+    const addGoalWalletMatch = text.match(/(?:add|create|new)\s+(?:a\s+)?goal\s+wallet\s+([a-zA-Z0-9\s_-]+?)(?:\s+(?:with\s+)?target\s+(?:of\s+)?(?:[$€£৳₹¥\s]*)([\d,]+(?:\.\d+)?))?$/i);
+    if (addGoalWalletMatch) {
+      const walletName = addGoalWalletMatch[1].trim();
+      const targetAmt = addGoalWalletMatch[2] ? parseFloat(addGoalWalletMatch[2].replace(/,/g, '')) : undefined;
+      if (walletName) {
+        return {
+          id: `msg_${safeUUID()}`,
+          sender: 'rabbai',
+          text: `Proposed creating goal wallet **${walletName}**${targetAmt ? ` with target **${curr}${targetAmt.toLocaleString()}**` : ''}. Click confirm below to add it.`,
+          timestamp: new Date().toISOString(),
+          aiAction: {
+            type: 'ADD_WALLET',
+            payload: { name: walletName, currency: curr, walletType: 'GOAL', targetAmount: targetAmt }
+          }
+        };
+      }
+    }
+
     const addWalletMatch = text.match(/(?:add|create|new)\s+wallet\s+([a-zA-Z0-9\s_-]+)/i);
     if (addWalletMatch) {
       const walletName = addWalletMatch[1].trim();
@@ -602,8 +912,23 @@ function parseLocalFallbackCommand(userText: string, data: AppData, history?: Ra
           timestamp: new Date().toISOString(),
           aiAction: {
             type: 'ADD_WALLET',
-            payload: { name: walletName, currency: curr }
+            payload: { name: walletName, currency: curr, walletType: 'STANDARD' }
           }
+        };
+      }
+    }
+
+    // Remove category budget command
+    const removeBudgetMatch = text.match(/(?:remove|clear|delete)\s+([\w\s&]+?)\s+(?:budget|limit)/i);
+    if (removeBudgetMatch) {
+      const catName = removeBudgetMatch[1].trim();
+      if (catName && !['daily', 'monthly'].includes(catName.toLowerCase())) {
+        return {
+          id: `msg_${safeUUID()}`,
+          sender: 'rabbai',
+          text: `Ready to remove the budget limit for **${catName}**.`,
+          timestamp: new Date().toISOString(),
+          aiAction: { type: 'REMOVE_BUDGET', payload: { category: catName } }
         };
       }
     }
@@ -955,10 +1280,11 @@ function parseLocalFallbackCommand(userText: string, data: AppData, history?: Ra
 
   // 7. Balance Query
   if (lower.includes('balance') || lower.includes('how much do i have') || lower.includes('net worth')) {
+    const walletLabel = activeWallet?.name || 'Active Wallet';
     return {
       id: `msg_${Date.now()}`,
       sender: 'rabbai',
-      text: `### Ledger Balance Summary\n\n- **Net Balance**: **${curr}${netBalance.toFixed(2)}**\n- **Total Inflow**: +${curr}${totalIncome.toFixed(2)}\n- **Total Outflow**: -${curr}${totalExpense.toFixed(2)}\n- **Entries Recorded**: ${data.transactions.length} entries across ${data.wallets.length} wallets.`,
+      text: `### ${walletLabel} Balance Summary\n\n- **Total Balance**: **${curr}${netBalance.toFixed(2)}**\n- **Total Inflow**: +${curr}${totalIncome.toFixed(2)}\n- **Total Outflow**: -${curr}${totalExpense.toFixed(2)}\n- **Entries Recorded**: ${activeWalletTxs.length} entries in this wallet.`,
       timestamp: new Date().toISOString()
     };
   }
@@ -977,33 +1303,63 @@ function parseLocalFallbackCommand(userText: string, data: AppData, history?: Ra
       if (!desc) desc = isIncome ? 'Income' : 'Expense';
       desc = desc.charAt(0).toUpperCase() + desc.slice(1);
 
-      // Guess category
-      let category = isIncome ? 'Income' : 'General';
+      // Guess category using the app's canonical categories (never "Transfer" for regular spending/income)
+      let category = isIncome ? 'Gig' : 'Other';
       const knownCats: Record<string, string> = {
-        lunch: 'Food & Dining',
-        dinner: 'Food & Dining',
-        breakfast: 'Food & Dining',
-        food: 'Food & Dining',
-        coffee: 'Food & Dining',
-        burger: 'Food & Dining',
-        pizza: 'Food & Dining',
-        grocery: 'Groceries',
-        groceries: 'Groceries',
+        breakfast: 'Breakfast',
+        paratha: 'Breakfast',
+        lunch: 'Lunch',
+        dinner: 'Dinner',
+        foodpanda: 'Food Delivery',
+        delivery: 'Food Delivery',
+        takeout: 'Food Delivery',
+        snack: 'Snacks',
+        snacks: 'Snacks',
+        tea: 'Snacks',
+        cha: 'Snacks',
+        coffee: 'Snacks',
+        moglai: 'Snacks',
+        singara: 'Snacks',
+        burger: 'Lunch',
+        pizza: 'Dinner',
+        food: 'Lunch',
         uber: 'Transportation',
+        pathao: 'Transportation',
         taxi: 'Transportation',
+        rickshaw: 'Transportation',
+        cng: 'Transportation',
         bus: 'Transportation',
+        metro: 'Transportation',
+        train: 'Transportation',
         gas: 'Transportation',
         fuel: 'Transportation',
-        netflix: 'Subscriptions',
-        spotify: 'Subscriptions',
+        fare: 'Transportation',
+        netflix: 'Entertainment',
+        spotify: 'Entertainment',
         game: 'Entertainment',
         movie: 'Entertainment',
-        rent: 'Housing',
-        bill: 'Utilities',
-        electric: 'Utilities',
-        wifi: 'Utilities',
-        freelance: 'Income',
-        salary: 'Income'
+        grocery: 'Shopping',
+        groceries: 'Shopping',
+        shirt: 'Shopping',
+        shoes: 'Shopping',
+        clothes: 'Shopping',
+        book: 'Shopping',
+        rent: 'Bills & Utilities',
+        bill: 'Bills & Utilities',
+        electric: 'Bills & Utilities',
+        water: 'Bills & Utilities',
+        wifi: 'Bills & Utilities',
+        internet: 'Bills & Utilities',
+        recharge: 'Bills & Utilities',
+        doctor: 'Health & Fitness',
+        medicine: 'Health & Fitness',
+        pharmacy: 'Health & Fitness',
+        gym: 'Health & Fitness',
+        loan: isIncome ? 'Loan' : 'Loan Payment',
+        tuition: 'Tuition',
+        freelance: 'Gig',
+        gig: 'Gig',
+        salary: 'Salary'
       };
 
       for (const [kw, catName] of Object.entries(knownCats)) {
@@ -1023,7 +1379,7 @@ function parseLocalFallbackCommand(userText: string, data: AppData, history?: Ra
           category,
           description: desc,
           type: isIncome ? TransactionType.INCOME : TransactionType.EXPENSE,
-          date: new Date().toISOString().split('T')[0],
+          date: new Date().toISOString(),
           isLogged: true
         }
       };
@@ -1132,7 +1488,10 @@ export async function sendRabbAiImageMessage(
     (typeof process !== 'undefined' && process.env?.GROQ_API_KEY ? (process.env.GROQ_API_KEY as string).trim() : '') ||
     ''
   );
-  const categories = (data.categories || []).map(c => c.name).join(', ');
+  const categories = (data.categories || [])
+    .filter(c => c.name.toLowerCase() !== 'transfer')
+    .map(c => c.name)
+    .join(', ');
   const curr = data.settings.currencySymbol || '$';
 
   const systemPrompt = `You are RabbAi, an expert OCR analyzer for receipts, bills, invoices, banking screenshots, and product photos.

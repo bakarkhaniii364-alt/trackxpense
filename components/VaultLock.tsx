@@ -60,15 +60,15 @@ export const VaultLock: React.FC<VaultLockProps> = ({
 
   return (
     <div className="fixed inset-0 z-[var(--z-stealth,10000)] bg-black/90 flex items-center justify-center p-4 select-none">
-      <div className={`w-full max-w-xs bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[12px] p-6 flex flex-col items-center text-center animate-in zoom-in-95 duration-200 shadow-2xl ${error ? 'animate-shake' : ''}`}>
+      <div className={`w-full max-w-xs bg-[var(--bg-surface)] border border-[var(--border-default)] ring-1 ring-white/5 rounded-[8px] px-6 py-5 flex flex-col items-center text-center animate-in zoom-in-95 duration-200 ${error ? 'animate-shake' : ''}`}>
         
         {/* Unboxed Header Icon */}
         <div className="mb-4 text-[var(--accent-solid)]">
           <Lock size={32} strokeWidth={1.5} className="stroke-[1.5px]" />
         </div>
 
-        <h2 className="text-[16px] font-semibold text-[var(--text-primary)] tracking-tight">
-          Vault Locked
+        <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">
+          Vault locked
         </h2>
         <p className="text-[12px] text-[var(--text-secondary)] mt-1 mb-6">
           Enter your security passcode

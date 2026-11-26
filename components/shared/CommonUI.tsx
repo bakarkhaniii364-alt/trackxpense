@@ -303,15 +303,15 @@ export const Pagination: React.FC<PaginationProps> = ({
   };
 
   return (
-    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-2 border-t border-[var(--border-default)] mt-4 ${className}`}>
-      <span className="text-[11px] text-[var(--text-muted)] font-medium uppercase tracking-wider">
-        Showing {startItem}–{endItem} of {totalItems} records
+    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 py-3.5 px-3 border-t border-[var(--border-default)] mt-4 ${className}`}>
+      <span className="text-[13px] text-[var(--text-secondary)] font-normal">
+        Showing <span className="font-medium text-[var(--text-primary)] tabular-nums">{startItem}–{endItem}</span> of <span className="font-medium text-[var(--text-primary)] tabular-nums">{totalItems}</span> records
       </span>
       <div className="flex items-center gap-1.5">
         <button
           onClick={handlePrev}
           disabled={currentPage === 1}
-          className="w-8 h-8 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-90"
+          className="w-7 h-7 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] flex items-center justify-center transition-transform active:scale-95 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
           aria-label="Previous page"
         >
           <ChevronLeft size={14} />
@@ -321,7 +321,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           {getPagesRange().map((page, idx) => {
             if (page === '...') {
               return (
-                <span key={`dots-${idx}`} className="w-8 h-8 flex items-center justify-center text-xs text-[var(--text-muted)] font-medium">
+                <span key={`dots-${idx}`} className="w-7 h-7 flex items-center justify-center text-[12px] text-[var(--text-muted)] font-medium">
                   ...
                 </span>
               );
@@ -331,7 +331,7 @@ export const Pagination: React.FC<PaginationProps> = ({
               <button
                 key={`page-${page}`}
                 onClick={() => handlePageClick(page as number)}
-                className={`w-8 h-8 rounded-[5px] text-[11px] font-medium transition-all flex items-center justify-center ${
+                className={`w-7 h-7 rounded-[5px] text-[12px] font-medium flex items-center justify-center cursor-pointer transition-transform active:scale-95 ${
                   isSelected
                     ? 'bg-[var(--accent)] text-[var(--accent-text)] font-semibold'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
@@ -346,7 +346,7 @@ export const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={handleNext}
           disabled={currentPage === totalPages}
-          className="w-8 h-8 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none active:scale-90"
+          className="w-7 h-7 rounded-[6px] bg-[var(--bg-surface)] border border-[var(--border-default)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] flex items-center justify-center transition-transform active:scale-95 disabled:opacity-30 disabled:pointer-events-none cursor-pointer"
           aria-label="Next page"
         >
           <ChevronRight size={14} />
@@ -356,30 +356,33 @@ export const Pagination: React.FC<PaginationProps> = ({
   );
 };
 
-// --- Glass Checkbox (Project Design System) ---
-interface GlassCheckboxProps {
+import { Checkbox } from '@cloudflare/kumo/components/checkbox';
+export { Checkbox };
+
+// --- Checkbox (Powered by Cloudflare Kumo) ---
+export interface GlassCheckboxProps {
   checked: boolean;
   onChange: (checked: boolean) => void;
   className?: string;
   id?: string;
+  ariaLabel?: string;
 }
 
-export const GlassCheckbox: React.FC<GlassCheckboxProps> = ({ checked, onChange, className = '', id }) => {
+export const GlassCheckbox: React.FC<GlassCheckboxProps> = ({ checked, onChange, className = '', id, ariaLabel = 'Select row' }) => {
   return (
-    <button
-      type="button"
+    <Checkbox
       id={id}
-      onClick={(e) => {
-        e.stopPropagation();
-        onChange(!checked);
-      }}
-      className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition-all shrink-0 cursor-pointer ${
-        checked
-          ? 'bg-[var(--accent)] border-[var(--accent)] text-[var(--accent-text)] shadow-xs'
-          : 'bg-[var(--bg-surface)] border-[var(--border-strong)] hover:border-[var(--text-secondary)] text-transparent'
-      } ${className}`}
-    >
-      <Check size={11} strokeWidth={2.5} className={checked ? 'opacity-100' : 'opacity-0'} />
-    </button>
+      checked={checked}
+      onCheckedChange={(c) => onChange(Boolean(c))}
+      aria-label={ariaLabel}
+      className={className}
+    />
   );
 };
+
+// --- Additional Kumo Primitives ---
+import { Input } from '@cloudflare/kumo/components/input';
+import { DropdownMenu } from '@cloudflare/kumo/components/dropdown';
+import { Table } from './Table';
+export { Input, DropdownMenu, Table };
+

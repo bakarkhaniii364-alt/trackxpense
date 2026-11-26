@@ -11,6 +11,41 @@ export interface AIParsedTransaction {
   source: 'groq_ai' | 'fallback_heuristic';
 }
 
+function parseFallbackLocal(rawText: string, categories: string[]): AIParsedTransaction {
+  const lower = rawText.toLowerCase();
+  const denialKeywords = ['didn\'t', 'did not', 'never', 'cancel', 'cancelled', 'not paying', 'not spend', 'haven\'t spent'];
+  const isDenial = denialKeywords.some(k => lower.includes(k));
+  const incomeKeywords = ['received', 'got', 'salary', 'freelance', 'sold', 'earned', 'deposit', 'income', 'tuition'];
+  const isIncome = incomeKeywords.some(k => lower.includes(k));
+  const type = isIncome ? TransactionType.INCOME : TransactionType.EXPENSE;
+
+  const amountMatch = rawText.match(/(?:[\$৳€£¥]|tk\.?|bdt)?\s*(\d+(?:[,\.]\d{1,2})?)\s*(?:[\$৳€£¥]|tk\.?|bdt)?/i);
+  let amount: number | null = null;
+  if (amountMatch && amountMatch[1]) {
+    const num = parseFloat(amountMatch[1].replace(',', ''));
+    if (!isNaN(num)) amount = num;
+  }
+
+  let matchedCat = type === TransactionType.INCOME ? 'Gig' : 'Other';
+  for (const cat of categories) {
+    if (cat.toLowerCase() === 'transfer') continue;
+    if (lower.includes(cat.toLowerCase())) {
+      matchedCat = cat;
+      break;
+    }
+  }
+
+  return {
+    amount,
+    category: matchedCat,
+    description: rawText,
+    type,
+    isValid: !isDenial,
+    isDenial,
+    source: 'fallback_heuristic'
+  };
+}
+
 /**
  * Bulletproof transaction parsing using Groq AI via secure edge proxy.
  * Automatically falls back to high-accuracy local regex/heuristics if offline.
@@ -24,8 +59,10 @@ export async function parseTransactionWithAI(
   const rawText = text.trim();
   if (!rawText) return null;
 
+  const selectableCategories = categories.filter(c => c.toLowerCase() !== 'transfer');
+
   if (!enableAi) {
-    return parseFallbackLocal(rawText, categories);
+    return parseFallbackLocal(rawText, selectableCategories);
   }
 
   try {
@@ -37,12 +74,13 @@ export async function parseTransactionWithAI(
         {
           role: 'system',
           content: `You are a financial transaction extractor. Analyze the input and extract transaction details.
-Available Categories: ${categories.join(', ')}.
+Available Categories: ${selectableCategories.join(', ')}.
+IMPORTANT: "Transfer" is ONLY for moving money between two of the user's own wallets — never use "Transfer" for payments to people, bills, rent, or purchases.
 
 Return ONLY a valid JSON object with the following schema:
 {
   "amount": number or null,
-  "category": string (match available categories if appropriate, else concise category name),
+  "category": string (pick the best matching category from Available Categories),
   "description": string,
   "type": "INCOME" or "EXPENSE",
   "is_valid": boolean (MUST BE false if the user is denying, cancelling, or stating they DID NOT spend or earn something, e.g. "I didn't spend", "didn't buy", "cancelled", "not paying")
@@ -62,7 +100,10 @@ Return ONLY a valid JSON object with the following schema:
         const isValid = parsed.is_valid !== false;
         const isDenial = parsed.is_valid === false;
         const type = parsed.type === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE;
-        const category = parsed.category || (type === TransactionType.INCOME ? 'Salary' : 'General');
+        const rawCat = (parsed.category || '').trim();
+        const category = !rawCat || rawCat.toLowerCase() === 'transfer'
+          ? (type === TransactionType.INCOME ? 'Gig' : 'Other')
+          : rawCat;
         const description = parsed.description || rawText;
 
         return {
@@ -80,45 +121,7 @@ Return ONLY a valid JSON object with the following schema:
     // Edge/network failed; fall back to local heuristic below
   }
 
-  // --- Fallback Local Heuristic Parsing ---
-  const lower = rawText.toLowerCase();
-
-  // Check for denials/cancellations
-  const denialKeywords = ['didn\'t', 'did not', 'never', 'cancel', 'cancelled', 'not paying', 'not spend', 'haven\'t spent'];
-  const isDenial = denialKeywords.some(k => lower.includes(k));
-
-  // Heuristic Income detection
-  const incomeKeywords = ['received', 'got', 'salary', 'freelance', 'sold', 'earned', 'deposit', 'income'];
-  const isIncome = incomeKeywords.some(k => lower.includes(k));
-  const type = isIncome ? TransactionType.INCOME : TransactionType.EXPENSE;
-
-  // Extract amount
-  const amountMatch = rawText.match(/(?:[\$৳€£¥]|tk\.?|bdt)?\s*(\d+(?:[,\.]\d{1,2})?)\s*(?:[\$৳€£¥]|tk\.?|bdt)?/i);
-  let amount: number | null = null;
-  if (amountMatch && amountMatch[1]) {
-    const cleanAmount = amountMatch[1].replace(',', '');
-    const num = parseFloat(cleanAmount);
-    if (!isNaN(num)) amount = num;
-  }
-
-  // Match category
-  let matchedCat = type === TransactionType.INCOME ? 'Salary' : 'General';
-  for (const cat of categories) {
-    if (lower.includes(cat.toLowerCase())) {
-      matchedCat = cat;
-      break;
-    }
-  }
-
-  return {
-    amount,
-    category: matchedCat,
-    description: rawText,
-    type,
-    isValid: !isDenial,
-    isDenial,
-    source: 'fallback_heuristic'
-  };
+  return parseFallbackLocal(rawText, selectableCategories);
 }
 
 /**

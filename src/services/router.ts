@@ -33,6 +33,7 @@ const pathToRouteMap: Record<string, { view: ViewState; subTab?: string }> = {
   '/security': { view: 'security-policy' },
   '/terms-of-service': { view: 'terms-of-service' },
   '/terms': { view: 'terms-of-service' },
+  '/contact': { view: 'contact' },
 };
 
 // Maps ViewState and subTab to canonical path
@@ -60,6 +61,8 @@ export function getRoutePath(view: ViewState, subTab?: string): string {
       return '/security';
     case 'terms-of-service':
       return '/terms';
+    case 'contact':
+      return '/contact';
     case 'identity':
       if (subTab === 'wallets') return '/settings/wallets';
       if (subTab === 'data_security' || subTab === 'security') return '/settings/security';

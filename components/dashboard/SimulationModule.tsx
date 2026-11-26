@@ -37,20 +37,24 @@ export const SimulationModule: React.FC<SimulationModuleProps> = ({
 
   if (!isOpen) return null;
 
-  const currency = data.settings.currencySymbol || '$';
+  const activeWallet = data.wallets.find(w => w.id === data.currentWalletId);
+  const currency = activeWallet?.currency || data.settings.currencySymbol || '$';
+  const walletTxs = data.currentWalletId
+    ? data.transactions.filter(t => t.walletId === data.currentWalletId)
+    : data.transactions;
 
-  // Base metrics calculation
-  const currentTotalIncome = data.transactions
+  // Base metrics calculation (scoped to active wallet)
+  const currentTotalIncome = walletTxs
     .filter(t => t.type === TransactionType.INCOME)
     .reduce((sum, t) => sum + t.amount, 0);
-  const currentTotalExpense = data.transactions
+  const currentTotalExpense = walletTxs
     .filter(t => t.type === TransactionType.EXPENSE)
     .reduce((sum, t) => sum + t.amount, 0);
   const currentBalance = currentTotalIncome - currentTotalExpense;
   const currentRunway = PredictiveEngine.getRunwayDays(data, currentBalance);
 
   // Daily burn rate
-  const past30DaysTxs = data.transactions.filter(t => {
+  const past30DaysTxs = walletTxs.filter(t => {
     const diff = (Date.now() - new Date(t.date).getTime()) / (1000 * 60 * 60 * 24);
     return diff <= 30 && t.type === TransactionType.EXPENSE;
   });

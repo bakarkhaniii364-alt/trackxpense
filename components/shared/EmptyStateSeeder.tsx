@@ -38,19 +38,19 @@ export const EmptyStateSeeder: React.FC<EmptyStateSeederProps> = ({
   };
 
   return (
-    <div className={`w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] ${compact ? 'p-5' : 'p-8'} flex flex-col items-center text-center`}>
+    <div className={`w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] ${compact ? 'px-5 py-4' : 'px-8 py-6'} flex flex-col items-center text-center`}>
       {/* Icon standing freely without container box per design rules */}
       <Sparkles size={compact ? 22 : 28} className="text-[var(--text-muted)] stroke-[1.5px] mb-3" />
       
-      <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] mb-1">
-        GET STARTED
+      <span className="text-[12px] font-medium text-[var(--text-secondary)] mb-1">
+        Get started
       </span>
 
       <h3 className="text-[15px] font-medium text-[var(--text-primary)] mb-1.5">
         {title}
       </h3>
 
-      <p className="text-[13px] text-[var(--text-secondary)] max-w-md mb-6 leading-relaxed">
+      <p className="text-sm text-[var(--text-secondary)] max-w-md mb-6 leading-relaxed">
         {description}
       </p>
 
@@ -58,10 +58,10 @@ export const EmptyStateSeeder: React.FC<EmptyStateSeederProps> = ({
         <button
           type="button"
           onClick={handleSeed}
-          className="btn btn--primary flex-1 h-[36px] px-3.5 text-[13px]"
+          className="btn btn--primary flex-1 h-[34px] px-3.5 text-sm"
         >
           <Database size={15} className="stroke-[1.5px]" />
-          <span>Seed Demo Data</span>
+          <span>Seed demo data</span>
         </button>
 
         {onActionClick && (

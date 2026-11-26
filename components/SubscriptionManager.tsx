@@ -120,8 +120,8 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
             {/* Cloudflare-Style Section Header Outside Card */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
                 <div>
-                    <h2 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">Subscriptions</h2>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">Track active recurring services and auto-detected monthly subscriptions.</p>
+                    <h2 className="text-xl font-semibold text-[var(--text-primary)]">Subscriptions</h2>
+                    <p className="text-sm text-[var(--text-secondary)] mt-0.5">Track active recurring services and auto-detected monthly subscriptions.</p>
                 </div>
                 <button
                     onClick={() => {
@@ -129,23 +129,23 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                         setSubAmount('');
                         setIsAddModalOpen(true);
                     }}
-                    className="btn btn--primary h-[32px] px-3.5 text-[12px] shrink-0 self-start sm:self-auto"
+                    className="btn btn--primary px-4 text-sm shrink-0 self-start sm:self-auto"
                 >
-                    <Plus size={14} />
+                    <Plus size={15} strokeWidth={1.5} />
                     <span>Add subscription</span>
                 </button>
             </div>
 
             {/* Monthly Burn Rate Summary Card */}
             {hasAnySubscriptions && (
-                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] p-6 rounded-[10px] flex items-center justify-between">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] px-6 py-5 rounded-[10px] flex items-center justify-between">
                     <div>
-                        <p className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Monthly Subscription Burn</p>
-                        <p className="text-2xl font-bold text-[var(--text-primary)] tracking-tight mt-1">
+                        <p className="text-sm font-medium text-[var(--text-secondary)]">Monthly subscription burn</p>
+                        <p className="text-2xl font-semibold text-[var(--text-primary)] mt-1">
                             {formatMoney(monthlyTotal, data.settings.currencySymbol)}
                         </p>
                     </div>
-                    <div className="pill pill--accent text-[11px] py-1 px-2.5">
+                    <div className="pill pill--accent text-[12px] py-1 px-3">
                         {activeRules.length} active service{activeRules.length === 1 ? '' : 's'}
                     </div>
                 </div>
@@ -156,22 +156,22 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                 <div className="space-y-6">
                     {/* Active Rules Section */}
                     {activeRules.length > 0 && (
-                        <div className="space-y-3">
-                            <h3 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Configured Subscriptions</h3>
+                        <div className="space-y-2.5">
+                            <h3 className="text-sm font-medium text-[var(--text-secondary)]">Configured subscriptions</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {activeRules.map(rule => (
                                     <div 
                                         key={rule.id} 
-                                        className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all gap-2"
+                                        className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] px-5 py-4 rounded-[10px] flex items-center justify-between group gap-2"
                                     >
                                         <div className="flex items-center gap-3.5 min-w-0">
                                             <SpotifyIcon size={20} strokeWidth={1.5} className={`shrink-0 ${rule.isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}`} />
                                             <div className="min-w-0">
                                                 <h4 className="text-[14px] font-medium text-[var(--text-primary)] flex items-center gap-2 truncate">
                                                     <span className="truncate">{rule.name}</span>
-                                                    {!rule.isActive && <span className="pill pill--warning text-[10px] py-0.5 px-2 shrink-0">Paused</span>}
+                                                    {!rule.isActive && <span className="pill pill--warning text-[11px] py-0.5 px-2 shrink-0">Paused</span>}
                                                 </h4>
-                                                <p className="text-[12px] text-[var(--text-muted)] mt-0.5 truncate">
+                                                <p className="text-[13px] text-[var(--text-muted)] mt-0.5 truncate">
                                                     {formatMoney(rule.amount, data.settings.currencySymbol)} • {rule.frequency.toLowerCase()}
                                                 </p>
                                             </div>
@@ -185,7 +185,7 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                                             </button>
                                             <button 
                                                 onClick={() => deleteRule(rule.id)}
-                                                className="btn btn--ghost btn--icon-sm text-[var(--text-muted)] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                                className="btn btn--ghost btn--icon-sm text-[var(--text-muted)] hover:text-red-400 opacity-0 group-hover:opacity-100"
                                                 title="Delete subscription"
                                             >
                                                 <Trash2 size={15} strokeWidth={1.5} />
@@ -199,18 +199,18 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
 
                     {/* Auto-Detected Subscriptions Section */}
                     {detectedSubscriptions.length > 0 && (
-                        <div className="space-y-3">
-                            <h3 className="text-xs font-medium text-[var(--text-secondary)] uppercase tracking-wider">Auto-Detected Recurring Charges</h3>
+                        <div className="space-y-2.5">
+                            <h3 className="text-sm font-medium text-[var(--text-secondary)]">Auto-detected recurring charges</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {detectedSubscriptions.map(sub => {
                                     const isAlreadyRegistered = activeRules.some(r => r.name.toLowerCase() === sub.name.toLowerCase() && r.amount === sub.amount);
                                     return (
-                                        <div key={sub.id} className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-5 rounded-[10px] flex items-center justify-between group transition-all">
+                                        <div key={sub.id} className="bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] px-5 py-4 rounded-[10px] flex items-center justify-between group">
                                             <div className="flex items-center gap-3.5">
                                                 <SpotifyIcon size={20} strokeWidth={1.5} className="text-[var(--text-muted)]" />
                                                 <div>
                                                     <h4 className="text-[14px] font-medium text-[var(--text-primary)]">{sub.name}</h4>
-                                                    <p className="text-[12px] text-[var(--text-muted)] mt-0.5">
+                                                    <p className="text-[13px] text-[var(--text-muted)] mt-0.5">
                                                         {formatMoney(sub.amount, data.settings.currencySymbol)} • {sub.instances} billing occurrences
                                                     </p>
                                                 </div>
@@ -232,10 +232,10 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                 </div>
             ) : (
                 /* Centered Empty State Box */
-                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] p-12 text-center flex flex-col items-center justify-center my-4">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[10px] px-8 py-12 text-center flex flex-col items-center justify-center my-4">
                     <SpotifyIcon size={32} strokeWidth={1.5} className="text-[var(--text-muted)] mb-3" />
                     <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1">No active subscriptions</h3>
-                    <p className="text-xs text-[var(--text-secondary)] max-w-sm mb-6 leading-relaxed">
+                    <p className="text-sm text-[var(--text-secondary)] max-w-sm mb-6 leading-relaxed">
                         Track your recurring software, streaming services, or monthly bills to prevent hidden subscription drift.
                     </p>
                     <button
@@ -244,9 +244,9 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                             setSubAmount('');
                             setIsAddModalOpen(true);
                         }}
-                        className="btn btn--primary h-[32px] px-3.5 text-[12px]"
+                        className="btn btn--primary px-4 text-sm"
                     >
-                        <Plus size={14} />
+                        <Plus size={15} strokeWidth={1.5} />
                         <span>Add subscription</span>
                     </button>
                 </div>
@@ -260,31 +260,31 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
             >
                 <form onSubmit={handleManualAdd} className="space-y-4">
                     <div className="space-y-1.5">
-                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Service Name</label>
+                        <label className="text-[14px] font-medium text-[var(--text-primary)]">Service Name</label>
                         <input 
                             type="text" 
                             placeholder="e.g. Netflix, Spotify, AWS, Gym..." 
                             value={subName}
                             onChange={e => setSubName(e.target.value)}
-                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all"
+                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[14px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none"
                             required
                         />
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Recurring Amount ({data.settings.currencySymbol})</label>
+                        <label className="text-[14px] font-medium text-[var(--text-primary)]">Recurring Amount ({data.settings.currencySymbol})</label>
                         <input 
                             type="number" 
                             placeholder="0.00" 
                             value={subAmount}
                             onChange={e => setSubAmount(e.target.value)}
-                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[13px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none transition-all font-mono"
+                            className="w-full h-[36px] bg-[var(--field-bg)] rounded-[6px] px-3 text-[14px] text-[var(--text-primary)] border border-[var(--field-border)] outline-none font-mono"
                             required
                         />
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-[13px] font-medium text-[var(--text-primary)]">Billing Cycle</label>
+                        <label className="text-[14px] font-medium text-[var(--text-primary)]">Billing Cycle</label>
                         <CustomSelect
                             value={subFreq}
                             onChange={val => setSubFreq(val as any)}
@@ -300,14 +300,14 @@ export const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ data, 
                         <button
                             type="button"
                             onClick={() => setIsAddModalOpen(false)}
-                            className="btn btn--outline h-[32px] px-3.5 text-[12px]"
+                            className="btn btn--outline px-4 text-sm"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={!subName || !subAmount}
-                            className="btn btn--primary h-[32px] px-4 text-[12px]"
+                            className="btn btn--primary px-4 text-sm"
                         >
                             Add subscription
                         </button>

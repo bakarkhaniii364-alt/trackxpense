@@ -250,9 +250,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   };
 
   const sizeClasses = {
-    sm: 'h-[28px] px-2.5 text-[11px]',
-    md: 'h-[36px] px-3 text-[12.5px]',
-    lg: 'h-[40px] px-3.5 text-[13.5px]',
+    sm: 'h-[28px] px-2.5 text-[12px]',
+    md: 'h-[34px] px-3 text-[13.5px]',
+    lg: 'h-[40px] px-3.5 text-[14px]',
   }[size];
 
   const toggleDropdown = () => {
@@ -279,9 +279,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className={`w-full flex items-center justify-between gap-2 rounded-[6px] bg-[var(--field-bg)] border transition-all text-left cursor-pointer outline-none ${sizeClasses} ${
+        className={`w-full flex items-center justify-between gap-2 rounded-[6px] bg-[var(--field-bg)] border text-left cursor-pointer outline-none ${sizeClasses} ${
           isOpen
-            ? 'border-[var(--field-border-focus)] shadow-[0_0_0_1px_var(--field-border-focus),0_0_8px_var(--field-focus-glow)] text-[var(--text-primary)]'
+            ? 'border-[var(--field-border-focus)] ring-1 ring-[var(--field-border-focus)] text-[var(--text-primary)]'
             : 'border-[var(--field-border)] hover:border-[var(--field-border-hover)] text-[var(--text-primary)]'
         } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
       >
@@ -292,8 +292,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         
         <CaretDown 
           size={size === 'sm' ? 12 : 14} 
-          weight="bold"
-          className={`text-[var(--text-muted)] transition-transform duration-150 shrink-0 ${isOpen ? 'rotate-180 text-[var(--field-border-focus)]' : ''}`} 
+          weight="regular"
+          className={`text-[var(--text-muted)] shrink-0 ${isOpen ? 'rotate-180 text-[var(--field-border-focus)]' : ''}`} 
         />
       </button>
 
@@ -302,7 +302,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         <div
           ref={menuRef}
           onKeyDown={handleKeyDown}
-          className="fixed z-[999999] flex flex-col bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-[8px] p-1 shadow-[0_12px_32px_rgba(0,0,0,0.65),0_2px_8px_rgba(0,0,0,0.3)] animate-in fade-in duration-100"
+          className="fixed z-[999999] flex flex-col bg-[var(--bg-surface)] border border-[var(--border-default)] ring-1 ring-[var(--border-strong)] rounded-[8px] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)] animate-in fade-in duration-100"
           style={{
             top: coords.top !== undefined ? `${coords.top}px` : undefined,
             bottom: coords.bottom !== undefined ? `${coords.bottom}px` : undefined,
@@ -318,7 +318,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               <div className="relative flex items-center">
                 <MagnifyingGlass 
                   size={13} 
-                  weight="bold" 
+                  weight="regular" 
                   className="absolute left-2 text-[var(--text-muted)] pointer-events-none" 
                 />
                 <input
@@ -330,7 +330,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     setSearchQuery(e.target.value);
                     setHighlightedIndex(0);
                   }}
-                  className="w-full h-[28px] pl-7 pr-7 text-[12px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[5px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--field-border-focus)]"
+                  className="w-full h-[30px] pl-7 pr-7 text-[13px] bg-[var(--bg-subtle)] border border-[var(--border-default)] rounded-[5px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none focus:border-[var(--field-border-focus)]"
                 />
                 {searchQuery && (
                   <button
@@ -341,7 +341,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     }}
                     className="absolute right-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] p-0.5"
                   >
-                    <X size={12} weight="bold" />
+                    <X size={12} weight="regular" />
                   </button>
                 )}
               </div>
@@ -356,7 +356,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
             style={{ overscrollBehavior: 'contain' }}
           >
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-3 text-[12px] text-[var(--text-muted)] text-center">
+              <div className="px-3 py-3 text-[13px] text-[var(--text-muted)] text-center">
                 No matching options
               </div>
             ) : (
@@ -371,7 +371,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     type="button"
                     onClick={() => handleSelect(opt.value)}
                     onMouseEnter={() => setHighlightedIndex(index)}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[5px] text-left transition-colors cursor-pointer text-[12.5px] ${
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-[5px] text-left cursor-pointer text-[13.5px] ${
                       isSelected
                         ? 'bg-[var(--accent-bg-soft)] text-[var(--accent)] font-medium'
                         : isHighlighted
@@ -384,7 +384,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                       <span className="truncate">{opt.label}</span>
                     </span>
                     {isSelected && (
-                      <Check size={13} weight="bold" className="text-[var(--accent)] shrink-0 ml-2" />
+                      <Check size={14} weight="regular" className="text-[var(--accent)] shrink-0 ml-2" />
                     )}
                   </button>
                 );

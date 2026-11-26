@@ -4,6 +4,7 @@ import {
   X
 } from '@phosphor-icons/react';
 import { AppData } from '../../types';
+import { LayerCard } from '../shared/LayerCard';
 
 interface DailyBudgetProps {
     dailySpent: number;
@@ -40,31 +41,31 @@ export const DailyBudget: React.FC<DailyBudgetProps> = ({
     const isApproaching = !isOverBudget && dailyProgress > 80;
 
     return (
-        <div className="rounded-[8px] bg-[var(--bg-surface)] border border-[var(--border-default)] hover:border-[var(--border-active)] p-4 sm:p-5 flex flex-col justify-between transition-colors h-full">
+        <LayerCard className="px-3.5 py-3 sm:px-5 sm:py-4 flex flex-col justify-between h-full">
             <div>
                 <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-medium uppercase tracking-[0.06em] text-[var(--text-muted)] truncate">
-                        Daily Budget
+                    <span className="text-[12px] font-medium text-[var(--text-muted)] truncate">
+                        Daily budget
                     </span>
                     {isEditingGoal ? (
                         <div className="flex items-center gap-1 animate-in fade-in">
                             <input
                                 autoFocus
                                 type="number"
-                                className="w-16 bg-[var(--bg-subtle)] text-[var(--text-primary)] text-[11px] px-1.5 py-0.5 rounded-[4px] outline-none border border-[var(--border-active)] font-mono"
+                                className="w-16 bg-[var(--bg-subtle)] text-[var(--text-primary)] text-[12px] px-2 py-0.5 rounded-[6px] outline-none border border-[var(--border-active)] font-mono"
                                 value={tempGoal}
                                 onChange={e => setTempGoal(e.target.value)}
                                 placeholder="Limit..."
                             />
                             <button 
                                 onClick={saveGoal} 
-                                className="p-0.5 rounded bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-80"
+                                className="p-1 rounded-[6px] bg-[var(--status-success-bg)] text-[var(--status-success-fg)] hover:opacity-80 cursor-pointer"
                             >
                                 <Check size={12} strokeWidth={1.5} />
                             </button>
                             <button 
                                 onClick={() => setIsEditingGoal(false)} 
-                                className="p-0.5 rounded bg-[var(--bg-subtle)] text-[var(--text-muted)]"
+                                className="p-1 rounded-[6px] bg-[var(--bg-subtle)] text-[var(--text-muted)] cursor-pointer"
                             >
                                 <X size={12} strokeWidth={1.5} />
                             </button>
@@ -72,7 +73,7 @@ export const DailyBudget: React.FC<DailyBudgetProps> = ({
                     ) : (
                         <button
                             onClick={() => { setTempGoal(dailyLimit > 0 ? dailyLimit.toString() : ''); setIsEditingGoal(true); }}
-                            className="text-[10px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                            className="text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
                         >
                             {dailyLimit > 0 ? 'Edit' : '+ Set'}
                         </button>
@@ -80,10 +81,10 @@ export const DailyBudget: React.FC<DailyBudgetProps> = ({
                 </div>
 
                 <div className="mb-2">
-                    <div className="text-base sm:text-xl lg:text-2xl font-semibold text-[var(--text-primary)] tracking-tight font-mono">
+                    <div className="text-base sm:text-xl lg:text-2xl font-semibold text-[var(--text-primary)] font-mono">
                         {formatMoney(dailySpent, currency)}
                     </div>
-                    <div className="text-[11px] text-[var(--text-secondary)] mt-0.5 font-normal truncate">
+                    <div className="text-[12px] text-[var(--text-secondary)] mt-0.5 font-normal truncate">
                         {dailyLimit > 0 ? (
                             <span>of {formatMoney(dailyLimit, currency)} cap</span>
                         ) : (
@@ -112,7 +113,7 @@ export const DailyBudget: React.FC<DailyBudgetProps> = ({
                     )}
                 </div>
 
-                <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center justify-between text-[12px]">
                     <div className="flex items-center gap-1.5">
                         <span className={`w-1.5 h-1.5 rounded-full ${
                             dailyLimit === 0 
@@ -135,6 +136,6 @@ export const DailyBudget: React.FC<DailyBudgetProps> = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </LayerCard>
     );
 };

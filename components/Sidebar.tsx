@@ -139,17 +139,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         />
       )}
       <aside
-        style={{
-          borderRightColor: isCollapsed ? 'transparent' : 'var(--border-default)',
-        }}
         className={`${
           isStatic
-            ? `relative ${isCollapsed ? 'w-[60px]' : 'w-[260px]'} bg-[var(--bg-sidebar)] border-r shrink-0 h-[100dvh] h-full translate-x-0 transition-[width,border-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`
-            : `fixed inset-y-0 left-0 h-full ${isCollapsed ? 'w-[60px]' : 'w-[280px]'} bg-[var(--bg-sidebar)] border-r shadow-2xl shrink-0 z-[101] transform transition-[transform,width,border-color] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
+            ? `relative ${isCollapsed ? 'w-[60px]' : 'w-[260px]'} bg-[var(--bg-sidebar)] border-r border-[var(--border-default)] shrink-0 h-[100dvh] h-full translate-x-0 transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]`
+            : `fixed inset-y-0 left-0 h-full ${isCollapsed ? 'w-[60px]' : 'w-[280px]'} bg-[var(--bg-sidebar)] border-r border-[var(--border-default)] shadow-2xl shrink-0 z-[101] transform transition-[transform,width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${isOpen ? 'translate-x-0' : '-translate-x-full'}`
         } flex flex-col overflow-hidden select-none`}
       >
         {/* Top Header: Branding + Sidebar Collapse/Expand Button */}
-        <div className="h-[52px] px-3 flex items-center shrink-0 overflow-hidden">
+        <div className="h-[52px] px-3 flex items-center shrink-0 overflow-hidden border-b border-[var(--border-default)]">
           {isCollapsed ? (
             <button
               onClick={() => {
@@ -180,7 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     className="w-6 h-6 rounded-full object-contain shrink-0 select-none pointer-events-none" 
                   />
                 </div>
-                <span className="text-[13px] font-medium text-[var(--text-primary)] tracking-tight whitespace-nowrap pl-2">
+                <span className="text-[13px] font-medium text-[var(--text-primary)] whitespace-nowrap pl-2">
                   TrackXpense
                 </span>
               </div>
@@ -350,31 +347,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 style={{ 
                   position: 'fixed',
                   bottom: `${dropdownPosition.bottom}px`, 
-                  left: `${dropdownPosition.left}px` 
+                  left: `${dropdownPosition.left}px`,
+                  backgroundColor: '#121216'
                 }}
-                className="w-[220px] bg-[var(--bg-surface)] rounded-[10px] border border-[var(--border-default)] shadow-[0_16px_40px_rgba(0,0,0,0.65),0_2px_8px_rgba(0,0,0,0.4)] p-1.5 text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150 select-none z-[10000]"
+                className="w-[212px] bg-[#121216] rounded-[8px] border border-[var(--border-default)] shadow-[0_12px_32px_rgba(0,0,0,0.8)] p-1 text-[var(--text-primary)] animate-in fade-in zoom-in-95 duration-150 select-none z-[10000]"
               >
-                {/* Pointer Nudge */}
-                <div 
-                  className="absolute -bottom-[6px] w-2.5 h-2.5 bg-[var(--bg-surface)] border-b border-r border-[var(--border-default)] rotate-45 z-20" 
-                  style={{ left: '18px' }}
-                />
-
                 {/* Email Header */}
-                <div className="px-3 py-2 text-[12px] text-[var(--text-muted)] border-b border-[var(--border-default)]/60 truncate font-normal relative z-10">
+                <div className="px-2.5 py-2 text-[12px] text-[var(--text-muted)] border-b border-[var(--border-default)] truncate font-normal">
                   {data.profile.email || data.profile.name || 'user@trackxpense.app'}
                 </div>
 
                 {/* Options List */}
-                <div className="py-1 space-y-0.5 relative z-10">
+                <div className="py-1 space-y-0.5">
                   <button 
                     onClick={() => {
                       setIsUserMenuOpen(false);
                       onViewChange('identity', 'general');
                       if (!isStatic) onClose();
                     }}
-                    className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal cursor-pointer"
+                    className="w-full px-2.5 py-1.5 flex items-center gap-2 rounded-[5px] text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal cursor-pointer"
                   >
+                    <User size={14} weight="regular" className="text-[var(--text-muted)] shrink-0" />
                     <span>Profile</span>
                   </button>
 
@@ -384,8 +377,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onViewChange('control');
                       if (!isStatic) onClose();
                     }}
-                    className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal cursor-pointer"
+                    className="w-full px-2.5 py-1.5 flex items-center gap-2 rounded-[5px] text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal cursor-pointer"
                   >
+                    <Sliders size={14} weight="regular" className="text-[var(--text-muted)] shrink-0" />
                     <span>Billing</span>
                   </button>
 
@@ -395,23 +389,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       onViewChange('identity', 'data_security');
                       if (!isStatic) onClose();
                     }}
-                    className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal cursor-pointer"
+                    className="w-full px-2.5 py-1.5 flex items-center justify-between rounded-[5px] text-[13px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors text-left font-normal cursor-pointer"
                   >
-                    <span>Data & Security</span>
-                    <CaretRight size={13} weight="regular" className="text-[var(--text-muted)] opacity-60" />
+                    <span className="flex items-center gap-2">
+                      <Gear size={14} weight="regular" className="text-[var(--text-muted)] shrink-0" />
+                      <span>Data &amp; Security</span>
+                    </span>
+                    <CaretRight size={12} weight="regular" className="text-[var(--text-muted)] shrink-0" />
                   </button>
                 </div>
 
                 {/* Logout Option */}
-                <div className="border-t border-[var(--border-default)]/60 pt-1 mt-0.5 relative z-10">
+                <div className="border-t border-[var(--border-default)] pt-1 mt-0.5">
                   <button 
                     onClick={() => {
                       setIsUserMenuOpen(false);
                       if (onLogout) onLogout();
                       else handleLogout();
                     }}
-                    className="w-full px-3 py-1.5 flex items-center justify-between rounded-[6px] text-[13px] text-[#ef4444] hover:bg-red-500/10 transition-colors text-left font-medium cursor-pointer"
+                    className="w-full px-2.5 py-1.5 flex items-center gap-2 rounded-[5px] text-[13px] text-[var(--status-error-fg)] hover:bg-[var(--status-error-bg)] transition-colors text-left font-medium cursor-pointer"
                   >
+                    <SignOut size={14} weight="regular" className="shrink-0" />
                     <span>Log out</span>
                   </button>
                 </div>
