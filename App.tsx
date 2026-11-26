@@ -1037,6 +1037,7 @@ export default function App() {
   };
 
   const requestViewChange = (newView: ViewState, subTab?: string) => {
+      setIsMobileMoreOpen(false);
       if (newView === 'rabbai' && view !== 'rabbai') {
         // If user left conversation and is now tapping on AI, open in a new conversation
         if (activeRabbAiConv && activeRabbAiConv.messages.length > 0) {
@@ -1068,6 +1069,7 @@ export default function App() {
       if (pendingView) {
           setIsDirty(false);
           setView(pendingView);
+          navigateTo(pendingView);
           setPendingView(null);
           setIsUnsavedModalOpen(false);
       }

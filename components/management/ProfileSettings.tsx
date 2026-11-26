@@ -213,13 +213,23 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   };
   const fmtMoney = formatMoney || defaultFormatMoney;
 
-  const isProfileDirty = JSON.stringify(localProfile) !== JSON.stringify(data.profile);
-  const isSettingsDirty = JSON.stringify(localSettings) !== JSON.stringify(data.settings);
-  const isDirty = isProfileDirty || isSettingsDirty;
+  const isInlineEditingProfile =
+    editingCard === 'profile' || editingCard === 'daily_target' || editingCard === 'monthly_target';
+  const isDirty = isInlineEditingProfile && (
+    (localProfile.name || '') !== (data.profile.name || '') ||
+    (localProfile.dailyGoal || 0) !== (data.profile.dailyGoal || 0) ||
+    (localProfile.monthlyGoal || 0) !== (data.profile.monthlyGoal || 0)
+  );
 
   useEffect(() => {
     if (onDirtyChange) onDirtyChange(isDirty);
   }, [isDirty, onDirtyChange]);
+
+  useEffect(() => {
+    return () => {
+      if (onDirtyChange) onDirtyChange(false);
+    };
+  }, [onDirtyChange]);
 
   const handleSaveProfile = () => {
     updateData({ profile: localProfile });
@@ -495,7 +505,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                         autoFocus
                       />
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">Cancel</button>
+                        <button onClick={() => { setLocalProfile(data.profile); setEditingCard(null); }} className="text-[12px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer">Cancel</button>
                         <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[var(--text-primary)] hover:underline cursor-pointer">Save</button>
                       </div>
                     </div>
@@ -661,7 +671,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                         autoFocus
                       />
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)] cursor-pointer">Cancel</button>
+                        <button onClick={() => { setLocalProfile(data.profile); setEditingCard(null); }} className="text-[12px] text-[var(--text-secondary)] cursor-pointer">Cancel</button>
                         <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[var(--text-primary)] hover:underline cursor-pointer">Save</button>
                       </div>
                     </div>
@@ -715,7 +725,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                         autoFocus
                       />
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setEditingCard(null)} className="text-[12px] text-[var(--text-secondary)] cursor-pointer">Cancel</button>
+                        <button onClick={() => { setLocalProfile(data.profile); setEditingCard(null); }} className="text-[12px] text-[var(--text-secondary)] cursor-pointer">Cancel</button>
                         <button onClick={handleSaveProfile} className="text-[12px] font-medium text-[var(--text-primary)] hover:underline cursor-pointer">Save</button>
                       </div>
                     </div>

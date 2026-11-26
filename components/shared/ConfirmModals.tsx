@@ -22,7 +22,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
 }) => {
   if (!isOpen) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/80 transition-opacity" onClick={onClose} aria-hidden="true" />
       <div 
         role="dialog" 
@@ -91,7 +91,7 @@ export const UnsavedChangesModal: React.FC<UnsavedChangesModalProps> = ({
 }) => {
   if (!isOpen) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/80 transition-opacity" onClick={onClose} aria-hidden="true" />
       <div 
         role="dialog" 
@@ -133,7 +133,7 @@ export const DeleteConversationModal: React.FC<DeleteConversationModalProps> = (
 }) => {
   if (!isOpen) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[var(--z-modal,600)] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/80 transition-opacity" onClick={onClose} aria-hidden="true" />
       <div 
         role="dialog" 
